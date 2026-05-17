@@ -1,44 +1,21 @@
-// app/api/products/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 
-import { getDB } from "../../../lib/db";
-import { seedDatabase } from "../../../lib/seed";
+import { prisma } from "../../../lib/prisma";
 
 export async function GET(
   request: NextRequest
 ) {
-  try {
-    // IMPORTANT
-    await seedDatabase();
+  const category =
+    request.nextUrl.searchParams.get(
+      "category"
+    );
 
-    const db = await getDB();
+  const products =
+    await prisma.product.findMany({
+      where: category
+        ? { category }
+        : undefined
+    });
 
-    const category =
-      request.nextUrl.searchParams.get(
-        "category"
-      );
-
-    let products = [];
-
-    if (category) {
-      products = await db.all(
-        `
-        SELECT * FROM products
-        WHERE category = ?
-      `,
-        [category]
-      );
-    } else {
-      products = await db.all(`
-        SELECT * FROM products
-      `);
-    }
-
-    return NextResponse.json(products);
-  } catch (error) {
-    console.log(error);
-
-    return NextResponse.json([]);
-  }
+  return NextResponse.json(products);
 }
