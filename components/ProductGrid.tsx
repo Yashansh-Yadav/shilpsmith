@@ -85,7 +85,8 @@ export default function ProductGrid({
             "
           >
             <img
-              src={product.image}
+              src={ product.images?.[0]?.url ||
+                    "/placeholder.png"}
               alt={product.name}
               className="
                 w-full

@@ -1,24 +1,30 @@
-import { NextRequest, NextResponse } from "next/server";
-
+import { NextResponse } from "next/server";
 import { prisma } from "../../../lib/prisma";
 
-export const dynamic = "force-dynamic";
-
-export async function GET(
-  request: NextRequest
-) {
+export async function GET(request: Request) {
   try {
-    const category =
-      request.nextUrl.searchParams.get(
-        "category"
-      );
+    const { searchParams } = new URL(request.url);
 
-    const products =
-      await prisma.product.findMany({
-        where: category
-          ? { category }
-          : undefined
-      });
+    const category = searchParams.get("category");
+
+    const products = await prisma.product.findMany({
+      where: category
+        ? {
+            category: {
+              slug: category,
+            },
+          }
+        : undefined,
+
+      include: {
+        category: true,
+        images: true,
+      },
+
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
 
     return NextResponse.json(products);
   } catch (error) {
@@ -26,9 +32,11 @@ export async function GET(
 
     return NextResponse.json(
       {
-        error: "Failed to fetch products"
+        error: "Failed to fetch products",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

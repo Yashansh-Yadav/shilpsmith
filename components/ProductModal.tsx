@@ -73,8 +73,10 @@ export default function ProductModal({
           {/* IMAGE */}
           <div className="relative">
             <img
-              src={product.image}
-              alt={product.name}
+              src={product.images?.[0]?.url ||
+                "/placeholder.png"}
+              alt={product.images?.[0]?.url ||
+                "/placeholder.png"}
               className="
                 w-full
                 h-64

@@ -7,14 +7,88 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Admin {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  description String?
+  image       String?
+
+  products    Product[]
+
+  createdAt   DateTime @default(now())
+}
+
 model Product {
-  id            Int     @id @default(autoincrement())
+  id               Int      @id @default(autoincrement())
 
-  category      String
-  name          String
-  description   String
-  price         String
-  image         String
+  categoryId       Int
+  category         Category @relation(fields: [categoryId], references: [id])
 
-  customizable  Boolean @default(false)
+  name             String
+  slug             String   @unique
+
+  shortDescription String
+  description      String
+
+  price            String
+  discountPrice    String?
+
+  featured         Boolean  @default(false)
+  customizable     Boolean  @default(false)
+
+  stockStatus      String
+
+  whatsappMessage  String?
+
+  images           ProductImage[]
+
+  createdAt        DateTime @default(now())
+}
+
+model ProductImage {
+  id         Int      @id @default(autoincrement())
+
+  url        String
+
+  productId  Int
+  product    Product  @relation(fields: [productId], references: [id])
+
+  createdAt  DateTime @default(now())
+}
+
+model Lead {
+  id            Int      @id @default(autoincrement())
+
+  customerName  String
+  phone         String
+
+  message       String
+
+  productName   String?
+  notes         String?
+
+  status        String   @default("new")
+
+  createdAt     DateTime @default(now())
+}
+
+model HomepageSection {
+  id         Int      @id @default(autoincrement())
+
+  key        String   @unique
+
+  title      String?
+  subtitle   String?
+
+  image      String?
+
+  createdAt  DateTime @default(now())
 }
