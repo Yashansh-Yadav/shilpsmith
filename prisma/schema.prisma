@@ -7,12 +7,61 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Admin {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
+// -----------------------------------------------------------------------------
+// Users / auth
+// -----------------------------------------------------------------------------
+
+enum AdminRole {
+  SUPER_ADMIN
+  ADMIN
+  STAFF
 }
+
+model Admin {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  password  String
+  name      String?
+  role      AdminRole @default(ADMIN)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password      String?
+  name          String?
+  phone         String?
+  emailVerified DateTime?
+
+  addresses    Address[]
+  orders       Order[]
+  cart         Cart?
+  reviews      Review[]
+  wishlistItems WishlistItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
+// NextAuth session table (kept for future DB-session strategy; current setup uses JWT).
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       Int
+  expires      DateTime
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// -----------------------------------------------------------------------------
+// Catalog
+// -----------------------------------------------------------------------------
 
 model Category {
   id          Int      @id @default(autoincrement())
@@ -21,74 +70,357 @@ model Category {
   description String?
   image       String?
 
-  products    Product[]
+  products Product[]
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([slug])
 }
 
 model Product {
-  id               Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  categoryId       Int
-  category         Category @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
 
   name             String
-  slug             String   @unique
-
+  slug             String  @unique
   shortDescription String
   description      String
 
-  price            String
-  discountPrice    String?
+  price         String
+  discountPrice String?
 
-  featured         Boolean  @default(false)
-  customizable     Boolean  @default(false)
+  featured     Boolean @default(false)
+  customizable Boolean @default(false)
 
-  stockStatus      String
+  stockStatus String @default("in-stock")
+  stock       Int    @default(0)
+  lowStockThreshold Int @default(5)
 
-  whatsappMessage  String?
+  whatsappMessage String?
 
-  images           ProductImage[]
+  modelUrl String?
 
-  createdAt        DateTime @default(now())
+  images   ProductImage[]
+  variants ProductVariant[]
+  reviews  Review[]
+  orderItems OrderItem[]
+  cartItems  CartItem[]
+  wishlistItems WishlistItem[]
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([slug])
+  @@index([categoryId])
+  @@index([featured])
 }
 
 model ProductImage {
-  id         Int      @id @default(autoincrement())
+  id  Int    @id @default(autoincrement())
+  url String
 
-  url        String
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 
-  productId  Int
-  product    Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
 
-  createdAt  DateTime @default(now())
+  @@index([productId])
 }
 
-model Lead {
-  id            Int      @id @default(autoincrement())
+model ProductVariant {
+  id Int @id @default(autoincrement())
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  name          String
+  sku           String?  @unique
+  priceModifier Decimal  @db.Decimal(10, 2) @default(0)
+  stock         Int      @default(0)
+  attributes    Json?
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+}
+
+// -----------------------------------------------------------------------------
+// Cart
+// -----------------------------------------------------------------------------
+
+model Cart {
+  id Int @id @default(autoincrement())
+
+  userId Int?  @unique
+  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  sessionId String? @unique
+
+  items CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CartItem {
+  id Int @id @default(autoincrement())
+
+  cartId Int
+  cart   Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+
+  variantId Int?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  quantity      Int  @default(1)
+  customization Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([cartId])
+}
+
+// -----------------------------------------------------------------------------
+// Orders
+// -----------------------------------------------------------------------------
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  RAZORPAY
+  WHATSAPP
+  COD
+}
+
+model Order {
+  id          Int    @id @default(autoincrement())
+  orderNumber String @unique
+
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id])
 
   customerName  String
-  phone         String
+  customerEmail String
+  customerPhone String
 
-  message       String
+  shippingAddressId Int?
+  shippingAddress   Address? @relation("ShippingAddress", fields: [shippingAddressId], references: [id])
 
-  productName   String?
-  notes         String?
+  billingAddressId Int?
+  billingAddress   Address? @relation("BillingAddress", fields: [billingAddressId], references: [id])
 
-  status        String   @default("new")
+  items OrderItem[]
 
-  createdAt     DateTime @default(now())
+  subtotal    Decimal @db.Decimal(10, 2)
+  tax         Decimal @db.Decimal(10, 2) @default(0)
+  shipping    Decimal @db.Decimal(10, 2) @default(0)
+  discount    Decimal @db.Decimal(10, 2) @default(0)
+  total       Decimal @db.Decimal(10, 2)
+
+  discountCodeId Int?
+  discountCode   DiscountCode? @relation(fields: [discountCodeId], references: [id])
+
+  status        OrderStatus   @default(PENDING)
+  paymentStatus PaymentStatus @default(PENDING)
+  paymentMethod PaymentMethod @default(WHATSAPP)
+
+  paymentReference String?
+  notes            String?
+  internalNotes    String?
+
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([orderNumber])
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model OrderItem {
+  id Int @id @default(autoincrement())
+
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+
+  variantId Int?
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  productName String
+  unitPrice   Decimal @db.Decimal(10, 2)
+  quantity    Int
+  subtotal    Decimal @db.Decimal(10, 2)
+
+  customization Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+}
+
+// -----------------------------------------------------------------------------
+// Addresses, reviews, wishlist, discounts, settings
+// -----------------------------------------------------------------------------
+
+model Address {
+  id Int @id @default(autoincrement())
+
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  fullName   String
+  phone      String
+  email      String?
+  street     String
+  city       String
+  state      String
+  postalCode String
+  country    String  @default("IN")
+  isDefault  Boolean @default(false)
+
+  shippingOrders Order[] @relation("ShippingAddress")
+  billingOrders  Order[] @relation("BillingAddress")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Review {
+  id Int @id @default(autoincrement())
+
+  // Either a logged-in User OR a guest identified by email. Guest reviews are
+  // validated against the order history before being accepted.
+  userId Int?
+  user   User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  customerEmail String?
+  customerName  String?
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  rating  Int
+  title   String?
+  comment String?
+
+  approved Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([customerEmail, productId])
+  @@index([productId])
+}
+
+model WishlistItem {
+  id Int @id @default(autoincrement())
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, productId])
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+model DiscountCode {
+  id Int @id @default(autoincrement())
+
+  code        String       @unique
+  description String?
+  type        DiscountType
+  value       Decimal      @db.Decimal(10, 2)
+
+  minOrderValue Decimal? @db.Decimal(10, 2)
+  maxUses       Int?
+  usedCount     Int      @default(0)
+  perUserLimit  Int?
+
+  startsAt  DateTime?
+  expiresAt DateTime?
+  active    Boolean   @default(true)
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([code])
+  @@index([active])
+}
+
+// Generic key/value site settings.
+model Settings {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Existing lead capture & homepage CMS blocks kept as-is.
+model Lead {
+  id Int @id @default(autoincrement())
+
+  customerName String
+  phone        String
+  message      String
+  productName  String?
+  notes        String?
+  status       String @default("new")
+
+  createdAt DateTime @default(now())
 }
 
 model HomepageSection {
-  id         Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  key        String   @unique
+  key      String  @unique
+  title    String?
+  subtitle String?
+  image    String?
 
-  title      String?
-  subtitle   String?
-
-  image      String?
-
-  createdAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

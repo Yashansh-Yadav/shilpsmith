@@ -1,52 +1,33 @@
+import type { NextRequest } from "next/server";
+
 import { prisma } from "../../../../lib/prisma";
+import { ok, created, handle } from "../../../../lib/apiResponse";
+import { parseJson } from "../../../../lib/middleware/validateRequest";
+import {
+  CategoryCreateSchema,
+  generateSlug,
+} from "../../../../lib/validators";
 
-import { NextRequest, NextResponse } from "next/server";
+export const dynamic = "force-dynamic";
 
-function generateSlug(text: string) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
-
-export async function GET() {
+export const GET = handle(async () => {
   const categories = await prisma.category.findMany({
-    orderBy: {
-      createdAt: "desc"
-    }
+    orderBy: { createdAt: "desc" },
+  });
+  return ok(categories);
+});
+
+export const POST = handle(async (request: NextRequest) => {
+  const input = await parseJson(request, CategoryCreateSchema);
+
+  const category = await prisma.category.create({
+    data: {
+      name: input.name,
+      slug: generateSlug(input.name),
+      description: input.description,
+      image: input.image,
+    },
   });
 
-  return NextResponse.json(categories);
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const body = await req.json();
-
-    const category = await prisma.category.create({
-      data: {
-        name: body.name,
-
-        slug: generateSlug(body.name),
-
-        description: body.description || "",
-
-        image: body.image || ""
-      }
-    });
-
-    return NextResponse.json(category);
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      {
-        error: "Failed to create category"
-      },
-      {
-        status: 500
-      }
-    );
-  }
-}
+  return created(category, "Category created");
+});

@@ -1,104 +1,93 @@
-import { prisma } from "../../../../../lib/prisma";
+import type { NextRequest } from "next/server";
 
-import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "../../../../../lib/prisma";
+import { ok, handle } from "../../../../../lib/apiResponse";
+import { parseJson } from "../../../../../lib/middleware/validateRequest";
+import {
+  ProductUpdateSchema,
+  generateSlug,
+} from "../../../../../lib/validators";
+import { NotFoundError, ValidationError } from "../../../../../lib/errors";
 
 export const dynamic = "force-dynamic";
 
-function generateSlug(text: string) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
+type Ctx = { params: Promise<{ id: string }> };
 
-export async function GET() {
-  try {
-    const products = await prisma.product.findMany({
-      include: {
-        category: true,
-        images: true
-      },
-
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-
-    return NextResponse.json(products);
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      { error: "Failed to fetch products" },
-      { status: 500 }
-    );
+async function resolveId(ctx: Ctx): Promise<number> {
+  const { id } = await ctx.params;
+  const parsed = Number(id);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new ValidationError("Invalid product id");
   }
+  return parsed;
 }
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+export const GET = handle(async (_req: NextRequest, ctx: Ctx) => {
+  const id = await resolveId(ctx);
+  const product = await prisma.product.findFirst({
+    where: { id, deletedAt: null },
+    include: { category: true, images: true, variants: true },
+  });
+  if (!product) throw new NotFoundError("Product not found");
+  return ok(product);
+});
 
-    const slug = generateSlug(body.name);
+export const PUT = handle(async (request: NextRequest, ctx: Ctx) => {
+  const id = await resolveId(ctx);
+  const input = await parseJson(request, ProductUpdateSchema);
 
-    const product = await prisma.product.create({
-      data: {
-        name: body.name,
-
-        slug: slug,
-
-        shortDescription:
-          body.shortDescription ||
-          body.description,
-
-        description: body.description,
-
-        price: body.price,
-
-        discountPrice:
-          body.discountPrice || null,
-
-        customizable:
-          body.customizable || false,
-
-        featured:
-          body.featured || false,
-
-        stockStatus:
-          body.stockStatus || "in-stock",
-
-        whatsappMessage:
-          body.whatsappMessage || "",
-
-        category: {
-          connect: {
-            slug: body.category
-          }
-        },
-
-        images: {
-          create: [
-            {
-              url: body.image
-            }
-          ]
-        }
-      },
-
-      include: {
-        category: true,
-        images: true
-      }
-    });
-
-    return NextResponse.json(product);
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      { error: "Failed to create product" },
-      { status: 500 }
-    );
+  const data: Record<string, unknown> = {};
+  if (input.name !== undefined) {
+    data.name = input.name;
+    data.slug = generateSlug(input.name);
   }
-}
+  if (input.shortDescription !== undefined) data.shortDescription = input.shortDescription;
+  if (input.description !== undefined) data.description = input.description;
+  if (input.price !== undefined) data.price = input.price;
+  if (input.discountPrice !== undefined) {
+    data.discountPrice = input.discountPrice || null;
+  }
+  if (input.featured !== undefined) data.featured = input.featured;
+  if (input.customizable !== undefined) data.customizable = input.customizable;
+  if (input.stockStatus !== undefined) data.stockStatus = input.stockStatus;
+  if (input.stock !== undefined) data.stock = input.stock;
+  if (input.whatsappMessage !== undefined) data.whatsappMessage = input.whatsappMessage;
+
+  if (input.category !== undefined) {
+    const category = await prisma.category.findUnique({
+      where: { slug: input.category },
+      select: { id: true },
+    });
+    if (!category) {
+      throw new ValidationError(`Category '${input.category}' does not exist`);
+    }
+    data.categoryId = category.id;
+  }
+
+  // Image is replaced as a single primary image when provided (preserves
+  // existing behavior of the admin UI which only handles one image at a time).
+  if (input.image !== undefined) {
+    await prisma.productImage.deleteMany({ where: { productId: id } });
+    data.images = { create: [{ url: input.image }] };
+  }
+
+  const product = await prisma.product.update({
+    where: { id },
+    data,
+    include: { category: true, images: true },
+  });
+
+  return ok(product, { message: "Product updated" });
+});
+
+export const DELETE = handle(async (_req: NextRequest, ctx: Ctx) => {
+  const id = await resolveId(ctx);
+
+  // Soft delete so historical orders keep their product reference intact.
+  await prisma.product.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
+
+  return ok({ id }, { message: "Product deleted" });
+});

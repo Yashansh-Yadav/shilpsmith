@@ -1,103 +1,84 @@
-import { prisma } from "../../../../lib/prisma";
+import type { NextRequest } from "next/server";
+import type { Prisma } from "@prisma/client";
 
-import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "../../../../lib/prisma";
+import { ok, created, handle } from "../../../../lib/apiResponse";
+import {
+  parseJson,
+  parseQuery,
+} from "../../../../lib/middleware/validateRequest";
+import {
+  AdminProductListQuerySchema,
+  ProductCreateSchema,
+  generateSlug,
+} from "../../../../lib/validators";
+import { ConflictError } from "../../../../lib/errors";
 
 export const dynamic = "force-dynamic";
 
-function generateSlug(text: string) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-}
+export const GET = handle(async (request: NextRequest) => {
+  const q = parseQuery(request, AdminProductListQuerySchema);
 
-export async function GET() {
-  try {
-    const products = await prisma.product.findMany({
-      include: {
-        category: true,
-        images: true
-      },
-
-      orderBy: {
-        createdAt: "desc"
-      }
-    });
-
-    return NextResponse.json(products);
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      { error: "Failed to fetch products" },
-      { status: 500 }
-    );
+  const where: Prisma.ProductWhereInput = { deletedAt: null };
+  if (q.category) where.category = { slug: q.category };
+  if (q.search) {
+    where.OR = [
+      { name: { contains: q.search, mode: "insensitive" } },
+      { slug: { contains: q.search, mode: "insensitive" } },
+    ];
   }
-}
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
+  const [total, items] = await Promise.all([
+    prisma.product.count({ where }),
+    prisma.product.findMany({
+      where,
+      include: { category: true, images: true },
+      orderBy: { createdAt: "desc" },
+      skip: (q.page - 1) * q.pageSize,
+      take: q.pageSize,
+    }),
+  ]);
 
-    const slug = generateSlug(body.name);
+  return ok({
+    items,
+    page: q.page,
+    pageSize: q.pageSize,
+    total,
+    pages: Math.max(1, Math.ceil(total / q.pageSize)),
+  });
+});
 
-    const product = await prisma.product.create({
-      data: {
-        name: body.name,
+export const POST = handle(async (request: NextRequest) => {
+  const input = await parseJson(request, ProductCreateSchema);
 
-        slug: slug,
+  const slug = generateSlug(input.name);
 
-        shortDescription:
-          body.shortDescription || body.description,
-
-        description: body.description,
-
-        price: body.price,
-
-        discountPrice:
-          body.discountPrice || null,
-
-        customizable:
-          body.customizable || false,
-
-        featured:
-          body.featured || false,
-
-        stockStatus:
-          body.stockStatus || "in-stock",
-
-        whatsappMessage:
-          body.whatsappMessage || "",
-
-        category: {
-          connect: {
-            slug: body.category
-          }
-        },
-
-        images: {
-          create: [
-            {
-              url: body.image
-            }
-          ]
-        }
-      },
-
-      include: {
-        category: true,
-        images: true
-      }
-    });
-
-    return NextResponse.json(product);
-  } catch (error) {
-    console.error(error);
-
-    return NextResponse.json(
-      { error: "Failed to create product" },
-      { status: 500 }
-    );
+  const category = await prisma.category.findUnique({
+    where: { slug: input.category },
+    select: { id: true },
+  });
+  if (!category) {
+    throw new ConflictError(`Category '${input.category}' does not exist`);
   }
-}
+
+  const product = await prisma.product.create({
+    data: {
+      name: input.name,
+      slug,
+      shortDescription: input.shortDescription || input.description,
+      description: input.description,
+      price: input.price,
+      discountPrice: input.discountPrice ?? null,
+      customizable: input.customizable,
+      featured: input.featured,
+      stockStatus: input.stockStatus,
+      stock: input.stock,
+      whatsappMessage: input.whatsappMessage,
+      categoryId: category.id,
+      images: { create: [{ url: input.image }] },
+    },
+    include: { category: true, images: true },
+  });
+
+  return created(product, "Product created");
+});
