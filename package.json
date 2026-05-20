@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 3000",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3000",
     "postinstall": "prisma generate",
     "lint": "next lint"
   },
@@ -13,14 +13,31 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.2.2",
     "@prisma/client": "^6.9.0",
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
+    "@tanstack/react-table": "^8.21.3",
+    "@vercel/blob": "^2.3.3",
+    "bcryptjs": "^3.0.3",
     "dotenv": "^17.4.2",
+    "lucide-react": "^0.469.0",
     "next": "15.0.7",
+    "next-auth": "^4.24.14",
     "prisma": "^6.9.0",
+    "razorpay": "^2.9.6",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-hook-form": "^7.76.0",
+    "react-hot-toast": "^2.6.0",
+    "react-is": "^19.2.6",
+    "recharts": "^3.8.1",
+    "resend": "^6.12.3",
     "sqlite": "^5.1.1",
-    "sqlite3": "^6.0.1"
+    "sqlite3": "^6.0.1",
+    "three": "^0.184.0",
+    "zod": "^4.4.3",
+    "zustand": "^5.0.13"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",

@@ -1,178 +1,120 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
+const CATEGORIES = [
+  {
+    slug: "personalized-gifts",
+    name: "Personalized Gifts",
+    description: "Custom figurines, photo plaques, and memorable keepsakes.",
+  },
+  {
+    slug: "home-decor",
+    name: "Home & Decor",
+    description: "Modern aesthetic decor pieces, lamps, and creative accessories.",
+  },
+  {
+    slug: "educational-student",
+    name: "Educational & Student",
+    description: "Study tools, anatomy models, desk organizers, and educational prints.",
+  },
+  {
+    slug: "functional-products",
+    name: "Functional Products",
+    description: "Practical organizers, holders, hooks, and utility-focused designs.",
+  },
+  {
+    slug: "jewelry-fashion",
+    name: "Jewelry & Fashion",
+    description: "Custom pendants, earrings, name necklaces, and wearable art.",
+  },
+  {
+    slug: "spiritual-artistic",
+    name: "Spiritual & Artistic",
+    description: "Idols, meditation decor, artistic sculptures, and aesthetic collectibles.",
+  },
+];
+
+// Earlier versions of this seed shipped 10 demo products + a few sample
+// reviews. The storefront now ships imageless and content-less — admins add
+// real products through /admin. We keep the slugs here so re-seeding cleans
+// up any leftover demo rows from upgrading installs.
+const LEGACY_DEMO_PRODUCT_SLUGS = [
+  "minime-custom-figurine",
+  "glowname-led-lamp",
+  "modern-vase-trio",
+  "moon-mood-lamp",
+  "spotify-music-plaque",
+  "anatomy-heart-model",
+  "modular-desk-organizer",
+  "namechain-pendant",
+  "ganesha-mini-idol",
+  "diwali-diya-set",
+];
+
 async function main() {
-  await prisma.product.createMany({
-    data: [
-      {
-      category: "personalized-gifts",
-      name: "Custom Mini Figurine",
-      description:
-        "Personalized 3D printed mini character based on your photo.",
-      price: "₹1499",
-      image:
-        "https://images.unsplash.com/photo-1521572267360-ee0c2909d518",
-      customizable: true
-    },
-    {
-      category: "personalized-gifts",
-      name: "Spotify Plaque",
-      description:
-        "Custom Spotify music plaque with your favorite song.",
-      price: "₹799",
-      image:
-        "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
-      customizable: true
-    },
-    {
-      category: "personalized-gifts",
-      name: "Name Lamp",
-      description:
-        "LED personalized name lamp for gifting.",
-      price: "₹999",
-      image:
-        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3",
-      customizable: true
-    },
-    {
-      category: "personalized-gifts",
-      name: "Couple Statue",
-      description:
-        "Romantic personalized couple sculpture.",
-      price: "₹1999",
-      image:
-        "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f",
-      customizable: true
-    },
+  // Demo admin
+  const demoEmail = "admin@shilpsmith.com";
+  const demoPassword = "demo";
+  const passwordHash = await bcrypt.hash(demoPassword, 10);
 
-    // Home Decor
-    {
-      category: "home-decor",
-      name: "Modern Vase",
-      description:
-        "Elegant geometric 3D printed vase.",
-      price: "₹699",
-      image:
-        "https://images.unsplash.com/photo-1493666438817-866a91353ca9",
-      customizable: false
+  await prisma.admin.upsert({
+    where: { email: demoEmail },
+    update: { password: passwordHash, role: "SUPER_ADMIN", name: "Demo Admin" },
+    create: {
+      email: demoEmail,
+      password: passwordHash,
+      role: "SUPER_ADMIN",
+      name: "Demo Admin",
     },
-    {
-      category: "home-decor",
-      name: "Wall Art",
-      description:
-        "Minimal wall decor inspired by modern interiors.",
-      price: "₹1299",
-      image:
-        "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85",
-      customizable: false
-    },
-    {
-      category: "home-decor",
-      name: "Moon Lamp",
-      description:
-        "Aesthetic moon lamp for bedrooms.",
-      price: "₹899",
-      image:
-        "https://images.unsplash.com/photo-1513694203232-719a280e022f",
-      customizable: false
-    },
-    {
-      category: "home-decor",
-      name: "Desk Sculpture",
-      description:
-        "Artistic desk sculpture with premium finish.",
-      price: "₹599",
-      image:
-        "https://images.unsplash.com/photo-1518770660439-4636190af475",
-      customizable: false
-    },
-
-    // Educational
-    {
-      category: "educational-student",
-      name: "Human Heart Model",
-      description:
-        "Detailed anatomy model for students.",
-      price: "₹899",
-      image:
-        "https://images.unsplash.com/photo-1582719478250-c89cae4dc85b",
-      customizable: false
-    },
-    {
-      category: "educational-student",
-      name: "Solar System Kit",
-      description:
-        "Educational planetary display model.",
-      price: "₹1299",
-      image:
-        "https://images.unsplash.com/photo-1446776811953-b23d57bd21aa",
-      customizable: false
-    },
-    {
-      category: "educational-student",
-      name: "DNA Structure",
-      description:
-        "3D DNA model for biology learning.",
-      price: "₹999",
-      image:
-        "https://images.unsplash.com/photo-1532187643603-ba119ca4109e",
-      customizable: false
-    },
-    {
-      category: "educational-student",
-      name: "Desk Organizer",
-      description:
-        "Functional organizer for students.",
-      price: "₹499",
-      image:
-        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3",
-      customizable: false
-    },
-
-    // Functional
-    {
-      category: "functional-products",
-      name: "Cable Organizer",
-      description:
-        "Minimal cable management solution.",
-      price: "₹299",
-      image:
-        "https://images.unsplash.com/photo-1516321318423-f06f85e504b3",
-      customizable: false
-    },
-    {
-      category: "functional-products",
-      name: "Phone Stand",
-      description:
-        "Adjustable premium phone stand.",
-      price: "₹399",
-      image:
-        "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9",
-      customizable: false
-    },
-    {
-      category: "functional-products",
-      name: "Headphone Holder",
-      description:
-        "Modern headphone desk mount.",
-      price: "₹499",
-      image:
-        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e",
-      customizable: false
-    },
-    {
-      category: "functional-products",
-      name: "Key Holder",
-      description:
-        "Wall-mounted stylish key holder.",
-      price: "₹599",
-      image:
-        "https://images.unsplash.com/photo-1519710164239-da123dc03ef4",
-      customizable: false
-    }
-    ]
   });
+  console.log(`Admin upserted: ${demoEmail} (password: ${demoPassword})`);
+
+  // Categories
+  for (const c of CATEGORIES) {
+    await prisma.category.upsert({
+      where: { slug: c.slug },
+      update: { name: c.name, description: c.description },
+      create: c,
+    });
+  }
+  console.log(`Categories upserted: ${CATEGORIES.length}`);
+
+  // Cleanup of legacy demo data. Reviews + ProductImage + ProductVariant
+  // cascade-delete via FK; OrderItem references RESTRICT, so we keep
+  // products that already have orders attached and just log them.
+  let removedProducts = 0;
+  let skippedProducts = 0;
+  for (const slug of LEGACY_DEMO_PRODUCT_SLUGS) {
+    const product = await prisma.product.findUnique({
+      where: { slug },
+      select: { id: true, _count: { select: { orderItems: true } } },
+    });
+    if (!product) continue;
+    if (product._count.orderItems > 0) {
+      skippedProducts++;
+      continue;
+    }
+    await prisma.product.delete({ where: { id: product.id } });
+    removedProducts++;
+  }
+  if (removedProducts > 0) {
+    console.log(`Removed legacy demo products: ${removedProducts}`);
+  }
+  if (skippedProducts > 0) {
+    console.log(
+      `Left ${skippedProducts} legacy demo product(s) in place — they already have orders attached.`
+    );
+  }
 }
 
-main();
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

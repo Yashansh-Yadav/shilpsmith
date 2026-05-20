@@ -33,12 +33,16 @@ export default function ProductGrid({
         }
 
         const response = await fetch(url);
+        const body = await response.json();
 
-        const data = await response.json();
-
-        setProducts(data);
+        if (response.ok && body?.success) {
+          setProducts(body.data);
+        } else {
+          setProducts([]);
+        }
       } catch (error) {
         console.log(error);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
@@ -85,7 +89,8 @@ export default function ProductGrid({
             "
           >
             <img
-              src={product.image}
+              src={ product.images?.[0]?.url ||
+                    "/placeholder.png"}
               alt={product.name}
               className="
                 w-full
