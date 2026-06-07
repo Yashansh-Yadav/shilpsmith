@@ -8,6 +8,7 @@ import {
   generateSlug,
 } from "../../../../../lib/validators";
 import { NotFoundError, ValidationError } from "../../../../../lib/errors";
+import { stripHtml } from "../../../../../lib/sanitize";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,11 @@ export const GET = handle(async (_req: NextRequest, ctx: Ctx) => {
   const id = await resolveId(ctx);
   const product = await prisma.product.findFirst({
     where: { id, deletedAt: null },
-    include: { category: true, images: true, variants: true },
+    include: {
+      category: true,
+      images: { orderBy: { id: "asc" } },
+      variants: true,
+    },
   });
   if (!product) throw new NotFoundError("Product not found");
   return ok(product);
@@ -41,7 +46,12 @@ export const PUT = handle(async (request: NextRequest, ctx: Ctx) => {
     data.name = input.name;
     data.slug = generateSlug(input.name);
   }
-  if (input.shortDescription !== undefined) data.shortDescription = input.shortDescription;
+  if (input.shortDescription !== undefined) {
+    data.shortDescription = input.shortDescription;
+  } else if (input.description !== undefined) {
+    // Keep the plain-text card summary in sync when the rich description changes.
+    data.shortDescription = stripHtml(input.description).slice(0, 500);
+  }
   if (input.description !== undefined) data.description = input.description;
   if (input.price !== undefined) data.price = input.price;
   if (input.discountPrice !== undefined) {
@@ -51,6 +61,7 @@ export const PUT = handle(async (request: NextRequest, ctx: Ctx) => {
   if (input.customizable !== undefined) data.customizable = input.customizable;
   if (input.stockStatus !== undefined) data.stockStatus = input.stockStatus;
   if (input.stock !== undefined) data.stock = input.stock;
+  if (input.modelUrl !== undefined) data.modelUrl = input.modelUrl || null;
   if (input.whatsappMessage !== undefined) data.whatsappMessage = input.whatsappMessage;
 
   if (input.category !== undefined) {
@@ -64,17 +75,26 @@ export const PUT = handle(async (request: NextRequest, ctx: Ctx) => {
     data.categoryId = category.id;
   }
 
-  // Image is replaced as a single primary image when provided (preserves
-  // existing behavior of the admin UI which only handles one image at a time).
-  if (input.image !== undefined) {
+  // Gallery replacement. The whole image set is replaced when the client sends
+  // `images` (new multi-image admin form) or the legacy single `image` field.
+  let newImages: string[] | undefined;
+  if (input.images !== undefined) {
+    newImages = input.images;
+  } else if (input.image !== undefined) {
+    newImages = input.image ? [input.image] : [];
+  }
+  if (newImages !== undefined) {
+    if (newImages.length === 0) {
+      throw new ValidationError("At least one product image is required");
+    }
     await prisma.productImage.deleteMany({ where: { productId: id } });
-    data.images = { create: [{ url: input.image }] };
+    data.images = { create: newImages.map((url) => ({ url })) };
   }
 
   const product = await prisma.product.update({
     where: { id },
     data,
-    include: { category: true, images: true },
+    include: { category: true, images: { orderBy: { id: "asc" } } },
   });
 
   return ok(product, { message: "Product updated" });

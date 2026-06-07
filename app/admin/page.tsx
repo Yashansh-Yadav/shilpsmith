@@ -6,6 +6,7 @@ import toast, { Toaster } from "react-hot-toast";
 import VariantsPanel from "../../components/admin/VariantsPanel";
 import Modal from "../../components/admin/Modal";
 import ProductImage from "../../components/shop/ProductImage";
+import RichTextEditor from "../../components/admin/RichTextEditor";
 
 interface Product {
   id: number;
@@ -35,18 +36,20 @@ interface ProductForm {
   name: string;
   description: string;
   price: string;
-  image: string;
+  images: string[];
   modelUrl: string;
   featured: boolean;
   customizable: boolean;
 }
+
+const MAX_IMAGES = 10;
 
 const EMPTY_FORM: ProductForm = {
   category: "",
   name: "",
   description: "",
   price: "",
-  image: "",
+  images: [],
   modelUrl: "",
   featured: false,
   customizable: false,
@@ -145,6 +148,43 @@ export default function AdminProductsPage() {
     return body.data.url as string;
   }
 
+  // Upload one or more selected images and append them to the gallery (in the
+  // order they were chosen). First image in the list is the cover.
+  async function handleImageFiles(files: FileList | null) {
+    if (!files || files.length === 0) return;
+    const remaining = MAX_IMAGES - form.images.length;
+    if (remaining <= 0) {
+      toast.error(`Up to ${MAX_IMAGES} images`);
+      return;
+    }
+    const picked = Array.from(files).slice(0, remaining);
+    if (picked.length < files.length) {
+      toast.error(`Only the first ${picked.length} image(s) were added (max ${MAX_IMAGES})`);
+    }
+    let added = 0;
+    for (const file of picked) {
+      const url = await uploadFile(file, "image");
+      if (url) {
+        setForm((f) => ({ ...f, images: [...f.images, url] }));
+        added++;
+      }
+    }
+    if (added > 0) toast.success(`${added} image${added > 1 ? "s" : ""} uploaded`);
+  }
+
+  function removeImage(index: number) {
+    setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== index) }));
+  }
+
+  function makeCover(index: number) {
+    setForm((f) => {
+      if (index === 0) return f;
+      const arr = [...f.images];
+      const [moved] = arr.splice(index, 1);
+      return { ...f, images: [moved, ...arr] };
+    });
+  }
+
   // ───────────── Modal lifecycle ─────────────
 
   function openCreateModal() {
@@ -163,7 +203,7 @@ export default function AdminProductsPage() {
       name: p.name,
       description: p.description,
       price: p.price,
-      image: p.images?.[0]?.url ?? "",
+      images: p.images?.map((im) => im.url) ?? [],
       modelUrl: p.modelUrl ?? "",
       featured: p.featured,
       customizable: p.customizable,
@@ -184,6 +224,12 @@ export default function AdminProductsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    if (form.images.length === 0) {
+      toast.error("Add at least one product image");
+      return;
+    }
+
     setSaving(true);
 
     const method = editingId ? "PUT" : "POST";
@@ -527,42 +573,77 @@ export default function AdminProductsPage() {
             />
           </label>
 
-          <label className="md:col-span-2 flex flex-col gap-1">
+          <div className="md:col-span-2 flex flex-col gap-1">
             <span className="text-xs font-medium text-slate-500">Description</span>
-            <textarea
-              rows={4}
-              required
+            <RichTextEditor
               value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
-              className="rounded-xl border border-slate-200 px-4 py-3 text-sm"
+              onChange={(html) => setForm((f) => ({ ...f, description: html }))}
+              resetKey={editingId ?? "new"}
+              placeholder="Describe the product — use headings, bold, and bullet lists to keep it scannable."
             />
-          </label>
+          </div>
 
-          <div>
-            <span className="text-xs font-medium text-slate-500 block mb-1">
-              Product image
-            </span>
+          <div className="md:col-span-2">
+            <div className="mb-1 flex items-center justify-between">
+              <span className="text-xs font-medium text-slate-500">
+                Product images{" "}
+                <span className="text-slate-400">
+                  ({form.images.length}/{MAX_IMAGES} · first is the cover)
+                </span>
+              </span>
+            </div>
             <input
               type="file"
               accept="image/*"
+              multiple
+              disabled={uploading || form.images.length >= MAX_IMAGES}
               onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                const url = await uploadFile(file, "image");
-                if (!url) return;
-                setForm((f) => ({ ...f, image: url }));
-                toast.success("Image uploaded");
+                await handleImageFiles(e.target.files);
+                // Reset so re-selecting the same file fires onChange again.
+                e.target.value = "";
               }}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm disabled:opacity-50"
             />
-            {form.image && (
-              <img
-                src={form.image}
-                alt="Preview"
-                className="mt-2 h-24 w-24 rounded-xl border border-slate-200 object-cover"
-              />
+            {form.images.length > 0 && (
+              <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6">
+                {form.images.map((url, i) => (
+                  <div
+                    key={`${url}-${i}`}
+                    className="group relative aspect-square overflow-hidden rounded-xl border border-slate-200"
+                  >
+                    <img
+                      src={url}
+                      alt={`Product image ${i + 1}`}
+                      className="h-full w-full object-cover"
+                    />
+                    {i === 0 && (
+                      <span className="absolute left-1 top-1 rounded-md bg-slate-900/85 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
+                        Cover
+                      </span>
+                    )}
+                    <div className="absolute inset-x-0 bottom-0 flex justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-1 opacity-0 transition group-hover:opacity-100">
+                      {i !== 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => makeCover(i)}
+                          className="rounded bg-white/90 px-1.5 py-0.5 text-[10px] font-semibold text-slate-800 hover:bg-white"
+                        >
+                          Cover
+                        </button>
+                      ) : (
+                        <span />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => removeImage(i)}
+                        className="rounded bg-red-600/90 px-1.5 py-0.5 text-[10px] font-semibold text-white hover:bg-red-600"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             )}
           </div>
 

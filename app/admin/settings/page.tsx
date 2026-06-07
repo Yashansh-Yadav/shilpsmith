@@ -14,10 +14,30 @@ type Section = {
   key: string;
   title: string;
   description: string;
-  fields: { name: string; label: string; type?: "text" | "number"; placeholder?: string }[];
+  fields: {
+    name: string;
+    label: string;
+    type?: "text" | "number" | "boolean";
+    placeholder?: string;
+    help?: string;
+  }[];
 };
 
 const SECTIONS: Section[] = [
+  {
+    key: "payments",
+    title: "Payments",
+    description:
+      "Control which payment methods customers can use at checkout.",
+    fields: [
+      {
+        name: "onlineEnabled",
+        label: "Enable online payments (Razorpay)",
+        type: "boolean",
+        help: "When off, checkout shows online payment as “Coming soon” and steers customers to WhatsApp / Cash on delivery.",
+      },
+    ],
+  },
   {
     key: "company",
     title: "Company",
@@ -179,18 +199,61 @@ export default function SettingsPage() {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  {section.fields.map((f) => (
-                    <label key={f.name} className="flex flex-col gap-1">
-                      <span className="text-xs font-medium text-slate-500">{f.label}</span>
-                      <input
-                        type={f.type ?? "text"}
-                        value={values[f.name] ?? ""}
-                        placeholder={f.placeholder}
-                        onChange={(e) => setField(section.key, f.name, e.target.value)}
-                        className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
-                      />
-                    </label>
-                  ))}
+                  {section.fields.map((f) => {
+                    if (f.type === "boolean") {
+                      const on = values[f.name] === "true";
+                      return (
+                        <div
+                          key={f.name}
+                          className="flex items-start justify-between gap-3 rounded-xl border border-slate-200 px-3 py-3 md:col-span-2"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-slate-800">
+                              {f.label}
+                            </p>
+                            {f.help && (
+                              <p className="mt-0.5 text-xs text-slate-500">
+                                {f.help}
+                              </p>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={on}
+                            onClick={() =>
+                              setField(
+                                section.key,
+                                f.name,
+                                on ? "false" : "true"
+                              )
+                            }
+                            className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
+                              on ? "bg-brand-600" : "bg-slate-300"
+                            }`}
+                          >
+                            <span
+                              className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                                on ? "translate-x-5" : "translate-x-1"
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      );
+                    }
+                    return (
+                      <label key={f.name} className="flex flex-col gap-1">
+                        <span className="text-xs font-medium text-slate-500">{f.label}</span>
+                        <input
+                          type={f.type ?? "text"}
+                          value={values[f.name] ?? ""}
+                          placeholder={f.placeholder}
+                          onChange={(e) => setField(section.key, f.name, e.target.value)}
+                          className="rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                        />
+                      </label>
+                    );
+                  })}
                 </div>
               </section>
             );

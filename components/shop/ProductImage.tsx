@@ -8,6 +8,9 @@ interface Props {
   productId?: number | string;
   aspectClass?: string;
   variant?: "full" | "mini";
+  // How the real image fills its box. "cover" crops to fill (cards/thumbnails);
+  // "contain" shows the whole product without cropping (gallery main image).
+  fit?: "cover" | "contain";
   className?: string;
   // Optional: pass the product name as a small footer label inside the
   // placeholder (used by ProductModal's large hero placeholder).
@@ -57,6 +60,7 @@ export default function ProductImage({
   productId,
   aspectClass = "aspect-[4/5]",
   variant = "full",
+  fit = "cover",
   className = "",
   caption,
 }: Props) {
@@ -70,7 +74,9 @@ export default function ProductImage({
           src={src}
           alt={alt}
           loading="lazy"
-          className="absolute inset-0 h-full w-full object-cover"
+          className={`absolute inset-0 h-full w-full ${
+            fit === "contain" ? "object-contain" : "object-cover"
+          }`}
         />
       </div>
     );

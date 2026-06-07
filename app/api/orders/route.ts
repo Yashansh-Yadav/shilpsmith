@@ -9,6 +9,7 @@ import { ValidationError, ConflictError } from "../../../lib/errors";
 import { rateLimit } from "../../../lib/middleware/rateLimit";
 import { logger } from "../../../lib/logger";
 import { sendOrderConfirmationEmail } from "../../../lib/email";
+import { getOnlinePaymentsEnabled } from "../../../lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,15 @@ export const POST = handle(async (request: NextRequest) => {
   rateLimit(request, { windowMs: 60_000, max: 10, namespace: "orders" });
 
   const input = await parseJson(request, OrderCreateSchema);
+
+  // Block online payments unless an admin has enabled them (Settings → Payments).
+  // The checkout already hides the option, but enforce it here so the route can't
+  // be bypassed.
+  if (input.paymentMethod === "RAZORPAY" && !(await getOnlinePaymentsEnabled())) {
+    throw new ValidationError(
+      "Online payments are currently unavailable. Please choose WhatsApp or Cash on delivery."
+    );
+  }
 
   // Re-validate against the live catalog. Never trust client-supplied prices.
   const productIds = Array.from(new Set(input.items.map((i) => i.productId)));
