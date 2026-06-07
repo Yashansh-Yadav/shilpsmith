@@ -2,16 +2,184 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─────────────────────────────────────────────────────────────────────────
+ * Base
+ * ──────────────────────────────────────────────────────────────────────── */
+
 html {
   scroll-behavior: smooth;
+  /* 16px base — every rem aligns to the 8px grid. */
+  font-size: 16px;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: #f8fafc;
   color: #0f172a;
+  /* Improves Inter's perceived smoothness on Mac/iOS. */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: "cv11", "ss01";
 }
+
+::selection {
+  background: rgba(16, 185, 129, 0.2);
+  color: #064e3b;
+}
+
+/* Tighter outline that still passes a11y. */
+:focus-visible {
+  outline: 2px solid rgba(16, 185, 129, 0.6);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Glass + decorative utilities
+ * ──────────────────────────────────────────────────────────────────────── */
 
 .glass {
   backdrop-filter: blur(14px);
-  background: rgba(255,255,255,0.75);
+  -webkit-backdrop-filter: blur(14px);
+  background: rgba(255, 255, 255, 0.7);
 }
+
+/* Brand gradient — used for hero text, accents, CTA glow. */
+.bg-brand-gradient {
+  background-image: linear-gradient(135deg, #10b981 0%, #06b6d4 50%, #6366f1 100%);
+}
+.text-brand-gradient {
+  background: linear-gradient(135deg, #047857 0%, #0e7490 50%, #4338ca 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Decorative emerald → cyan orb used as a backdrop accent. */
+.bg-orb {
+  background-image: radial-gradient(
+      circle at 30% 30%,
+      rgba(16, 185, 129, 0.35),
+      transparent 60%
+    ),
+    radial-gradient(circle at 70% 70%, rgba(99, 102, 241, 0.28), transparent 60%);
+  filter: blur(60px);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * 3D-printing motifs — applied to section backgrounds
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/* Horizontal pinstripes evoking 3D-print layer lines. Subtle on light
+ * surfaces; pair with bg-slate-50 / bg-white parents. */
+.bg-layer-lines {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 5px,
+    rgba(15, 23, 42, 0.035) 5px,
+    rgba(15, 23, 42, 0.035) 6px
+  );
+}
+
+/* Same as above but tinted for dark / inverted sections. */
+.bg-layer-lines-dark {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 5px,
+    rgba(255, 255, 255, 0.045) 5px,
+    rgba(255, 255, 255, 0.045) 6px
+  );
+}
+
+/* Build-plate dot grid — used on dark surfaces (custom order CTA). */
+.bg-build-grid {
+  background-image: radial-gradient(
+    rgba(255, 255, 255, 0.08) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+}
+
+/* Light dot grid for light surfaces. */
+.bg-build-grid-light {
+  background-image: radial-gradient(
+    rgba(15, 23, 42, 0.06) 1px,
+    transparent 1px
+  );
+  background-size: 22px 22px;
+}
+
+/* Mono-flavored helper — improves alignment of digits in tabular contexts. */
+.font-spec {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-feature-settings: "tnum" 1, "zero" 1, "cv11" 1;
+  letter-spacing: -0.01em;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Scroll-reveal — added to elements that should fade-in on entering view
+ * ──────────────────────────────────────────────────────────────────────── */
+
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 600ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Subtle scale-in variant for hero/imagery. */
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.96);
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal-scale.is-visible {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Reduced motion users get an immediate fade-in (no movement). */
+@media (prefers-reduced-motion: reduce) {
+  .reveal,
+  .reveal-scale {
+    transform: none;
+    transition-duration: 200ms;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Custom scrollbar — minimal/clean across browsers
+ * ──────────────────────────────────────────────────────────────────────── */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(15, 23, 42, 0.2) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(15, 23, 42, 0.15);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(15, 23, 42, 0.3);
+}
+
+/* The cart/category scrollers hide their bar (handled via Tailwind in
+ * the JSX) — these rules only apply to default scrollers. */
