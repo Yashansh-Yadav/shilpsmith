@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 
+import NotificationBell from "./NotificationBell";
+
 const NAV: { href: string; label: string; match?: RegExp }[] = [
   { href: "/admin", label: "Products", match: /^\/admin\/?$/ },
   { href: "/admin/orders", label: "Orders", match: /^\/admin\/orders/ },
@@ -12,6 +14,7 @@ const NAV: { href: string; label: string; match?: RegExp }[] = [
   { href: "/admin/customers", label: "Customers", match: /^\/admin\/customers/ },
   { href: "/admin/reviews", label: "Reviews", match: /^\/admin\/reviews/ },
   { href: "/admin/discounts", label: "Discounts", match: /^\/admin\/discounts/ },
+  { href: "/admin/support", label: "Support", match: /^\/admin\/support/ },
   { href: "/admin/settings", label: "Settings", match: /^\/admin\/settings/ },
 ];
 
@@ -21,11 +24,14 @@ export const Sidebar = () => {
   return (
     <aside className="flex-none border-b border-slate-200 bg-white lg:sticky lg:top-0 lg:h-screen lg:w-60 lg:border-b-0 lg:border-r">
       <div className="flex h-full flex-col">
-        <div className="border-b border-slate-100 p-5">
-          <Link href="/admin" className="block text-lg font-bold">
-            ShilpSmith Admin
-          </Link>
-          <p className="text-xs text-slate-500">Internal dashboard</p>
+        <div className="flex items-start justify-between gap-2 border-b border-slate-100 p-5">
+          <div className="min-w-0">
+            <Link href="/admin" className="block text-lg font-bold">
+              ShilpSmith Admin
+            </Link>
+            <p className="text-xs text-slate-500">Internal dashboard</p>
+          </div>
+          <NotificationBell />
         </div>
 
         <nav className="flex-1 overflow-y-auto p-3 lg:p-4">

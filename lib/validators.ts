@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { sanitizeHtml } from "./sanitize";
+
 // ---------------------------------------------------------------------------
 // Primitives
 // ---------------------------------------------------------------------------
@@ -95,10 +97,25 @@ export const ProductCreateSchema = z
     name: z.string().trim().min(1).max(200),
     category: slugSchema,
     shortDescription: z.string().trim().max(500).optional(),
-    description: z.string().trim().min(1).max(5000),
+    // Rich-text (HTML) authored in the admin editor. Sanitized at the boundary
+    // since it's rendered to the public storefront. The min(1) runs on the raw
+    // input before sanitize so an empty description is still rejected.
+    description: z
+      .string()
+      .trim()
+      .min(1)
+      .max(20000)
+      .transform((v) => sanitizeHtml(v)),
     price: priceSchema,
     discountPrice: priceSchema.optional().or(z.literal("")).transform((v) => (v ? v : undefined)),
-    image: z.string().url("Image must be a URL"),
+    // Gallery images, in display order (first = cover). `image` is the legacy
+    // single-image field kept for backward compatibility; the product routes
+    // accept either and normalize to a list.
+    image: z.string().url("Image must be a URL").optional(),
+    images: z
+      .array(z.string().url("Each image must be a URL"))
+      .max(10, "Up to 10 images allowed")
+      .optional(),
     modelUrl: z
       .string()
       .url("Model URL must be a URL")
@@ -394,6 +411,59 @@ export const AnalyticsQuerySchema = z
     to: z.coerce.date().optional(),
     granularity: z.enum(["day", "week", "month"]).default("day"),
   })
+  .strict();
+
+// ---------------------------------------------------------------------------
+// Support / raise a concern
+// ---------------------------------------------------------------------------
+
+export const SUPPORT_CATEGORIES = [
+  "order",
+  "product",
+  "custom",
+  "shipping",
+  "payment",
+  "other",
+] as const;
+
+export const SupportConcernSchema = z
+  .object({
+    name: z.string().trim().min(1, "Please enter your name").max(120),
+    email: emailSchema,
+    phone: z
+      .string()
+      .trim()
+      .max(20)
+      .optional()
+      .or(z.literal(""))
+      .transform((v) => (v ? v : undefined)),
+    category: z.enum(SUPPORT_CATEGORIES),
+    orderNumber: z
+      .string()
+      .trim()
+      .max(40)
+      .optional()
+      .or(z.literal(""))
+      .transform((v) => (v ? v : undefined)),
+    message: z
+      .string()
+      .trim()
+      .min(10, "Please add a few more details (at least 10 characters)")
+      .max(4000),
+  })
+  .strict();
+
+export type SupportConcernInput = z.infer<typeof SupportConcernSchema>;
+
+export const SUPPORT_STATUSES = [
+  "new",
+  "in-progress",
+  "resolved",
+  "closed",
+] as const;
+
+export const SupportStatusUpdateSchema = z
+  .object({ status: z.enum(SUPPORT_STATUSES) })
   .strict();
 
 // ---------------------------------------------------------------------------

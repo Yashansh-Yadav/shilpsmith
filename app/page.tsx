@@ -32,6 +32,7 @@ import EmptyShelf from "../components/shop/EmptyShelf";
 import Reveal from "../components/shop/Reveal";
 import HowItWorks from "../components/shop/HowItWorks";
 import ProductModal from "../components/ProductModal";
+import SiteFooter from "../components/site/SiteFooter";
 
 interface StorefrontResponse {
   featured: StorefrontProduct[];
@@ -597,9 +598,7 @@ export default function Home() {
         </div>
       </section>
 
-      <footer className="bg-slate-950 py-8 text-center text-sm text-slate-400">
-        © 2026 ShilpSmith 3D Studio. Crafted with precision in India.
-      </footer>
+      <SiteFooter />
 
       <CartSheet />
       <Toaster />

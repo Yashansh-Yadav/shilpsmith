@@ -295,3 +295,34 @@ Installing `three` / `@react-three/fiber` / `@react-three/drei` with `--legacy-p
 - **Helpful voting** on reviews — needs another table; skipped.
 - **Review reply / report** — admin can edit/delete; no customer-side reply infrastructure.
 - **Discount per-user limit enforcement** — `perUserLimit` is stored on `DiscountCode` but not checked at order time (we only check global `maxUses`); add this when user accounts ship.
+
+## Phase 6 — storefront revamp
+
+The public-facing storefront was rebuilt as a marketing-grade landing experience. This phase is almost entirely the **presentation layer** — no schema changes — but it adds one aggregation endpoint and a set of reusable presentational components under `components/shop/`.
+
+### Homepage data — [/api/storefront](app/api/storefront/route.ts)
+
+One endpoint feeds the entire homepage in a single roundtrip (`Promise.all`), returning `{ featured, newest, trending, categories, testimonials }`:
+
+- `featured` — `featured: true` products; `newest` — most recent 12; both `deletedAt: null`.
+- `trending` — `orderItem.groupBy(productId)` summed over the last 30 days, restricted to `CONFIRMED/PROCESSING/SHIPPED/DELIVERED` orders, then resolved back to full products **preserving group order**. **Falls back to `featured` (then `newest`)** when there's no order data yet, so a fresh catalog never shows an empty trending shelf.
+- `testimonials` — 6 most-recent approved reviews with a non-empty `comment` or `title`.
+- `export const revalidate = 60` (plus `dynamic = "force-dynamic"`) — cheap 1-minute cache so the homepage doesn't re-query Neon on every hit; admin edits surface within a minute. Keep new homepage data on this endpoint rather than adding per-section fetches.
+
+### Homepage — [app/page.tsx](app/page.tsx)
+
+Client component: fetches `/api/storefront` once, renders hero + `HowItWorks` + Featured/New/Categories/Trending sections + why-us + testimonials + custom-order CTA. Each carousel/shelf has a **loading skeleton** and an `EmptyShelf` fallback so the page looks intentional on an empty catalog. Product clicks open the shared [ProductModal](components/ProductModal.tsx); `CartSheet` and `Toaster` are mounted here. The WhatsApp CTAs read `NEXT_PUBLIC_WHATSAPP_NUMBER` and pre-fill `wa.me` messages.
+
+### Presentational components (`components/shop/`)
+
+These are pure/animation components with no data-fetching of their own — they take props from the homepage/search/category pages:
+
+- `ProductCard` (exports the `StorefrontProduct` type used across the storefront), `ProductCarousel` (horizontal scroll-snap rail), `CategoryShelf`, `Testimonials`, `HowItWorks`, `SectionHeader`, `EmptyShelf`, `StarRating`, `ProductImage` (blob-URL-aware `next/image` wrapper with fallback), and `Reveal` (IntersectionObserver fade/scale-in wrapper — `variant` + `delay` props).
+
+### Category landing — [app/categories/[slug]/page.tsx](app/categories/%5Bslug%5D/page.tsx)
+
+Server component that renders a title from the slug and delegates to [ProductGrid](components/ProductGrid.tsx) with a `category` prop. The `categoryMap` is currently a hardcoded identity map of the four known slugs — extend it (or replace with a DB category lookup) when adding categories.
+
+### Design tokens — [tailwind.config.ts](tailwind.config.ts)
+
+The revamp leans on custom Tailwind tokens used pervasively across `components/shop/` and the homepage — reuse these instead of ad-hoc values: `brand`/`accent` color scales (brand is emerald), `shadow-lift` (card hover) / `shadow-cta` (primary buttons) / `shadow-glow`, `rounded-4xl` (2rem), and the `fade-in-up` / `shimmer` animations. Classes like `glass`, `text-brand-gradient`, `font-spec`, `bg-build-grid`, `bg-orb`, and `bg-layer-lines` are custom CSS (in `globals.css`), not Tailwind config — grep there before assuming a utility is missing.

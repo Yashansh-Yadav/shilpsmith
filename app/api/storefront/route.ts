@@ -8,7 +8,7 @@ export const revalidate = 60;
 
 const PRODUCT_INCLUDE = {
   category: { select: { id: true, name: true, slug: true } },
-  images: { select: { url: true } },
+  images: { select: { url: true }, orderBy: { id: "asc" as const } },
   variants: {
     select: { id: true, name: true, priceModifier: true, stock: true },
     orderBy: { createdAt: "asc" as const },

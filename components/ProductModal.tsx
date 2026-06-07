@@ -4,7 +4,7 @@
 
 import toast from "react-hot-toast";
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, MessageCircle, ShoppingBag, X } from "lucide-react";
 
 import {
@@ -19,7 +19,18 @@ import CustomizationForm, {
   type CustomizationValues,
 } from "./shop/CustomizationForm";
 import ReviewSection from "./shop/ReviewSection";
-import ProductImage from "./shop/ProductImage";
+import ProductGallery from "./shop/ProductGallery";
+import WhatsAppOrderDialog from "./shop/WhatsAppOrderDialog";
+import { sanitizeHtml } from "../lib/sanitize";
+
+// Descriptions are sanitized on write, but legacy rows predate that and the
+// regex below decides plain-text vs HTML rendering — so re-sanitize here too as
+// cheap defense-in-depth before dangerouslySetInnerHTML.
+const HTML_RE = /<[a-z][\s\S]*>/i;
+
+// Collapsed description height (px). Anything taller gets a "View more" toggle so
+// the sticky action buttons stay in frame on open.
+const DESC_COLLAPSED_PX = 176;
 
 // Three.js is heavy (~500kB). Only load it when the user opens a product that
 // actually has a model. ssr:false because three.js doesn't run on the server.
@@ -49,16 +60,35 @@ export default function ProductModal({ product, onClose }: Props) {
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
   const [customization, setCustomization] = useState<CustomizationValues>({});
   const [show3D, setShow3D] = useState(false);
+  const [waOpen, setWaOpen] = useState(false);
+
+  // Description collapse/expand.
+  const descRef = useRef<HTMLDivElement>(null);
+  const [descExpanded, setDescExpanded] = useState(false);
+  const [descOverflows, setDescOverflows] = useState(false);
 
   // Reset state every time a different product is opened.
   useEffect(() => {
     setSelectedVariantId(null);
     setCustomization({});
     setShow3D(false);
+    setWaOpen(false);
+    setDescExpanded(false);
     setVariants(
       Array.isArray(product?.variants) ? (product.variants as VariantSummary[]) : []
     );
   }, [product?.id, product?.variants]);
+
+  // Measure the rendered description to decide whether to clamp it. scrollHeight
+  // reflects the full content height even while the max-height clamp is applied.
+  useEffect(() => {
+    const el = descRef.current;
+    if (!el) {
+      setDescOverflows(false);
+      return;
+    }
+    setDescOverflows(el.scrollHeight > DESC_COLLAPSED_PX + 8);
+  }, [product?.id, product?.description]);
 
   // If the product object didn't ship with variants (e.g. older API response),
   // fetch them lazily so the selector still works.
@@ -137,7 +167,7 @@ export default function ProductModal({ product, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 p-3 backdrop-blur-md lg:p-6">
-      <div className="relative w-full max-w-5xl max-h-[95vh] overflow-y-auto rounded-4xl bg-white shadow-2xl">
+      <div className="relative flex w-full max-w-5xl max-h-[90vh] flex-col overflow-hidden rounded-4xl bg-white shadow-2xl lg:flex-row">
         <button
           onClick={onClose}
           aria-label="Close product details"
@@ -146,37 +176,36 @@ export default function ProductModal({ product, onClose }: Props) {
           <X className="h-5 w-5" />
         </button>
 
-        <div className="grid lg:grid-cols-2">
-          {/* IMAGE / 3D VIEWER */}
-          <div className="relative">
-            {show3D && product.modelUrl ? (
-              <div className="p-3 lg:p-4">
-                <ThreeDViewer url={product.modelUrl} height={420} />
-              </div>
-            ) : (
-              <ProductImage
-                src={product.images?.[0]?.url}
-                alt={product.name}
+        {/* IMAGE GALLERY / 3D VIEWER — fixed photo panel, centered, no stretch */}
+        <div className="relative flex shrink-0 items-center justify-center bg-slate-50 lg:w-[46%]">
+          {show3D && product.modelUrl ? (
+            <div className="w-full p-3 lg:p-4">
+              <ThreeDViewer url={product.modelUrl} height={420} />
+            </div>
+          ) : (
+            <div className="w-full">
+              <ProductGallery
+                images={Array.isArray(product.images) ? product.images : []}
+                productName={product.name}
                 productId={product.id}
-                aspectClass="aspect-square lg:aspect-auto lg:h-full"
-                caption={product.images?.[0]?.url ? undefined : product.name}
-                className="lg:rounded-l-4xl"
               />
-            )}
-            {product.modelUrl && (
-              <button
-                type="button"
-                onClick={() => setShow3D((v) => !v)}
-                className="absolute left-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-lg backdrop-blur transition hover:bg-white"
-              >
-                <Box className="h-3.5 w-3.5" strokeWidth={2.5} />
-                {show3D ? "Show photo" : "View in 3D"}
-              </button>
-            )}
-          </div>
+            </div>
+          )}
+          {product.modelUrl && (
+            <button
+              type="button"
+              onClick={() => setShow3D((v) => !v)}
+              className="absolute left-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1.5 text-xs font-semibold text-slate-900 shadow-lg backdrop-blur transition hover:bg-white"
+            >
+              <Box className="h-3.5 w-3.5" strokeWidth={2.5} />
+              {show3D ? "Show photo" : "View in 3D"}
+            </button>
+          )}
+        </div>
 
-          {/* DETAILS */}
-          <div className="flex flex-col gap-6 p-5 sm:p-8 lg:p-10">
+        {/* DETAILS — scrolls independently; CTAs pinned in the sticky footer */}
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-5 sm:p-8 lg:p-10">
             <header>
               {product.category?.name && (
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-brand-700">
@@ -194,10 +223,44 @@ export default function ProductModal({ product, onClose }: Props) {
                   </span>
                 )}
               </p>
-              <p className="mt-4 text-base leading-relaxed text-slate-600">
-                {product.description}
-              </p>
             </header>
+
+            {product.description && (
+              <div>
+                <div
+                  ref={descRef}
+                  style={
+                    !descExpanded && descOverflows
+                      ? { maxHeight: DESC_COLLAPSED_PX }
+                      : undefined
+                  }
+                  className="relative overflow-hidden text-base leading-relaxed text-slate-600"
+                >
+                  {HTML_RE.test(product.description) ? (
+                    <div
+                      className="[&_a]:text-brand-700 [&_a]:underline [&_blockquote]:mt-3 [&_blockquote]:border-l-2 [&_blockquote]:border-slate-200 [&_blockquote]:pl-4 [&_blockquote]:text-slate-500 [&_h2]:mt-5 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:mt-4 [&_h3]:font-semibold [&_h3]:text-slate-900 [&_li]:mt-1 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_p:first-child]:mt-0 [&_strong]:font-semibold [&_strong]:text-slate-900 [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
+                      dangerouslySetInnerHTML={{
+                        __html: sanitizeHtml(product.description),
+                      }}
+                    />
+                  ) : (
+                    <p className="whitespace-pre-line">{product.description}</p>
+                  )}
+                  {!descExpanded && descOverflows && (
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-gradient-to-t from-white to-transparent" />
+                  )}
+                </div>
+                {descOverflows && (
+                  <button
+                    type="button"
+                    onClick={() => setDescExpanded((v) => !v)}
+                    className="mt-2 text-sm font-semibold text-brand-700 transition hover:text-brand-800 hover:underline"
+                  >
+                    {descExpanded ? "View less" : "View more"}
+                  </button>
+                )}
+              </div>
+            )}
 
             {hasVariants && (
               <VariantSelector
@@ -220,35 +283,47 @@ export default function ProductModal({ product, onClose }: Props) {
               </section>
             )}
 
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={requiresVariant || variantOutOfStock}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-3.5 font-semibold text-white shadow-cta transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none disabled:hover:translate-y-0"
-              >
-                <ShoppingBag className="h-4 w-4" strokeWidth={2.25} />
-                {requiresVariant
-                  ? "Select a variant"
-                  : variantOutOfStock
-                    ? "Out of stock"
-                    : "Add to Cart"}
-              </button>
-              <a
-                href={`https://wa.me/${process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}?text=Hi I want to order ${encodeURIComponent(product.name)}`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 py-3.5 font-semibold text-white shadow-glow transition hover:-translate-y-0.5 hover:bg-brand-700"
-              >
-                <MessageCircle className="h-4 w-4" strokeWidth={2.25} />
-                Order on WhatsApp
-              </a>
-            </div>
-
             <ReviewSection productId={product.id} />
+          </div>
+
+          {/* Sticky action bar — always visible regardless of description length */}
+          <div className="flex shrink-0 flex-col gap-2 border-t border-slate-100 bg-white p-4 sm:flex-row sm:p-5">
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={requiresVariant || variantOutOfStock}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-3.5 font-semibold text-white shadow-cta transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none disabled:hover:translate-y-0"
+            >
+              <ShoppingBag className="h-4 w-4" strokeWidth={2.25} />
+              {requiresVariant
+                ? "Select a variant"
+                : variantOutOfStock
+                  ? "Out of stock"
+                  : "Add to Cart"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setWaOpen(true)}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 py-3.5 font-semibold text-white shadow-glow transition hover:-translate-y-0.5 hover:bg-brand-700"
+            >
+              <MessageCircle className="h-4 w-4" strokeWidth={2.25} />
+              Order on WhatsApp
+            </button>
           </div>
         </div>
       </div>
+
+      <WhatsAppOrderDialog
+        open={waOpen}
+        onClose={() => setWaOpen(false)}
+        productName={product.name}
+        price={unitPrice}
+        variantName={selectedVariant?.name}
+        customization={
+          customizable ? customizationToRecord(customization) : undefined
+        }
+        whatsappNumber={process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}
+      />
     </div>
   );
 }

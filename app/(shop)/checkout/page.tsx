@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
 import { useCartStore, computePricing } from "../../../lib/store/cart";
@@ -48,6 +48,29 @@ export default function CheckoutPage() {
     Partial<Record<keyof AddressFormValues, string>>
   >({});
   const [discountCode, setDiscountCode] = useState("");
+  const [onlinePaymentsEnabled, setOnlinePaymentsEnabled] = useState(false);
+
+  // Online (Razorpay) payments are admin-gated. Read the public flag and, if
+  // it's off, make sure we never sit on a Razorpay selection.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/settings/payments")
+      .then((r) => r.json())
+      .then((body) => {
+        if (cancelled || !body?.success) return;
+        const enabled = !!body.data.onlineEnabled;
+        setOnlinePaymentsEnabled(enabled);
+        if (!enabled) {
+          setPaymentMethod((m) => (m === "RAZORPAY" ? "WHATSAPP" : m));
+        }
+      })
+      .catch(() => {
+        /* default stays disabled */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   if (items.length === 0 && !createdOrder) {
     return (
@@ -273,7 +296,19 @@ export default function CheckoutPage() {
                   current={paymentMethod}
                   onChange={setPaymentMethod}
                   title="Online payment (Razorpay)"
-                  description="Pay instantly with UPI, card, or netbanking."
+                  description={
+                    onlinePaymentsEnabled
+                      ? "Pay instantly with UPI, card, or netbanking."
+                      : "Coming soon — choose WhatsApp to place your order now."
+                  }
+                  disabled={!onlinePaymentsEnabled}
+                  badge={!onlinePaymentsEnabled ? "Coming soon" : undefined}
+                  onDisabledClick={() => {
+                    toast("Online payments are coming soon — order via WhatsApp instead.", {
+                      icon: "💬",
+                    });
+                    setPaymentMethod("WHATSAPP");
+                  }}
                 />
                 <PaymentOption
                   value="WHATSAPP"
@@ -389,18 +424,34 @@ function PaymentOption({
   onChange,
   title,
   description,
+  disabled = false,
+  badge,
+  onDisabledClick,
 }: {
   value: PaymentMethod;
   current: PaymentMethod;
   onChange: (v: PaymentMethod) => void;
   title: string;
   description: string;
+  disabled?: boolean;
+  badge?: string;
+  onDisabledClick?: () => void;
 }) {
-  const selected = current === value;
+  const selected = current === value && !disabled;
   return (
     <label
-      className={`flex cursor-pointer items-start gap-3 rounded-2xl border p-4 ${
-        selected ? "border-black bg-slate-50" : "border-slate-200"
+      onClick={(e) => {
+        if (disabled) {
+          e.preventDefault();
+          onDisabledClick?.();
+        }
+      }}
+      className={`flex items-start gap-3 rounded-2xl border p-4 ${
+        disabled
+          ? "cursor-not-allowed border-slate-200 bg-slate-50/60 opacity-70"
+          : selected
+            ? "cursor-pointer border-black bg-slate-50"
+            : "cursor-pointer border-slate-200"
       }`}
     >
       <input
@@ -408,11 +459,19 @@ function PaymentOption({
         name="payment-method"
         value={value}
         checked={selected}
-        onChange={() => onChange(value)}
+        disabled={disabled}
+        onChange={() => !disabled && onChange(value)}
         className="mt-1"
       />
       <span>
-        <span className="block font-semibold">{title}</span>
+        <span className="flex items-center gap-2 font-semibold">
+          {title}
+          {badge && (
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+              {badge}
+            </span>
+          )}
+        </span>
         <span className="block text-sm text-slate-500">{description}</span>
       </span>
     </label>

@@ -41,7 +41,7 @@ export const GET = handle(async (request: NextRequest) => {
     where,
     include: {
       category: true,
-      images: true,
+      images: { orderBy: { id: "asc" } },
       variants: { orderBy: { createdAt: "asc" } },
     },
     orderBy,
