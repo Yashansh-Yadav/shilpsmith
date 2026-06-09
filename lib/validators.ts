@@ -1,6 +1,29 @@
 import { z } from "zod";
 
 import { sanitizeHtml } from "./sanitize";
+import { CUSTOM_FIELD_KEYS } from "./customization";
+
+// Per-product customization config: a map of enabled catalog field key →
+// { placeholder?, required? }. Unknown keys are rejected.
+const CustomFieldConfigSchema = z
+  .object({
+    placeholder: z.string().trim().max(120).optional(),
+    required: z.boolean().optional(),
+  })
+  .strict();
+
+// Partial map of enabled catalog field key → config. Use a string-keyed record
+// (inherently partial — any subset, including none) and reject keys that aren't
+// in the catalog. NOTE: do NOT use z.record(z.enum(...)) here — in Zod v4 an
+// enum-keyed record is exhaustive (requires every key), so unchecking a field
+// would wrongly fail validation.
+const CATALOG_KEY_SET = new Set<string>(CUSTOM_FIELD_KEYS);
+
+export const CustomFieldsSchema = z
+  .record(z.string(), CustomFieldConfigSchema)
+  .refine((obj) => Object.keys(obj).every((k) => CATALOG_KEY_SET.has(k)), {
+    message: "Unknown customization field",
+  });
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -124,6 +147,7 @@ export const ProductCreateSchema = z
       .transform((v) => (v ? v : undefined)),
     featured: z.boolean().optional().default(false),
     customizable: z.boolean().optional().default(false),
+    customFields: CustomFieldsSchema.optional(),
     stockStatus: z.enum(stockStatusValues).optional().default("in-stock"),
     stock: z.number().int().min(0).optional().default(0),
     whatsappMessage: z.string().max(1000).optional().default(""),
@@ -257,6 +281,7 @@ const orderStatusValues = [
   "DELIVERED",
   "CANCELLED",
   "REFUNDED",
+  "BY_MISTAKE",
 ] as const;
 
 export const OrderUpdateSchema = z

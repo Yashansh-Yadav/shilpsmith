@@ -7,6 +7,10 @@ import VariantsPanel from "../../components/admin/VariantsPanel";
 import Modal from "../../components/admin/Modal";
 import ProductImage from "../../components/shop/ProductImage";
 import RichTextEditor from "../../components/admin/RichTextEditor";
+import {
+  CUSTOMIZATION_CATALOG,
+  type CustomFieldsConfig,
+} from "../../lib/customization";
 
 interface Product {
   id: number;
@@ -16,6 +20,7 @@ interface Product {
   price: string;
   discountPrice: string | null;
   customizable: boolean;
+  customFields: CustomFieldsConfig | null;
   featured: boolean;
   stockStatus: string;
   stock: number;
@@ -40,6 +45,7 @@ interface ProductForm {
   modelUrl: string;
   featured: boolean;
   customizable: boolean;
+  customFields: CustomFieldsConfig;
 }
 
 const MAX_IMAGES = 10;
@@ -53,6 +59,7 @@ const EMPTY_FORM: ProductForm = {
   modelUrl: "",
   featured: false,
   customizable: false,
+  customFields: {},
 };
 
 const PAGE_SIZE = 10;
@@ -176,6 +183,37 @@ export default function AdminProductsPage() {
     setForm((f) => ({ ...f, images: f.images.filter((_, i) => i !== index) }));
   }
 
+  // ───────────── Customization fields ─────────────
+
+  function toggleCustomField(key: string, enabled: boolean) {
+    setForm((f) => {
+      const next = { ...f.customFields };
+      if (enabled) next[key] = next[key] ?? {};
+      else delete next[key];
+      return { ...f, customFields: next };
+    });
+  }
+
+  function setCustomFieldPlaceholder(key: string, placeholder: string) {
+    setForm((f) => ({
+      ...f,
+      customFields: {
+        ...f.customFields,
+        [key]: { ...f.customFields[key], placeholder },
+      },
+    }));
+  }
+
+  function setCustomFieldRequired(key: string, required: boolean) {
+    setForm((f) => ({
+      ...f,
+      customFields: {
+        ...f.customFields,
+        [key]: { ...f.customFields[key], required },
+      },
+    }));
+  }
+
   function makeCover(index: number) {
     setForm((f) => {
       if (index === 0) return f;
@@ -207,6 +245,7 @@ export default function AdminProductsPage() {
       modelUrl: p.modelUrl ?? "",
       featured: p.featured,
       customizable: p.customizable,
+      customFields: (p.customFields as CustomFieldsConfig) ?? {},
     });
     setCreatingCategory(false);
     setNewCategoryName("");
@@ -696,6 +735,73 @@ export default function AdminProductsPage() {
             />
             <span className="text-sm">Customizable product</span>
           </label>
+
+          {form.customizable && (
+            <div className="md:col-span-2 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
+              <p className="mb-1 text-xs font-semibold text-slate-600">
+                Customization fields
+              </p>
+              <p className="mb-3 text-xs text-slate-500">
+                Tick the fields customers can fill, set a placeholder/hint, and
+                optionally mark required. Leave all unticked to use the default
+                form.
+              </p>
+              <div className="space-y-2">
+                {CUSTOMIZATION_CATALOG.map((field) => {
+                  const enabled = !!form.customFields[field.key];
+                  const cfg = form.customFields[field.key];
+                  return (
+                    <div
+                      key={field.key}
+                      className="rounded-xl border border-slate-200 bg-white p-3"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <label className="flex items-center gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={enabled}
+                            onChange={(e) =>
+                              toggleCustomField(field.key, e.target.checked)
+                            }
+                          />
+                          <span className="text-sm font-medium text-slate-800">
+                            {field.label}
+                          </span>
+                          <span className="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-500">
+                            {field.type}
+                          </span>
+                        </label>
+                        {enabled && (
+                          <label className="flex items-center gap-1.5 text-xs text-slate-600">
+                            <input
+                              type="checkbox"
+                              checked={cfg?.required ?? false}
+                              onChange={(e) =>
+                                setCustomFieldRequired(field.key, e.target.checked)
+                              }
+                            />
+                            Required
+                          </label>
+                        )}
+                      </div>
+                      {enabled && (
+                        <input
+                          type="text"
+                          value={cfg?.placeholder ?? ""}
+                          maxLength={120}
+                          onChange={(e) =>
+                            setCustomFieldPlaceholder(field.key, e.target.value)
+                          }
+                          placeholder={`Placeholder / hint (default: "${field.defaultPlaceholder}")`}
+                          className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <label className="flex items-center gap-3 md:col-span-2">
             <input
