@@ -11,6 +11,8 @@ import {
 import { GuestReviewCreateSchema } from "../../../lib/validators";
 import { ConflictError, ValidationError } from "../../../lib/errors";
 import { rateLimit } from "../../../lib/middleware/rateLimit";
+import { notifyAdmin } from "../../../lib/notify";
+import { logger } from "../../../lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -95,7 +97,24 @@ export const POST = handle(async (request: NextRequest) => {
         comment: input.comment,
         approved: false, // admin moderation queue
       },
+      include: { product: { select: { name: true } } },
     });
+
+    // Best-effort admin notification (email + WhatsApp) — new review to moderate.
+    notifyAdmin({
+      type: "review",
+      title: `New ${review.rating}★ review (pending)`,
+      lines: [
+        { label: "Product", value: review.product?.name ?? `#${input.productId}` },
+        { label: "By", value: input.customerName ?? input.customerEmail },
+        { label: "Rating", value: `${review.rating}/5` },
+        ...(input.title ? [{ label: "Title", value: input.title }] : []),
+      ],
+      body: input.comment ?? undefined,
+      path: "/admin/reviews",
+      replyTo: input.customerEmail,
+    }).catch((error) => logger.error("Review admin notification failed", { error }));
+
     return created(review, "Review submitted — pending moderation");
   } catch (e: unknown) {
     // P2002 will be caught by handle(); we wrap with a friendlier message for

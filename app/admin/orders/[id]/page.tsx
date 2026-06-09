@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 
 import OrderStatusTimeline, {
@@ -56,7 +56,12 @@ const STATUSES: OrderStatus[] = [
   "DELIVERED",
   "CANCELLED",
   "REFUNDED",
+  "BY_MISTAKE",
 ];
+
+function statusLabel(s: string) {
+  return s.replace(/_/g, " ");
+}
 
 function formatRupee(n: number | string) {
   return `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
@@ -64,6 +69,7 @@ function formatRupee(n: number | string) {
 
 export default function AdminOrderDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const id = params?.id;
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -104,6 +110,26 @@ export default function AdminOrderDetailPage() {
     }
     toast.success(`Status → ${status}`);
     setOrder((cur) => (cur ? { ...cur, status } : cur));
+  }
+
+  async function deleteOrder() {
+    if (!order) return;
+    if (
+      !confirm(
+        "Delete this order? It will be removed from the store and excluded from analytics. This can't be undone from the admin."
+      )
+    )
+      return;
+    const res = await fetch(`/api/admin/orders/${order.id}`, {
+      method: "DELETE",
+    });
+    const body = await res.json();
+    if (!res.ok || !body.success) {
+      toast.error(body?.error?.message ?? "Delete failed");
+      return;
+    }
+    toast.success("Order deleted");
+    router.push("/admin/orders");
   }
 
   async function saveNotes() {
@@ -161,12 +187,32 @@ export default function AdminOrderDetailPage() {
                   {item.customization && Object.keys(item.customization as object).length > 0 && (
                     <dl className="mt-1 text-xs text-slate-500">
                       {Object.entries(item.customization as Record<string, unknown>).map(
-                        ([k, v]) => (
-                          <div key={k}>
-                            <dt className="inline font-medium">{k}:</dt>{" "}
-                            <dd className="inline">{String(v)}</dd>
-                          </div>
-                        )
+                        ([k, v]) => {
+                          const val = String(v);
+                          const isUrl = /^https?:\/\//i.test(val);
+                          return (
+                            <div key={k} className="flex items-center gap-1.5">
+                              <dt className="inline font-medium">{k}:</dt>{" "}
+                              {isUrl ? (
+                                <a
+                                  href={val}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1.5 align-middle"
+                                >
+                                  <img
+                                    src={val}
+                                    alt={k}
+                                    className="h-10 w-10 rounded border border-slate-200 object-cover"
+                                  />
+                                  <span className="text-slate-900 underline">View</span>
+                                </a>
+                              ) : (
+                                <dd className="inline">{val}</dd>
+                              )}
+                            </div>
+                          );
+                        }
                       )}
                     </dl>
                   )}
@@ -223,7 +269,7 @@ export default function AdminOrderDetailPage() {
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {statusLabel(s)}
                 </option>
               ))}
             </select>
@@ -236,6 +282,24 @@ export default function AdminOrderDetailPage() {
                 Ref: {order.paymentReference}
               </p>
             )}
+          </section>
+
+          <section className="rounded-3xl border border-red-100 bg-white p-6 shadow-sm">
+            <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-red-600">
+              Danger zone
+            </h2>
+            <p className="mb-3 text-xs text-slate-500">
+              Remove this order from the store and analytics. For genuine orders
+              prefer a status change (e.g. Cancelled or By mistake) so history is
+              kept.
+            </p>
+            <button
+              type="button"
+              onClick={deleteOrder}
+              className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+            >
+              Delete order
+            </button>
           </section>
 
           {order.shippingAddress && (

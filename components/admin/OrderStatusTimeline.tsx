@@ -7,7 +7,8 @@ export type OrderStatus =
   | "SHIPPED"
   | "DELIVERED"
   | "CANCELLED"
-  | "REFUNDED";
+  | "REFUNDED"
+  | "BY_MISTAKE";
 
 const STEPS: { id: OrderStatus; label: string }[] = [
   { id: "PENDING", label: "Placed" },
@@ -22,19 +23,28 @@ interface Props {
 }
 
 export default function OrderStatusTimeline({ status }: Props) {
-  const terminated = status === "CANCELLED" || status === "REFUNDED";
+  const terminated =
+    status === "CANCELLED" || status === "REFUNDED" || status === "BY_MISTAKE";
   const currentIndex = STEPS.findIndex((s) => s.id === status);
 
   if (terminated) {
+    const label =
+      status === "CANCELLED"
+        ? "Order cancelled."
+        : status === "REFUNDED"
+          ? "Order refunded."
+          : "Marked as placed by mistake — excluded from analytics.";
     return (
       <div
         className={`rounded-2xl p-4 text-sm font-medium ${
           status === "CANCELLED"
             ? "bg-red-50 text-red-700"
-            : "bg-amber-50 text-amber-700"
+            : status === "REFUNDED"
+              ? "bg-amber-50 text-amber-700"
+              : "bg-slate-100 text-slate-600"
         }`}
       >
-        Order {status === "CANCELLED" ? "cancelled" : "refunded"}.
+        {label}
       </div>
     );
   }

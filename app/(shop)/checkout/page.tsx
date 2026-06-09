@@ -14,7 +14,7 @@ import OrderReview from "../../../components/shop/OrderReview";
 import PaymentCheckout from "../../../components/shop/PaymentCheckout";
 
 type Step = "address" | "payment" | "review";
-type PaymentMethod = "RAZORPAY" | "WHATSAPP" | "COD";
+type PaymentMethod = "RAZORPAY" | "COD";
 
 interface CreatedOrder {
   id: number;
@@ -41,7 +41,7 @@ export default function CheckoutPage() {
   const [billingSameAsShipping, setBillingSameAsShipping] = useState(true);
   const [billingAddress, setBillingAddress] =
     useState<AddressFormValues>(EMPTY_ADDRESS);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("WHATSAPP");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("COD");
   const [submitting, setSubmitting] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<CreatedOrder | null>(null);
   const [fieldErrors, setFieldErrors] = useState<
@@ -61,7 +61,7 @@ export default function CheckoutPage() {
         const enabled = !!body.data.onlineEnabled;
         setOnlinePaymentsEnabled(enabled);
         if (!enabled) {
-          setPaymentMethod((m) => (m === "RAZORPAY" ? "WHATSAPP" : m));
+          setPaymentMethod((m) => (m === "RAZORPAY" ? "COD" : m));
         }
       })
       .catch(() => {
@@ -196,17 +196,8 @@ export default function CheckoutPage() {
       return;
     }
 
-    // Offline payment paths: clear cart, go to confirmation.
+    // Cash on delivery: clear cart, go to confirmation.
     clear();
-    if (order.paymentMethod === "WHATSAPP") {
-      const phone = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
-      const msg = encodeURIComponent(
-        `Hi! I just placed order ${order.orderNumber} on ShilpSmith. Please confirm.`
-      );
-      if (phone) {
-        window.open(`https://wa.me/${phone}?text=${msg}`, "_blank");
-      }
-    }
     router.push(`/order/${order.id}`);
   }
 
@@ -299,23 +290,16 @@ export default function CheckoutPage() {
                   description={
                     onlinePaymentsEnabled
                       ? "Pay instantly with UPI, card, or netbanking."
-                      : "Coming soon — choose WhatsApp to place your order now."
+                      : "Coming soon — choose Cash on delivery to place your order now."
                   }
                   disabled={!onlinePaymentsEnabled}
                   badge={!onlinePaymentsEnabled ? "Coming soon" : undefined}
                   onDisabledClick={() => {
-                    toast("Online payments are coming soon — order via WhatsApp instead.", {
-                      icon: "💬",
+                    toast("Online payments are coming soon — choose Cash on delivery instead.", {
+                      icon: "💵",
                     });
-                    setPaymentMethod("WHATSAPP");
+                    setPaymentMethod("COD");
                   }}
-                />
-                <PaymentOption
-                  value="WHATSAPP"
-                  current={paymentMethod}
-                  onChange={setPaymentMethod}
-                  title="Confirm via WhatsApp"
-                  description="Place the order now and finalize payment over WhatsApp."
                 />
                 <PaymentOption
                   value="COD"
