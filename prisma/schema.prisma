@@ -103,6 +103,11 @@ model Product {
 
   modelUrl String?
 
+  // Per-product customization schema: which catalog fields are enabled and
+  // their admin-set placeholder/required config. Shape: Record<fieldKey,
+  // { placeholder?, required? }>. See lib/customization.ts.
+  customFields Json?
+
   images   ProductImage[]
   variants ProductVariant[]
   reviews  Review[]
@@ -203,6 +208,9 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
   REFUNDED
+  // Order placed in error (test/duplicate). Excluded from analytics like
+  // CANCELLED/REFUNDED — it is simply absent from analytics' COUNTED_STATUSES.
+  BY_MISTAKE
 }
 
 enum PaymentStatus {

@@ -26,7 +26,12 @@ const STATUSES = [
   "DELIVERED",
   "CANCELLED",
   "REFUNDED",
+  "BY_MISTAKE",
 ];
+
+function statusLabel(s: string) {
+  return s.replace(/_/g, " ");
+}
 
 function formatRupee(n: number | string) {
   return `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
@@ -41,6 +46,7 @@ function badge(value: string) {
     DELIVERED: "bg-emerald-100 text-emerald-700",
     CANCELLED: "bg-red-100 text-red-700",
     REFUNDED: "bg-amber-100 text-amber-700",
+    BY_MISTAKE: "bg-slate-200 text-slate-600",
     COMPLETED: "bg-emerald-100 text-emerald-700",
     FAILED: "bg-red-100 text-red-700",
   };
@@ -130,7 +136,7 @@ export default function OrdersPage() {
         >
           {STATUSES.map((s) => (
             <option key={s || "all"} value={s}>
-              {s || "All statuses"}
+              {s ? statusLabel(s) : "All statuses"}
             </option>
           ))}
         </select>
@@ -182,7 +188,7 @@ export default function OrdersPage() {
                   <td className="px-3 py-3 font-medium">{formatRupee(o.total)}</td>
                   <td className="px-3 py-3">
                     <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge(o.status)}`}>
-                      {o.status}
+                      {statusLabel(o.status)}
                     </span>
                   </td>
                   <td className="px-3 py-3 text-xs">

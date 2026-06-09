@@ -59,6 +59,7 @@ export const PUT = handle(async (request: NextRequest, ctx: Ctx) => {
   }
   if (input.featured !== undefined) data.featured = input.featured;
   if (input.customizable !== undefined) data.customizable = input.customizable;
+  if (input.customFields !== undefined) data.customFields = input.customFields;
   if (input.stockStatus !== undefined) data.stockStatus = input.stockStatus;
   if (input.stock !== undefined) data.stock = input.stock;
   if (input.modelUrl !== undefined) data.modelUrl = input.modelUrl || null;

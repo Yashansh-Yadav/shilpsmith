@@ -9,6 +9,7 @@ import { ValidationError, ConflictError } from "../../../lib/errors";
 import { rateLimit } from "../../../lib/middleware/rateLimit";
 import { logger } from "../../../lib/logger";
 import { sendOrderConfirmationEmail } from "../../../lib/email";
+import { notifyAdmin } from "../../../lib/notify";
 import { getOnlinePaymentsEnabled } from "../../../lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -266,13 +267,31 @@ export const POST = handle(async (request: NextRequest) => {
     { timeout: 20_000, maxWait: 5_000 }
   );
 
-  // Best-effort email; never fail the order on email errors.
+  // Best-effort customer confirmation email; never fail the order on email errors.
   sendOrderConfirmationEmail(result).catch((error) => {
     logger.error("Order confirmation email failed", {
       error,
       orderNumber: result.orderNumber,
     });
   });
+
+  // Best-effort admin notification (email + WhatsApp).
+  notifyAdmin({
+    type: "order",
+    title: `New order ${result.orderNumber}`,
+    lines: [
+      { label: "Customer", value: result.customerName },
+      { label: "Total", value: `₹${Number(result.total).toLocaleString("en-IN")}` },
+      { label: "Items", value: String(result.items.length) },
+      { label: "Payment", value: result.paymentMethod },
+    ],
+    path: `/admin/orders/${result.id}`,
+  }).catch((error) =>
+    logger.error("Order admin notification failed", {
+      error,
+      orderNumber: result.orderNumber,
+    })
+  );
 
   return created(
     {

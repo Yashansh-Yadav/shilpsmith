@@ -14,8 +14,8 @@ const CATEGORIES: { value: string; label: string }[] = [
   { value: "other", label: "Something else" },
 ];
 
-// Shared with WhatsAppOrderDialog so a returning customer's details are
-// remembered across the storefront.
+// Remembers a returning customer's contact details across the storefront
+// (prefill on the next visit). Same key the checkout/contact flows reuse.
 const CONTACT_KEY = "shilpsmith-contact";
 
 interface FormState {
