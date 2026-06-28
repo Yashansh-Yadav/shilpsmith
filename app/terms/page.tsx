@@ -111,6 +111,43 @@ export default function TermsPage() {
           permission to use it solely to fulfil your order.
         </p>
 
+        <h2>8a. Smart NFC idols, darshan pages and third-party content</h2>
+        <p>
+          Our Smart NFC idols link to &quot;darshan&quot; pages that present
+          devotional media — aarti and bhajan videos, scripture texts, and a
+          daily panchang. This material is provided for personal, devotional use
+          only and is sourced from third parties:
+        </p>
+        <ul>
+          <li>
+            Aarti and bhajan videos are <strong>embedded</strong> from
+            third-party platforms (such as YouTube) using their official
+            players. We do not host, copy, or claim ownership of these videos,
+            and their availability is controlled by those platforms.
+          </li>
+          <li>
+            Scripture texts are <strong>linked</strong> from external sources we
+            believe to be in the public domain or otherwise free to share. We do
+            not host these files and credit the source on each reader page.
+          </li>
+          <li>
+            Panchang information is computed for general guidance and may differ
+            from regional almanacs.
+          </li>
+        </ul>
+        <p>
+          If you believe any linked or embedded content infringes your rights,
+          contact us via our <Link href="/contact">support page</Link>
+          {SUPPORT_EMAIL ? (
+            <>
+              {" "}
+              or at <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+            </>
+          ) : null}{" "}
+          with the details, and we will review and, where appropriate, promptly
+          remove or replace the item.
+        </p>
+
         <h2>9. Acceptable use</h2>
         <p>
           You agree not to misuse the site, attempt to disrupt it, or place

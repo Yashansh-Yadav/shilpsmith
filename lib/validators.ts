@@ -148,6 +148,8 @@ export const ProductCreateSchema = z
     featured: z.boolean().optional().default(false),
     customizable: z.boolean().optional().default(false),
     customFields: CustomFieldsSchema.optional(),
+    // Optional link to a Deity catalog entry (Darshan / NFC idols).
+    deityId: z.number().int().positive().optional().nullable(),
     stockStatus: z.enum(stockStatusValues).optional().default("in-stock"),
     stock: z.number().int().min(0).optional().default(0),
     whatsappMessage: z.string().max(1000).optional().default(""),
@@ -165,6 +167,135 @@ export const CategoryCreateSchema = z
   .strict();
 
 export const CategoryUpdateSchema = CategoryCreateSchema.partial().strict();
+
+// ---------------------------------------------------------------------------
+// Darshan / NFC idols — Deity catalog
+//
+// Everything here is a *reference* (YouTube id / external URL), never hosted
+// media, and every media item must carry source + license so provenance is
+// always recorded (legal safeguard — see CLAUDE.md "Darshan" notes).
+// ---------------------------------------------------------------------------
+
+// YouTube video id: exactly 11 url-safe chars. Enforces "embed only" — a full
+// URL or anything else is rejected at the boundary.
+const youtubeIdSchema = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z0-9_-]{11}$/, "Must be an 11-character YouTube video id");
+
+// External http(s) URL — used for scripture PDFs. We link, never rehost.
+const externalUrlSchema = z
+  .string()
+  .trim()
+  .url("Must be a valid http(s) URL")
+  .regex(/^https?:\/\//i, "Must be an http(s) URL");
+
+// Provenance fields required on every piece of third-party media.
+const provenanceFields = {
+  source: z.string().trim().min(1, "Source is required").max(200),
+  license: z.string().trim().min(1, "License is required").max(200),
+};
+
+const localizedShort = (max = 120) =>
+  z.string().trim().min(1).max(max);
+
+export const AartiSchema = z
+  .object({
+    labelEn: localizedShort(),
+    labelHi: localizedShort(),
+    youtubeId: youtubeIdSchema,
+    slot: z.enum(["morning", "sandhya", "other"]).default("other"),
+    ...provenanceFields,
+  })
+  .strict();
+
+export const BhajanSchema = z
+  .object({
+    labelEn: localizedShort(),
+    labelHi: localizedShort(),
+    youtubeId: youtubeIdSchema,
+    ...provenanceFields,
+  })
+  .strict();
+
+export const ScriptureSchema = z
+  .object({
+    titleEn: localizedShort(),
+    titleHi: localizedShort(),
+    lang: z.enum(["hi", "sa", "en"]).default("hi"),
+    pdfUrl: externalUrlSchema,
+    ...provenanceFields,
+  })
+  .strict();
+
+// A dedicated day for the deity. At least one trigger (weekday / tithi /
+// festivalDates) must be present, else the rule can never match.
+export const SpecialDaySchema = z
+  .object({
+    labelEn: localizedShort(),
+    labelHi: localizedShort(),
+    weekday: z.number().int().min(0).max(6).optional(), // 0=Sun .. 6=Sat
+    tithi: z.string().trim().max(40).optional(),
+    festivalDates: z
+      .array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"))
+      .max(50)
+      .optional(),
+    note: z.string().trim().max(280).optional(),
+  })
+  .strict()
+  .refine(
+    (d) =>
+      d.weekday !== undefined ||
+      (d.tithi && d.tithi.length > 0) ||
+      (d.festivalDates && d.festivalDates.length > 0),
+    { message: "A special day needs a weekday, tithi, or festival date" }
+  );
+
+// Defaults-free base so the update schema (.partial()) doesn't silently reset
+// array fields to [] — same gotcha documented for variants/discounts.
+const DeityFields = {
+  key: slugSchema,
+  active: z.boolean().optional().default(true),
+  nameEn: z.string().trim().min(1).max(120),
+  nameHi: z.string().trim().min(1).max(120),
+  mantra: z.string().trim().min(1).max(200),
+  transliteration: z.string().trim().max(200).optional(),
+  aartis: z.array(AartiSchema).max(20).optional().default([]),
+  bhajans: z.array(BhajanSchema).max(50).optional().default([]),
+  scriptures: z.array(ScriptureSchema).max(30).optional().default([]),
+  specialDays: z.array(SpecialDaySchema).max(50).optional().default([]),
+  sortOrder: z.number().int().min(0).optional().default(0),
+};
+
+export const DeityCreateSchema = z.object(DeityFields).strict();
+
+// Update: build off a defaults-free copy so a partial PUT (e.g. just
+// { sortOrder }) never wipes aartis/scriptures back to [].
+const DeityFieldsNoDefaults = {
+  key: slugSchema,
+  active: z.boolean(),
+  nameEn: z.string().trim().min(1).max(120),
+  nameHi: z.string().trim().min(1).max(120),
+  mantra: z.string().trim().min(1).max(200),
+  transliteration: z.string().trim().max(200).optional(),
+  aartis: z.array(AartiSchema).max(20),
+  bhajans: z.array(BhajanSchema).max(50),
+  scriptures: z.array(ScriptureSchema).max(30),
+  specialDays: z.array(SpecialDaySchema).max(50),
+  sortOrder: z.number().int().min(0),
+};
+
+export const DeityUpdateSchema = z
+  .object(DeityFieldsNoDefaults)
+  .partial()
+  .strict();
+
+export type DeityCreateInput = z.infer<typeof DeityCreateSchema>;
+export type DeityUpdateInput = z.infer<typeof DeityUpdateSchema>;
+export type Aarti = z.infer<typeof AartiSchema>;
+export type Bhajan = z.infer<typeof BhajanSchema>;
+export type Scripture = z.infer<typeof ScriptureSchema>;
+export type SpecialDay = z.infer<typeof SpecialDaySchema>;
 
 // ---------------------------------------------------------------------------
 // Public catalog: search + filter query

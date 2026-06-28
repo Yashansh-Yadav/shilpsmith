@@ -11,6 +11,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, lastModified: now, changeFrequency: "daily", priority: 1 },
     { url: `${SITE_URL}/search`, lastModified: now, changeFrequency: "daily", priority: 0.9 },
+    { url: `${SITE_URL}/smart-idols`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
     { url: `${SITE_URL}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/contact`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/terms`, lastModified: now, changeFrequency: "yearly", priority: 0.3 },
@@ -39,5 +40,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // DB unavailable at build/runtime — still serve the static routes.
   }
 
-  return [...staticRoutes, ...categoryRoutes];
+  // Darshan pages for each active deity (Smart NFC idols).
+  let deityRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const deities = await prisma.deity.findMany({
+      where: { active: true },
+      select: { key: true, updatedAt: true },
+    });
+    deityRoutes = deities.map((d) => ({
+      url: `${SITE_URL}/darshan/${d.key}`,
+      lastModified: d.updatedAt ?? now,
+      changeFrequency: "weekly",
+      priority: 0.6,
+    }));
+  } catch {
+    // DB unavailable — still serve the rest.
+  }
+
+  return [...staticRoutes, ...categoryRoutes, ...deityRoutes];
 }

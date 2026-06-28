@@ -315,6 +315,26 @@ export default function ProductModal({ product, onClose }: Props) {
               </section>
             )}
 
+            {product.deity?.active && (
+              <section className="rounded-2xl border border-brand-200 bg-brand-50 p-4">
+                <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-brand-800">
+                  <span aria-hidden>📲</span> Smart NFC idol
+                </h3>
+                <p className="mb-3 text-sm text-brand-900/80">
+                  Tap your phone on this idol to open a live darshan — aarti,
+                  bhajans, scriptures and today&apos;s panchang, in Hindi or English.
+                </p>
+                <a
+                  href={`/darshan/${product.deity.key}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-cta transition hover:bg-brand-700"
+                >
+                  View live darshan →
+                </a>
+              </section>
+            )}
+
             <ReviewSection productId={product.id} />
           </div>
 

@@ -54,6 +54,119 @@ const LEGACY_DEMO_PRODUCT_SLUGS = [
   "diwali-diya-set",
 ];
 
+// Darshan deity catalog. We seed the genuinely-safe, useful data: identity,
+// mantras, and accurate special-day rules (weekday / tithi). Media entries are
+// PLACEHOLDERS — real aarti/bhajan YouTube ids and scripture PDFs must be added
+// in /admin/deities from official / public-domain sources (see the legal
+// safeguards: embed-only + source + license on every item). The placeholder
+// youtubeId is a structurally-valid dummy so pages render for QA; the link
+// health check will flag it until replaced.
+const PLACEHOLDER_YT = "ZZZZZZZZZZZ"; // 11 chars; replace in admin
+const REPLACE_SOURCE = "PLACEHOLDER — replace with official source in admin";
+const REPLACE_LICENSE = "Unverified — confirm rights before going live";
+
+const DEITIES = [
+  {
+    key: "shiva",
+    nameEn: "Mahadev",
+    nameHi: "महादेव",
+    mantra: "ॐ नमः शिवाय",
+    transliteration: "Om Namah Shivaya",
+    sortOrder: 1,
+    aartis: [
+      {
+        labelEn: "Shiv Aarti (Morning)",
+        labelHi: "शिव आरती (प्रातः)",
+        youtubeId: PLACEHOLDER_YT,
+        slot: "morning",
+        source: REPLACE_SOURCE,
+        license: REPLACE_LICENSE,
+      },
+      {
+        labelEn: "Shiv Aarti (Sandhya)",
+        labelHi: "शिव आरती (संध्या)",
+        youtubeId: PLACEHOLDER_YT,
+        slot: "sandhya",
+        source: REPLACE_SOURCE,
+        license: REPLACE_LICENSE,
+      },
+    ],
+    bhajans: [],
+    scriptures: [
+      {
+        titleEn: "Shiv Purana",
+        titleHi: "शिव पुराण",
+        lang: "hi",
+        pdfUrl: "https://example.com/replace-shiv-purana.pdf",
+        source: REPLACE_SOURCE,
+        license: REPLACE_LICENSE,
+      },
+    ],
+    specialDays: [
+      { labelEn: "Somvar (Monday)", labelHi: "सोमवार", weekday: 1, note: "Most auspicious day for Mahadev" },
+      { labelEn: "Pradosh Vrat", labelHi: "प्रदोष व्रत", tithi: "Trayodashi" },
+      { labelEn: "Masik Shivratri", labelHi: "मासिक शिवरात्रि", tithi: "Chaturdashi" },
+    ],
+  },
+  {
+    key: "durga",
+    nameEn: "Maa Durga",
+    nameHi: "माँ दुर्गा",
+    mantra: "ॐ दुं दुर्गायै नमः",
+    transliteration: "Om Dum Durgayai Namah",
+    sortOrder: 2,
+    aartis: [
+      {
+        labelEn: "Durga Aarti",
+        labelHi: "दुर्गा आरती",
+        youtubeId: PLACEHOLDER_YT,
+        slot: "morning",
+        source: REPLACE_SOURCE,
+        license: REPLACE_LICENSE,
+      },
+    ],
+    bhajans: [],
+    scriptures: [
+      {
+        titleEn: "Durga Saptashati",
+        titleHi: "दुर्गा सप्तशती",
+        lang: "sa",
+        pdfUrl: "https://example.com/replace-durga-saptashati.pdf",
+        source: REPLACE_SOURCE,
+        license: REPLACE_LICENSE,
+      },
+    ],
+    specialDays: [
+      { labelEn: "Shukravar (Friday)", labelHi: "शुक्रवार", weekday: 5 },
+      { labelEn: "Ashtami", labelHi: "अष्टमी", tithi: "Ashtami" },
+    ],
+  },
+  {
+    key: "ganesha",
+    nameEn: "Ganpati",
+    nameHi: "गणपति",
+    mantra: "ॐ गं गणपतये नमः",
+    transliteration: "Om Gam Ganapataye Namah",
+    sortOrder: 3,
+    aartis: [
+      {
+        labelEn: "Ganesh Aarti (Sukhkarta Dukhharta)",
+        labelHi: "गणेश आरती (सुखकर्ता दुखहर्ता)",
+        youtubeId: PLACEHOLDER_YT,
+        slot: "morning",
+        source: REPLACE_SOURCE,
+        license: REPLACE_LICENSE,
+      },
+    ],
+    bhajans: [],
+    scriptures: [],
+    specialDays: [
+      { labelEn: "Budhvar (Wednesday)", labelHi: "बुधवार", weekday: 3 },
+      { labelEn: "Sankashti Chaturthi", labelHi: "संकष्टी चतुर्थी", tithi: "Chaturthi" },
+    ],
+  },
+] as const;
+
 async function main() {
   // Demo admin
   const demoEmail = "admin@shilpsmith.com";
@@ -106,6 +219,42 @@ async function main() {
   if (skippedProducts > 0) {
     console.log(
       `Left ${skippedProducts} legacy demo product(s) in place — they already have orders attached.`
+    );
+  }
+
+  // Deities (Darshan / NFC idols). Upsert by key so re-seeding refreshes the
+  // identity/special-days without clobbering media an admin has already added.
+  for (const d of DEITIES) {
+    const existing = await prisma.deity.findUnique({
+      where: { key: d.key },
+      select: { id: true },
+    });
+    await prisma.deity.upsert({
+      where: { key: d.key },
+      // On update keep admin-curated media; only refresh identity + rules.
+      update: {
+        nameEn: d.nameEn,
+        nameHi: d.nameHi,
+        mantra: d.mantra,
+        transliteration: d.transliteration,
+        sortOrder: d.sortOrder,
+        specialDays: d.specialDays as object,
+      },
+      create: {
+        key: d.key,
+        nameEn: d.nameEn,
+        nameHi: d.nameHi,
+        mantra: d.mantra,
+        transliteration: d.transliteration,
+        sortOrder: d.sortOrder,
+        aartis: d.aartis as object,
+        bhajans: d.bhajans as object,
+        scriptures: d.scriptures as object,
+        specialDays: d.specialDays as object,
+      },
+    });
+    console.log(
+      `Deity ${existing ? "updated" : "created"}: ${d.key} (${d.nameEn})`
     );
   }
 }

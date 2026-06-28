@@ -63,6 +63,7 @@ export const PUT = handle(async (request: NextRequest, ctx: Ctx) => {
   if (input.stockStatus !== undefined) data.stockStatus = input.stockStatus;
   if (input.stock !== undefined) data.stock = input.stock;
   if (input.modelUrl !== undefined) data.modelUrl = input.modelUrl || null;
+  if (input.deityId !== undefined) data.deityId = input.deityId ?? null;
   if (input.whatsappMessage !== undefined) data.whatsappMessage = input.whatsappMessage;
 
   if (input.category !== undefined) {
