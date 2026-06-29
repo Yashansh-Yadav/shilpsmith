@@ -42,6 +42,8 @@ type SpecialDay = {
   tithi: string;
   paksha: "" | "shukla" | "krishna";
   festivalDates: string; // comma/space separated YYYY-MM-DD in the form
+  startDate: string; // YYYY-MM-DD (date-range observances)
+  endDate: string; // YYYY-MM-DD
   note: string; // English
   noteHi: string; // Hindi
 };
@@ -72,6 +74,8 @@ interface DeityRow extends Omit<DeityForm, "sortOrder" | "specialDays"> {
     tithi?: string;
     paksha?: "shukla" | "krishna";
     festivalDates?: string[];
+    startDate?: string;
+    endDate?: string;
     note?: string;
     noteHi?: string;
   }[];
@@ -109,6 +113,8 @@ const EMPTY_SPECIAL: SpecialDay = {
   tithi: "",
   paksha: "",
   festivalDates: "",
+  startDate: "",
+  endDate: "",
   note: "",
   noteHi: "",
 };
@@ -136,7 +142,8 @@ const SPECIAL_DAYS_JSON_SAMPLE = `[
   { "labelEn": "Somvar", "labelHi": "सोमवार", "weekday": 1, "note": "Monday", "noteHi": "सोमवार" },
   { "labelEn": "Pradosh Vrat", "labelHi": "प्रदोष व्रत", "tithi": "Trayodashi" },
   { "labelEn": "Masik Shivratri", "labelHi": "मासिक शिवरात्रि", "tithi": "Chaturdashi", "paksha": "krishna" },
-  { "labelEn": "Maha Shivratri", "labelHi": "महाशिवरात्रि", "festivalDates": ["2026-02-15"], "note": "Great night of Shiva", "noteHi": "शिव की महान रात्रि" }
+  { "labelEn": "Maha Shivratri", "labelHi": "महाशिवरात्रि", "festivalDates": ["2026-02-15"], "note": "Great night of Shiva", "noteHi": "शिव की महान रात्रि" },
+  { "labelEn": "Shravan Maas", "labelHi": "श्रावण मास", "startDate": "2026-07-30", "endDate": "2026-08-28", "note": "Holiest month for Shiva", "noteHi": "शिव का सबसे पवित्र मास" }
 ]`;
 
 const tdInputCls =
@@ -239,6 +246,8 @@ export default function DeitiesAdminPage() {
         tithi: d.tithi ?? "",
         paksha: d.paksha ?? "",
         festivalDates: (d.festivalDates ?? []).join(", "),
+        startDate: d.startDate ?? "",
+        endDate: d.endDate ?? "",
         note: d.note ?? "",
         noteHi: d.noteHi ?? "",
       })),
@@ -273,6 +282,8 @@ export default function DeitiesAdminPage() {
           ...(d.tithi.trim() ? { tithi: d.tithi.trim() } : {}),
           ...(d.paksha ? { paksha: d.paksha } : {}),
           ...(dates.length ? { festivalDates: dates } : {}),
+          ...(d.startDate.trim() ? { startDate: d.startDate.trim() } : {}),
+          ...(d.endDate.trim() ? { endDate: d.endDate.trim() } : {}),
           ...(d.note.trim() ? { note: d.note.trim() } : {}),
           ...(d.noteHi.trim() ? { noteHi: d.noteHi.trim() } : {}),
         };
@@ -374,6 +385,8 @@ export default function DeitiesAdminPage() {
           tithi: p.tithi ?? "",
           paksha: p.paksha ?? "",
           festivalDates: "",
+          startDate: "",
+          endDate: "",
           note: p.note ?? "",
           noteHi: p.noteHi ?? "",
         }));
@@ -425,6 +438,8 @@ export default function DeitiesAdminPage() {
             ? item.paksha
             : "",
         festivalDates: fest,
+        startDate: String(item.startDate ?? "").trim(),
+        endDate: String(item.endDate ?? "").trim(),
         note: String(item.note ?? "").trim(),
         noteHi: String(item.noteHi ?? "").trim(),
       });
@@ -972,6 +987,8 @@ export default function DeitiesAdminPage() {
                       <th className="px-1 py-1 font-medium">Tithi</th>
                       <th className="px-1 py-1 font-medium">Paksha</th>
                       <th className="px-1 py-1 font-medium">Festival dates</th>
+                      <th className="px-1 py-1 font-medium">Start date</th>
+                      <th className="px-1 py-1 font-medium">End date</th>
                       <th className="px-1 py-1 font-medium">Note (EN)</th>
                       <th className="px-1 py-1 font-medium">Note (HI)</th>
                       <th className="px-1 py-1" />
@@ -1054,6 +1071,30 @@ export default function DeitiesAdminPage() {
                             onChange={(e) =>
                               patchItem("specialDays", i, {
                                 festivalDates: e.target.value,
+                              })
+                            }
+                            className={tdInputCls}
+                          />
+                        </td>
+                        <td className="px-1 py-1">
+                          <input
+                            placeholder="2026-07-30"
+                            value={d.startDate}
+                            onChange={(e) =>
+                              patchItem("specialDays", i, {
+                                startDate: e.target.value,
+                              })
+                            }
+                            className={tdInputCls}
+                          />
+                        </td>
+                        <td className="px-1 py-1">
+                          <input
+                            placeholder="2026-08-28"
+                            value={d.endDate}
+                            onChange={(e) =>
+                              patchItem("specialDays", i, {
+                                endDate: e.target.value,
                               })
                             }
                             className={tdInputCls}

@@ -68,6 +68,23 @@ function compute(
     }
   }
 
+  // Date-range observances (e.g. Sawan Maas) — surface on their start date.
+  for (const d of rules) {
+    if (
+      d.startDate &&
+      d.startDate >= fromDateKey &&
+      d.startDate.startsWith(String(year))
+    ) {
+      events.push({
+        date: d.startDate,
+        labelEn: d.labelEn,
+        labelHi: d.labelHi,
+        note: d.note,
+        noteHi: d.noteHi,
+      });
+    }
+  }
+
   // Tithi rules — scan today..Dec 31, sampling each day at ~06:00 IST.
   const tithiRules = rules.filter((d) => d.tithi && d.tithi.trim());
   if (tithiRules.length) {

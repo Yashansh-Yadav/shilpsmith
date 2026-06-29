@@ -274,18 +274,32 @@ export const SpecialDaySchema = z
     paksha: z.enum(["shukla", "krishna"]).optional(),
     festivalDates: z
       .array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"))
-      .max(50)
+      .max(60)
       .optional(),
-    note: z.string().trim().max(280).optional(), // English note
-    noteHi: z.string().trim().max(280).optional(), // Hindi note
+    // Date-range trigger for multi-day observances (e.g. Sawan/Shravan Maas,
+    // Navratri). Active for every day from startDate to endDate (inclusive).
+    startDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+      .optional(),
+    endDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+      .optional(),
+    note: z.string().trim().max(2000).optional(), // English note
+    noteHi: z.string().trim().max(2000).optional(), // Hindi note
   })
   .strict()
   .refine(
     (d) =>
       d.weekday !== undefined ||
       (d.tithi && d.tithi.length > 0) ||
-      (d.festivalDates && d.festivalDates.length > 0),
-    { message: "A special day needs a weekday, tithi, or festival date" }
+      (d.festivalDates && d.festivalDates.length > 0) ||
+      (d.startDate && d.startDate.length > 0),
+    {
+      message:
+        "A special day needs a weekday, tithi, festival date, or start date",
+    }
   );
 
 // Defaults-free base so the update schema (.partial()) doesn't silently reset

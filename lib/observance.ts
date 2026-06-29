@@ -20,6 +20,8 @@ export interface SpecialDayConfig {
   tithi?: string;
   paksha?: "shukla" | "krishna";
   festivalDates?: string[];
+  startDate?: string; // YYYY-MM-DD, inclusive
+  endDate?: string; // YYYY-MM-DD, inclusive (defaults to startDate)
   note?: string; // English note
   noteHi?: string; // Hindi note
 }
@@ -29,7 +31,7 @@ export interface Observance {
   labelHi: string;
   note?: string;
   noteHi?: string;
-  reason: "weekday" | "tithi" | "festival";
+  reason: "weekday" | "tithi" | "festival" | "range";
 }
 
 function tithiMatches(configTithi: string, panchang: Panchang): boolean {
@@ -70,7 +72,15 @@ export function todaysObservances(
       d.festivalDates.includes(panchang.date)
     ) {
       reason = "festival";
-    } else {
+    } else if (d.startDate) {
+      // Active for every day in [startDate, endDate] (endDate defaults to start).
+      const end = d.endDate || d.startDate;
+      if (panchang.date >= d.startDate && panchang.date <= end) {
+        reason = "range";
+      }
+    }
+
+    if (!reason) {
       const hasBase = d.weekday !== undefined || !!d.tithi;
       if (hasBase) {
         const checks: boolean[] = [];
@@ -92,8 +102,8 @@ export function todaysObservances(
     }
   }
 
-  // Festivals first, then tithi, then weekly — the rarer the occasion, the more
-  // it deserves top billing in the banner.
-  const rank = { festival: 0, tithi: 1, weekday: 2 } as const;
+  // Festivals first, then ranges, tithi, then weekly — the rarer the occasion,
+  // the more it deserves top billing in the banner.
+  const rank = { festival: 0, range: 1, tithi: 2, weekday: 3 } as const;
   return out.sort((a, b) => rank[a.reason] - rank[b.reason]);
 }
