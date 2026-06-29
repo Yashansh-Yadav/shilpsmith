@@ -17,6 +17,8 @@ export interface DeityRecord {
   nameHi: string;
   mantra: string;
   transliteration: string | null;
+  jaikaraHi: string | null;
+  jaikaraEn: string | null;
   aartis: Aarti[];
   bhajans: Bhajan[];
   scriptures: Scripture[];
@@ -31,6 +33,8 @@ function shape(d: {
   nameHi: string;
   mantra: string;
   transliteration: string | null;
+  jaikaraHi: string | null;
+  jaikaraEn: string | null;
   aartis: unknown;
   bhajans: unknown;
   scriptures: unknown;
@@ -44,6 +48,8 @@ function shape(d: {
     nameHi: d.nameHi,
     mantra: d.mantra,
     transliteration: d.transliteration,
+    jaikaraHi: d.jaikaraHi,
+    jaikaraEn: d.jaikaraEn,
     aartis: (d.aartis as Aarti[]) ?? [],
     bhajans: (d.bhajans as Bhajan[]) ?? [],
     scriptures: (d.scriptures as Scripture[]) ?? [],

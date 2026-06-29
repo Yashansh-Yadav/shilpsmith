@@ -176,12 +176,41 @@ export const CategoryUpdateSchema = CategoryCreateSchema.partial().strict();
 // always recorded (legal safeguard — see CLAUDE.md "Darshan" notes).
 // ---------------------------------------------------------------------------
 
-// YouTube video id: exactly 11 url-safe chars. Enforces "embed only" — a full
-// URL or anything else is rejected at the boundary.
+// Extract the 11-char YouTube video id from whatever the admin pastes — a bare
+// id or any common URL form (watch?v=, youtu.be/, /embed/, /shorts/, /live/,
+// with or without extra query params). Returns the input untouched if nothing
+// matches, so the refine below produces a clear error.
+const YT_ID = /[A-Za-z0-9_-]{11}/;
+export function extractYouTubeId(raw: string): string {
+  const s = raw.trim();
+  if (/^[A-Za-z0-9_-]{11}$/.test(s)) return s; // already a bare id
+  const patterns = [
+    /[?&]v=([A-Za-z0-9_-]{11})/, // watch?v=ID
+    /youtu\.be\/([A-Za-z0-9_-]{11})/, // youtu.be/ID
+    /\/embed\/([A-Za-z0-9_-]{11})/, // /embed/ID
+    /\/shorts\/([A-Za-z0-9_-]{11})/, // /shorts/ID
+    /\/live\/([A-Za-z0-9_-]{11})/, // /live/ID
+  ];
+  for (const p of patterns) {
+    const m = s.match(p);
+    if (m) return m[1];
+  }
+  // Last resort: if the string contains exactly one 11-char token, use it.
+  const loose = s.match(YT_ID);
+  return loose ? loose[0] : s;
+}
+
+// Accepts a YouTube link or a bare 11-char id; normalizes to the id. Still
+// "embed only" — we store just the id and build the embed URL ourselves.
 const youtubeIdSchema = z
   .string()
   .trim()
-  .regex(/^[A-Za-z0-9_-]{11}$/, "Must be an 11-character YouTube video id");
+  .min(1, "YouTube link or video id is required")
+  .transform(extractYouTubeId)
+  .refine(
+    (v) => /^[A-Za-z0-9_-]{11}$/.test(v),
+    "Paste a valid YouTube link or 11-character video id"
+  );
 
 // External http(s) URL — used for scripture PDFs. We link, never rehost.
 const externalUrlSchema = z
@@ -190,10 +219,12 @@ const externalUrlSchema = z
   .url("Must be a valid http(s) URL")
   .regex(/^https?:\/\//i, "Must be an http(s) URL");
 
-// Provenance fields required on every piece of third-party media.
+// Provenance fields. Optional for now (low-friction content entry); still
+// recommended for the legal record, and surfaced in the admin link-health view
+// and the scripture reader when present.
 const provenanceFields = {
-  source: z.string().trim().min(1, "Source is required").max(200),
-  license: z.string().trim().min(1, "License is required").max(200),
+  source: z.string().trim().max(200).optional().default(""),
+  license: z.string().trim().max(200).optional().default(""),
 };
 
 const localizedShort = (max = 120) =>
@@ -224,6 +255,8 @@ export const ScriptureSchema = z
     titleHi: localizedShort(),
     lang: z.enum(["hi", "sa", "en"]).default("hi"),
     pdfUrl: externalUrlSchema,
+    // Optional one-line summary shown on the scripture card.
+    description: z.string().trim().max(160).optional(),
     ...provenanceFields,
   })
   .strict();
@@ -236,11 +269,15 @@ export const SpecialDaySchema = z
     labelHi: localizedShort(),
     weekday: z.number().int().min(0).max(6).optional(), // 0=Sun .. 6=Sat
     tithi: z.string().trim().max(40).optional(),
+    // Narrows a tithi rule to one fortnight (e.g. Krishna Chaturdashi =
+    // Shivratri). Only meaningful together with `tithi`.
+    paksha: z.enum(["shukla", "krishna"]).optional(),
     festivalDates: z
       .array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"))
       .max(50)
       .optional(),
-    note: z.string().trim().max(280).optional(),
+    note: z.string().trim().max(280).optional(), // English note
+    noteHi: z.string().trim().max(280).optional(), // Hindi note
   })
   .strict()
   .refine(
@@ -260,6 +297,8 @@ const DeityFields = {
   nameHi: z.string().trim().min(1).max(120),
   mantra: z.string().trim().min(1).max(200),
   transliteration: z.string().trim().max(200).optional(),
+  jaikaraHi: z.string().trim().max(120).optional(),
+  jaikaraEn: z.string().trim().max(120).optional(),
   aartis: z.array(AartiSchema).max(20).optional().default([]),
   bhajans: z.array(BhajanSchema).max(50).optional().default([]),
   scriptures: z.array(ScriptureSchema).max(30).optional().default([]),
@@ -278,6 +317,8 @@ const DeityFieldsNoDefaults = {
   nameHi: z.string().trim().min(1).max(120),
   mantra: z.string().trim().min(1).max(200),
   transliteration: z.string().trim().max(200).optional(),
+  jaikaraHi: z.string().trim().max(120).optional(),
+  jaikaraEn: z.string().trim().max(120).optional(),
   aartis: z.array(AartiSchema).max(20),
   bhajans: z.array(BhajanSchema).max(50),
   scriptures: z.array(ScriptureSchema).max(30),

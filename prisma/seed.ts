@@ -72,6 +72,8 @@ const DEITIES = [
     nameHi: "महादेव",
     mantra: "ॐ नमः शिवाय",
     transliteration: "Om Namah Shivaya",
+    jaikaraHi: "हर हर महादेव",
+    jaikaraEn: "Har Har Mahadev",
     sortOrder: 1,
     aartis: [
       {
@@ -98,14 +100,16 @@ const DEITIES = [
         titleHi: "शिव पुराण",
         lang: "hi",
         pdfUrl: "https://example.com/replace-shiv-purana.pdf",
+        description: "The legends, glory and worship of Lord Shiva.",
         source: REPLACE_SOURCE,
         license: REPLACE_LICENSE,
       },
     ],
     specialDays: [
-      { labelEn: "Somvar (Monday)", labelHi: "सोमवार", weekday: 1, note: "Most auspicious day for Mahadev" },
+      { labelEn: "Somvar (Monday)", labelHi: "सोमवार", weekday: 1, note: "Most auspicious day for Mahadev", noteHi: "महादेव की आराधना का सर्वोत्तम दिन" },
       { labelEn: "Pradosh Vrat", labelHi: "प्रदोष व्रत", tithi: "Trayodashi" },
-      { labelEn: "Masik Shivratri", labelHi: "मासिक शिवरात्रि", tithi: "Chaturdashi" },
+      { labelEn: "Masik Shivratri", labelHi: "मासिक शिवरात्रि", tithi: "Chaturdashi", paksha: "krishna" },
+      { labelEn: "Purnima", labelHi: "पूर्णिमा", tithi: "Purnima" },
     ],
   },
   {
@@ -114,6 +118,8 @@ const DEITIES = [
     nameHi: "माँ दुर्गा",
     mantra: "ॐ दुं दुर्गायै नमः",
     transliteration: "Om Dum Durgayai Namah",
+    jaikaraHi: "जय माता दी",
+    jaikaraEn: "Jai Mata Di",
     sortOrder: 2,
     aartis: [
       {
@@ -132,13 +138,14 @@ const DEITIES = [
         titleHi: "दुर्गा सप्तशती",
         lang: "sa",
         pdfUrl: "https://example.com/replace-durga-saptashati.pdf",
+        description: "700 verses in praise of the Divine Mother.",
         source: REPLACE_SOURCE,
         license: REPLACE_LICENSE,
       },
     ],
     specialDays: [
       { labelEn: "Shukravar (Friday)", labelHi: "शुक्रवार", weekday: 5 },
-      { labelEn: "Ashtami", labelHi: "अष्टमी", tithi: "Ashtami" },
+      { labelEn: "Durga Ashtami", labelHi: "दुर्गा अष्टमी", tithi: "Ashtami", paksha: "shukla" },
     ],
   },
   {
@@ -147,6 +154,8 @@ const DEITIES = [
     nameHi: "गणपति",
     mantra: "ॐ गं गणपतये नमः",
     transliteration: "Om Gam Ganapataye Namah",
+    jaikaraHi: "गणपति बप्पा मोरया",
+    jaikaraEn: "Ganpati Bappa Morya",
     sortOrder: 3,
     aartis: [
       {
@@ -162,7 +171,8 @@ const DEITIES = [
     scriptures: [],
     specialDays: [
       { labelEn: "Budhvar (Wednesday)", labelHi: "बुधवार", weekday: 3 },
-      { labelEn: "Sankashti Chaturthi", labelHi: "संकष्टी चतुर्थी", tithi: "Chaturthi" },
+      { labelEn: "Sankashti Chaturthi", labelHi: "संकष्टी चतुर्थी", tithi: "Chaturthi", paksha: "krishna" },
+      { labelEn: "Vinayaka Chaturthi", labelHi: "विनायक चतुर्थी", tithi: "Chaturthi", paksha: "shukla" },
     ],
   },
 ] as const;
@@ -237,6 +247,8 @@ async function main() {
         nameHi: d.nameHi,
         mantra: d.mantra,
         transliteration: d.transliteration,
+        jaikaraHi: d.jaikaraHi,
+        jaikaraEn: d.jaikaraEn,
         sortOrder: d.sortOrder,
         specialDays: d.specialDays as object,
       },
@@ -246,6 +258,8 @@ async function main() {
         nameHi: d.nameHi,
         mantra: d.mantra,
         transliteration: d.transliteration,
+        jaikaraHi: d.jaikaraHi,
+        jaikaraEn: d.jaikaraEn,
         sortOrder: d.sortOrder,
         aartis: d.aartis as object,
         bhajans: d.bhajans as object,

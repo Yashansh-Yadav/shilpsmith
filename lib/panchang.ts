@@ -22,6 +22,7 @@ export interface Panchang {
   tithiEn: string;
   tithiHi: string;
   tithiKey: string; // normalized (lowercased a-z) for observance matching
+  tithiIno: number; // 0-based tithi index within the paksha (-1 if unknown)
   pakshaEn: string;
   pakshaHi: string;
   nakshatraEn: string;
@@ -114,6 +115,36 @@ export function normalizeTithi(s: string): string {
   return s.toLowerCase().replace(/[^a-z]/g, "").replace(/h/g, "");
 }
 
+// mhah-panchang emits regional tithi transliterations (e.g. "Chavithi" for
+// Chaturthi, "Thadiya" for Tritiya) that plain string matching can't bridge.
+// So we match by the tithi INDEX within a paksha (0=Pratipada … 13=Chaturdashi,
+// 14=Purnima/Amavasya). This table maps every common spelling → that index.
+const TITHI_INO: Record<string, number> = {};
+function regTithi(ino: number, ...names: string[]) {
+  for (const n of names) TITHI_INO[normalizeTithi(n)] = ino;
+}
+regTithi(0, "Pratipada", "Padyami", "Prathama", "Pratham");
+regTithi(1, "Dwitiya", "Dvitiya", "Vidiya");
+regTithi(2, "Tritiya", "Thadiya", "Tadiya");
+regTithi(3, "Chaturthi", "Chavithi", "Chauthi", "Chavath");
+regTithi(4, "Panchami");
+regTithi(5, "Shashthi", "Shashti", "Sashti");
+regTithi(6, "Saptami");
+regTithi(7, "Ashtami");
+regTithi(8, "Navami");
+regTithi(9, "Dashami", "Dasami");
+regTithi(10, "Ekadashi", "Ekadasi");
+regTithi(11, "Dwadashi", "Dvadashi", "Dwadasi");
+regTithi(12, "Trayodashi", "Trayodasi");
+regTithi(13, "Chaturdashi", "Chaturdasi");
+regTithi(14, "Purnima", "Poornima", "Punnami", "Amavasya", "Amavasai", "Amavas");
+
+// Tithi name (any common spelling) → 0-based index within the paksha, or -1.
+export function tithiNameToIno(name: string): number {
+  const k = normalizeTithi(name);
+  return k in TITHI_INO ? TITHI_INO[k] : -1;
+}
+
 // IST civil date (YYYY-MM-DD) for a given instant.
 function istDateKey(now: Date): string {
   return new Date(now.getTime() + IST_OFFSET_MIN * 60_000)
@@ -143,13 +174,24 @@ export function computePanchang(
     const c = obj.calculate(at);
     const sun = obj.sunTimer(at, lat, lng);
 
-    const tithiIno: number = c?.Tithi?.ino ?? -1;
+    // mhah's tithi ino is month-absolute: Shukla = 0–14, Krishna = 15–29.
+    // Reduce to a paksha-relative index (0–14) for naming + matching.
+    const rawTithiIno: number = c?.Tithi?.ino ?? -1;
+    const tithiIno: number = rawTithiIno >= 0 ? rawTithiIno % 15 : -1;
     const pakshaEn: string = c?.Paksha?.name_en_IN ?? "";
     const isShukla = /shukla/i.test(pakshaEn);
-    const tithiEn: string = c?.Tithi?.name_en_IN ?? "";
     const nakIno: number = c?.Nakshatra?.ino ?? -1;
     const dayIno: number =
       typeof c?.Day?.ino === "number" ? c.Day.ino : vaarIndex;
+
+    // Override mhah's "Punnami" for the 15th tithi with the conventional
+    // Purnima / Amavasya — nicer display and lets those be matched as a tithi.
+    const tithiEn: string =
+      tithiIno === 14
+        ? isShukla
+          ? "Purnima"
+          : "Amavasya"
+        : c?.Tithi?.name_en_IN ?? "";
 
     const tithiHi =
       tithiIno === 14
@@ -166,6 +208,7 @@ export function computePanchang(
       tithiEn,
       tithiHi,
       tithiKey: normalizeTithi(tithiEn),
+      tithiIno,
       pakshaEn,
       pakshaHi: isShukla ? "शुक्ल पक्ष" : "कृष्ण पक्ष",
       nakshatraEn: c?.Nakshatra?.name_en_IN ?? "",
@@ -188,6 +231,7 @@ export function computePanchang(
       tithiEn: "",
       tithiHi: "",
       tithiKey: "",
+      tithiIno: -1,
       pakshaEn: "",
       pakshaHi: "",
       nakshatraEn: "",

@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { Languages } from "lucide-react";
 
 import type { Lang } from "../../lib/i18n/darshan";
 
@@ -30,8 +31,9 @@ export default function LangToggle({
       type="button"
       onClick={toggle}
       disabled={pending}
-      className="rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-sm font-medium text-white backdrop-blur transition hover:bg-white/20 disabled:opacity-50"
+      className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-medium text-white backdrop-blur-md transition hover:bg-white/20 active:scale-95 disabled:opacity-50"
     >
+      <Languages className="h-4 w-4" strokeWidth={2} />
       {label}
     </button>
   );

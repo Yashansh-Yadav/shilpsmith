@@ -54,6 +54,8 @@ export const PUT = handle(async (request: NextRequest, ctx: Ctx) => {
   if (input.transliteration !== undefined) {
     data.transliteration = input.transliteration ?? null;
   }
+  if (input.jaikaraHi !== undefined) data.jaikaraHi = input.jaikaraHi ?? null;
+  if (input.jaikaraEn !== undefined) data.jaikaraEn = input.jaikaraEn ?? null;
   if (input.aartis !== undefined) data.aartis = input.aartis;
   if (input.bhajans !== undefined) data.bhajans = input.bhajans;
   if (input.scriptures !== undefined) data.scriptures = input.scriptures;

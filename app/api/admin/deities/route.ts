@@ -28,6 +28,8 @@ export const POST = handle(async (request: NextRequest) => {
       nameHi: input.nameHi,
       mantra: input.mantra,
       transliteration: input.transliteration ?? null,
+      jaikaraHi: input.jaikaraHi ?? null,
+      jaikaraEn: input.jaikaraEn ?? null,
       aartis: input.aartis,
       bhajans: input.bhajans,
       scriptures: input.scriptures,

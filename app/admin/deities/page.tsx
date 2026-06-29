@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
+import { presetsForKey } from "../../../lib/observancePresets";
+
 // -----------------------------------------------------------------------------
 // Types — mirror the Zod schemas in lib/validators.ts. Everything is a
 // reference (YouTube id / external PDF URL); media items must carry
@@ -29,6 +31,7 @@ type Scripture = {
   titleHi: string;
   lang: "hi" | "sa" | "en";
   pdfUrl: string;
+  description: string;
   source: string;
   license: string;
 };
@@ -37,8 +40,10 @@ type SpecialDay = {
   labelHi: string;
   weekday: string; // "" or "0".."6" in the form; coerced on submit
   tithi: string;
+  paksha: "" | "shukla" | "krishna";
   festivalDates: string; // comma/space separated YYYY-MM-DD in the form
-  note: string;
+  note: string; // English
+  noteHi: string; // Hindi
 };
 
 interface DeityForm {
@@ -48,6 +53,8 @@ interface DeityForm {
   nameHi: string;
   mantra: string;
   transliteration: string;
+  jaikaraHi: string;
+  jaikaraEn: string;
   sortOrder: string;
   aartis: Aarti[];
   bhajans: Bhajan[];
@@ -63,8 +70,10 @@ interface DeityRow extends Omit<DeityForm, "sortOrder" | "specialDays"> {
     labelHi: string;
     weekday?: number;
     tithi?: string;
+    paksha?: "shukla" | "krishna";
     festivalDates?: string[];
     note?: string;
+    noteHi?: string;
   }[];
   _count?: { products: number };
 }
@@ -89,6 +98,7 @@ const EMPTY_SCRIPTURE: Scripture = {
   titleHi: "",
   lang: "hi",
   pdfUrl: "",
+  description: "",
   source: "",
   license: "",
 };
@@ -97,8 +107,10 @@ const EMPTY_SPECIAL: SpecialDay = {
   labelHi: "",
   weekday: "",
   tithi: "",
+  paksha: "",
   festivalDates: "",
   note: "",
+  noteHi: "",
 };
 
 const EMPTY_FORM: DeityForm = {
@@ -108,6 +120,8 @@ const EMPTY_FORM: DeityForm = {
   nameHi: "",
   mantra: "",
   transliteration: "",
+  jaikaraHi: "",
+  jaikaraEn: "",
   sortOrder: "0",
   aartis: [],
   bhajans: [],
@@ -116,6 +130,17 @@ const EMPTY_FORM: DeityForm = {
 };
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// Reference template shown in the JSON-import panel. weekday: 0=Sun..6=Sat.
+const SPECIAL_DAYS_JSON_SAMPLE = `[
+  { "labelEn": "Somvar", "labelHi": "सोमवार", "weekday": 1, "note": "Monday", "noteHi": "सोमवार" },
+  { "labelEn": "Pradosh Vrat", "labelHi": "प्रदोष व्रत", "tithi": "Trayodashi" },
+  { "labelEn": "Masik Shivratri", "labelHi": "मासिक शिवरात्रि", "tithi": "Chaturdashi", "paksha": "krishna" },
+  { "labelEn": "Maha Shivratri", "labelHi": "महाशिवरात्रि", "festivalDates": ["2026-02-15"], "note": "Great night of Shiva", "noteHi": "शिव की महान रात्रि" }
+]`;
+
+const tdInputCls =
+  "w-full rounded-lg border border-slate-200 px-2 py-1 text-xs";
 
 interface HealthIssue {
   kind: string;
@@ -149,6 +174,9 @@ export default function DeitiesAdminPage() {
   const [submitting, setSubmitting] = useState(false);
   const [checking, setChecking] = useState(false);
   const [health, setHealth] = useState<HealthReport | null>(null);
+  const [jsonOpen, setJsonOpen] = useState(false);
+  const [jsonText, setJsonText] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -171,6 +199,21 @@ export default function DeitiesAdminPage() {
     setForm(EMPTY_FORM);
   }
 
+  function closeModal() {
+    if (submitting) return;
+    setModalOpen(false);
+    resetForm();
+    setJsonOpen(false);
+    setJsonText("");
+  }
+
+  function openCreate() {
+    resetForm();
+    setJsonOpen(false);
+    setJsonText("");
+    setModalOpen(true);
+  }
+
   function startEdit(row: DeityRow) {
     setEditingId(row.id);
     setForm({
@@ -180,6 +223,8 @@ export default function DeitiesAdminPage() {
       nameHi: row.nameHi,
       mantra: row.mantra,
       transliteration: row.transliteration ?? "",
+      jaikaraHi: row.jaikaraHi ?? "",
+      jaikaraEn: row.jaikaraEn ?? "",
       sortOrder: String(row.sortOrder ?? 0),
       aartis: (row.aartis ?? []).map((a) => ({ ...EMPTY_AARTI, ...a })),
       bhajans: (row.bhajans ?? []).map((b) => ({ ...EMPTY_BHAJAN, ...b })),
@@ -192,12 +237,13 @@ export default function DeitiesAdminPage() {
         labelHi: d.labelHi ?? "",
         weekday: d.weekday != null ? String(d.weekday) : "",
         tithi: d.tithi ?? "",
+        paksha: d.paksha ?? "",
         festivalDates: (d.festivalDates ?? []).join(", "),
         note: d.note ?? "",
+        noteHi: d.noteHi ?? "",
       })),
     });
-    if (typeof window !== "undefined")
-      window.scrollTo({ top: 0, behavior: "smooth" });
+    setModalOpen(true);
   }
 
   // Build the JSON payload from the form, coercing the string-ish form fields.
@@ -209,6 +255,8 @@ export default function DeitiesAdminPage() {
       nameHi: form.nameHi.trim(),
       mantra: form.mantra.trim(),
       transliteration: form.transliteration.trim() || undefined,
+      jaikaraHi: form.jaikaraHi.trim() || undefined,
+      jaikaraEn: form.jaikaraEn.trim() || undefined,
       sortOrder: Number(form.sortOrder) || 0,
       aartis: form.aartis,
       bhajans: form.bhajans,
@@ -223,8 +271,10 @@ export default function DeitiesAdminPage() {
           labelHi: d.labelHi.trim(),
           ...(d.weekday !== "" ? { weekday: Number(d.weekday) } : {}),
           ...(d.tithi.trim() ? { tithi: d.tithi.trim() } : {}),
+          ...(d.paksha ? { paksha: d.paksha } : {}),
           ...(dates.length ? { festivalDates: dates } : {}),
           ...(d.note.trim() ? { note: d.note.trim() } : {}),
+          ...(d.noteHi.trim() ? { noteHi: d.noteHi.trim() } : {}),
         };
       }),
     };
@@ -247,16 +297,29 @@ export default function DeitiesAdminPage() {
     const body = await res.json();
     setSubmitting(false);
     if (!res.ok || !body.success) {
-      const d = body?.error?.details?.[0];
-      toast.error(
-        d
-          ? `${d.field ?? "field"}: ${d.message}`
-          : body?.error?.message ?? "Save failed"
-      );
+      const details = body?.error?.details as
+        | { field?: string; message: string }[]
+        | undefined;
+      if (details && details.length) {
+        // Show every failing field so a blocking item (e.g. an aarti) is visible
+        // — not just the first.
+        toast.error(
+          details
+            .slice(0, 5)
+            .map((d) => `${d.field ?? "field"}: ${d.message}`)
+            .join("\n"),
+          { duration: 6000 }
+        );
+      } else {
+        toast.error(body?.error?.message ?? "Save failed");
+      }
       return;
     }
     toast.success(editingId ? "Deity updated" : `Created ${body.data.nameEn}`);
+    setModalOpen(false);
     resetForm();
+    setJsonOpen(false);
+    setJsonText("");
     load();
   }
 
@@ -292,6 +355,124 @@ export default function DeitiesAdminPage() {
         ? "All media links OK"
         : `${body.data.totalIssues} link issue(s) found`
     );
+  }
+
+  // One-click: append the recurring preset observances for this deity (by key),
+  // skipping any already present by label. No API, no per-year date upkeep.
+  function addSuggestedDays() {
+    const presets = presetsForKey(form.key || "");
+    setForm((f) => {
+      const seen = new Set(
+        f.specialDays.map((d) => d.labelEn.trim().toLowerCase())
+      );
+      const additions: SpecialDay[] = presets
+        .filter((p) => !seen.has(p.labelEn.trim().toLowerCase()))
+        .map((p) => ({
+          labelEn: p.labelEn,
+          labelHi: p.labelHi,
+          weekday: p.weekday !== undefined ? String(p.weekday) : "",
+          tithi: p.tithi ?? "",
+          paksha: p.paksha ?? "",
+          festivalDates: "",
+          note: p.note ?? "",
+          noteHi: p.noteHi ?? "",
+        }));
+      if (additions.length === 0) {
+        toast("All suggested days already added");
+        return f;
+      }
+      toast.success(`Added ${additions.length} suggested day(s)`);
+      return { ...f, specialDays: [...f.specialDays, ...additions] };
+    });
+  }
+
+  // Bulk import special days from a JSON array (paste or file). Accepts the
+  // same shape stored in the DB (weekday: number, festivalDates: string[],
+  // paksha: "shukla"|"krishna") and maps it to the form's string fields.
+  function importSpecialDaysJson() {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(jsonText);
+    } catch {
+      toast.error("Invalid JSON — check the format");
+      return;
+    }
+    if (!Array.isArray(parsed)) {
+      toast.error("JSON must be an array of special days");
+      return;
+    }
+    const mapped: SpecialDay[] = [];
+    for (const raw of parsed) {
+      if (!raw || typeof raw !== "object") continue;
+      const item = raw as Record<string, unknown>;
+      const labelEn = String(item.labelEn ?? "").trim();
+      const labelHi = String(item.labelHi ?? "").trim();
+      if (!labelEn && !labelHi) continue;
+      const wd = item.weekday;
+      const fest = Array.isArray(item.festivalDates)
+        ? item.festivalDates.join(", ")
+        : typeof item.festivalDates === "string"
+          ? item.festivalDates
+          : "";
+      mapped.push({
+        labelEn,
+        labelHi,
+        weekday:
+          typeof wd === "number" && wd >= 0 && wd <= 6 ? String(wd) : "",
+        tithi: String(item.tithi ?? "").trim(),
+        paksha:
+          item.paksha === "shukla" || item.paksha === "krishna"
+            ? item.paksha
+            : "",
+        festivalDates: fest,
+        note: String(item.note ?? "").trim(),
+        noteHi: String(item.noteHi ?? "").trim(),
+      });
+    }
+    if (mapped.length === 0) {
+      toast.error("No valid special days found in the JSON");
+      return;
+    }
+
+    // De-dupe the JSON itself by label (last wins) so a JSON with repeated
+    // labels can't create duplicate rows.
+    const keyOf = (d: { labelEn: string; labelHi: string }) =>
+      (d.labelEn || d.labelHi).trim().toLowerCase();
+    const byLabel = new Map<string, SpecialDay>();
+    for (const m of mapped) byLabel.set(keyOf(m), m);
+    const clean = [...byLabel.values()];
+    const droppedInternal = mapped.length - clean.length;
+
+    // Import REPLACES the table — what's in the JSON is exactly what you get
+    // (no append-duplicates, no silently skipped rows). Confirm if replacing
+    // existing rows.
+    if (
+      form.specialDays.length > 0 &&
+      typeof window !== "undefined" &&
+      !window.confirm(
+        `Replace all ${form.specialDays.length} current special day(s) with ${clean.length} from the JSON?`
+      )
+    ) {
+      return;
+    }
+
+    setForm((f) => ({ ...f, specialDays: clean }));
+    setJsonText("");
+    setJsonOpen(false);
+    toast.success(
+      `Loaded ${clean.length} from JSON${
+        droppedInternal ? ` (${droppedInternal} duplicate label(s) merged)` : ""
+      } — click “Save changes” to store`,
+      { duration: 6000 }
+    );
+  }
+
+  function handleJsonFile(file: File | undefined) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setJsonText(String(reader.result ?? ""));
+    reader.onerror = () => toast.error("Could not read file");
+    reader.readAsText(file);
   }
 
   // Generic helpers for the repeatable sections.
@@ -333,14 +514,23 @@ export default function DeitiesAdminPage() {
             license.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={checkLinks}
-          disabled={checking}
-          className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium hover:bg-slate-200 disabled:opacity-50"
-        >
-          {checking ? "Checking…" : "Check media links"}
-        </button>
+        <div className="flex flex-none gap-2">
+          <button
+            type="button"
+            onClick={checkLinks}
+            disabled={checking}
+            className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium hover:bg-slate-200 disabled:opacity-50"
+          >
+            {checking ? "Checking…" : "Check media links"}
+          </button>
+          <button
+            type="button"
+            onClick={openCreate}
+            className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          >
+            + Add deity
+          </button>
+        </div>
       </div>
 
       {health && health.totalIssues > 0 && (
@@ -369,24 +559,31 @@ export default function DeitiesAdminPage() {
         </section>
       )}
 
-      {/* ---- Create / edit form ---- */}
-      <section className="rounded-3xl bg-white p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
-            {editingId ? "Edit deity" : "Add deity"}
-          </h2>
-          {editingId && (
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-xs text-slate-500 hover:underline"
-            >
-              + New instead
-            </button>
-          )}
-        </div>
+      {/* ---- Create / edit modal ---- */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm"
+          onClick={closeModal}
+        >
+          <section
+            className="my-6 w-full max-w-4xl rounded-3xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-bold">
+                {editingId ? "Edit deity" : "Add deity"}
+              </h2>
+              <button
+                type="button"
+                onClick={closeModal}
+                className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Close"
+              >
+                ✕
+              </button>
+            </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
           {/* Identity */}
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <label className="text-xs font-medium text-slate-500">
@@ -438,6 +635,28 @@ export default function DeitiesAdminPage() {
                 value={form.transliteration}
                 onChange={(e) =>
                   setForm({ ...form, transliteration: e.target.value })
+                }
+                className={`mt-1 ${inputCls}`}
+              />
+            </label>
+            <label className="text-xs font-medium text-slate-500">
+              Jaikara — Hindi (spoken at end of panchang)
+              <input
+                placeholder="हर हर महादेव"
+                value={form.jaikaraHi}
+                onChange={(e) =>
+                  setForm({ ...form, jaikaraHi: e.target.value })
+                }
+                className={`mt-1 ${inputCls}`}
+              />
+            </label>
+            <label className="text-xs font-medium text-slate-500">
+              Jaikara — English
+              <input
+                placeholder="Har Har Mahadev"
+                value={form.jaikaraEn}
+                onChange={(e) =>
+                  setForm({ ...form, jaikaraEn: e.target.value })
                 }
                 className={`mt-1 ${inputCls}`}
               />
@@ -501,7 +720,7 @@ export default function DeitiesAdminPage() {
                   className={inputCls}
                 />
                 <input
-                  placeholder="YouTube id (11 chars)"
+                  placeholder="YouTube link or video id"
                   value={a.youtubeId}
                   onChange={(e) =>
                     patchItem("aartis", i, { youtubeId: e.target.value })
@@ -509,7 +728,7 @@ export default function DeitiesAdminPage() {
                   className={`font-mono ${inputCls}`}
                 />
                 <input
-                  placeholder="Source (e.g. T-Series official)"
+                  placeholder="Source (optional, e.g. T-Series)"
                   value={a.source}
                   onChange={(e) =>
                     patchItem("aartis", i, { source: e.target.value })
@@ -517,7 +736,7 @@ export default function DeitiesAdminPage() {
                   className={inputCls}
                 />
                 <input
-                  placeholder="License / rights basis"
+                  placeholder="License / rights (optional)"
                   value={a.license}
                   onChange={(e) =>
                     patchItem("aartis", i, { license: e.target.value })
@@ -552,7 +771,7 @@ export default function DeitiesAdminPage() {
                   className={inputCls}
                 />
                 <input
-                  placeholder="YouTube id (11 chars)"
+                  placeholder="YouTube link or video id"
                   value={b.youtubeId}
                   onChange={(e) =>
                     patchItem("bhajans", i, { youtubeId: e.target.value })
@@ -560,7 +779,7 @@ export default function DeitiesAdminPage() {
                   className={`font-mono ${inputCls}`}
                 />
                 <input
-                  placeholder="Source"
+                  placeholder="Source (optional)"
                   value={b.source}
                   onChange={(e) =>
                     patchItem("bhajans", i, { source: e.target.value })
@@ -568,7 +787,7 @@ export default function DeitiesAdminPage() {
                   className={inputCls}
                 />
                 <input
-                  placeholder="License / rights basis"
+                  placeholder="License / rights (optional)"
                   value={b.license}
                   onChange={(e) =>
                     patchItem("bhajans", i, { license: e.target.value })
@@ -624,7 +843,15 @@ export default function DeitiesAdminPage() {
                   className={inputCls}
                 />
                 <input
-                  placeholder="Source (e.g. archive.org)"
+                  placeholder="Short description (optional)"
+                  value={s.description}
+                  onChange={(e) =>
+                    patchItem("scriptures", i, { description: e.target.value })
+                  }
+                  className={`md:col-span-2 ${inputCls}`}
+                />
+                <input
+                  placeholder="Source (optional, e.g. archive.org)"
                   value={s.source}
                   onChange={(e) =>
                     patchItem("scriptures", i, { source: e.target.value })
@@ -632,7 +859,7 @@ export default function DeitiesAdminPage() {
                   className={inputCls}
                 />
                 <input
-                  placeholder="License (e.g. Public domain)"
+                  placeholder="License (optional, e.g. Public domain)"
                   value={s.license}
                   onChange={(e) =>
                     patchItem("scriptures", i, { license: e.target.value })
@@ -643,98 +870,260 @@ export default function DeitiesAdminPage() {
             ))}
           </RowSection>
 
-          {/* Special days */}
-          <RowSection
-            title="Special days"
-            hint="Each needs a weekday, a tithi, or festival date(s)."
-            onAdd={() => addItem("specialDays", { ...EMPTY_SPECIAL })}
-          >
-            {form.specialDays.map((d, i) => (
-              <RepeatRow key={i} onRemove={() => removeItem("specialDays", i)}>
-                <input
-                  placeholder="Label (English)"
-                  value={d.labelEn}
-                  onChange={(e) =>
-                    patchItem("specialDays", i, { labelEn: e.target.value })
-                  }
-                  className={inputCls}
-                />
-                <input
-                  placeholder="Label (Hindi)"
-                  value={d.labelHi}
-                  onChange={(e) =>
-                    patchItem("specialDays", i, { labelHi: e.target.value })
-                  }
-                  className={inputCls}
-                />
-                <select
-                  value={d.weekday}
-                  onChange={(e) =>
-                    patchItem("specialDays", i, { weekday: e.target.value })
-                  }
-                  className={inputCls}
+          {/* Special days — compact table */}
+          <div className="rounded-2xl border border-slate-100 p-4">
+            <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold">Special days</h3>
+                <p className="text-xs text-slate-400">
+                  Recurring rules (weekday / tithi / paksha) auto-repeat — no
+                  dates needed. Use ✨ for this deity&apos;s common days, or import
+                  many at once via JSON.
+                </p>
+              </div>
+              <div className="flex flex-none flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setJsonOpen((v) => !v)}
+                  className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-medium hover:bg-slate-200"
                 >
-                  <option value="">— weekday —</option>
-                  {WEEKDAYS.map((w, wi) => (
-                    <option key={wi} value={String(wi)}>
-                      {w}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  placeholder="Tithi (e.g. Chaturdashi)"
-                  value={d.tithi}
-                  onChange={(e) =>
-                    patchItem("specialDays", i, { tithi: e.target.value })
-                  }
-                  className={inputCls}
-                />
-                <input
-                  placeholder="Festival dates (YYYY-MM-DD, comma-sep)"
-                  value={d.festivalDates}
-                  onChange={(e) =>
-                    patchItem("specialDays", i, {
-                      festivalDates: e.target.value,
-                    })
-                  }
-                  className={inputCls}
-                />
-                <input
-                  placeholder="Note (optional)"
-                  value={d.note}
-                  onChange={(e) =>
-                    patchItem("specialDays", i, { note: e.target.value })
-                  }
-                  className={inputCls}
-                />
-              </RepeatRow>
-            ))}
-          </RowSection>
+                  ⬆ Import JSON
+                </button>
+                <button
+                  type="button"
+                  onClick={addSuggestedDays}
+                  className="rounded-lg bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100"
+                >
+                  ✨ Add suggested
+                </button>
+                <button
+                  type="button"
+                  onClick={() => addItem("specialDays", { ...EMPTY_SPECIAL })}
+                  className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-medium hover:bg-slate-200"
+                >
+                  + Add row
+                </button>
+              </div>
+            </div>
 
-          <div className="flex gap-3">
-            <button
-              type="submit"
-              disabled={submitting}
-              className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            >
-              {submitting
-                ? "Saving…"
-                : editingId
-                ? "Save changes"
-                : "Create deity"}
-            </button>
-            {editingId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium hover:bg-slate-200"
-              >
-                Cancel
-              </button>
+            {/* JSON import panel */}
+            {jsonOpen && (
+              <div className="mb-4 space-y-2 rounded-xl bg-slate-50 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <input
+                    type="file"
+                    accept="application/json,.json"
+                    onChange={(e) => handleJsonFile(e.target.files?.[0])}
+                    className="text-xs"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setJsonText(SPECIAL_DAYS_JSON_SAMPLE)}
+                    className="rounded-lg bg-white px-2.5 py-1 text-xs font-medium ring-1 ring-slate-200 hover:bg-slate-100"
+                  >
+                    Load reference
+                  </button>
+                  <span className="text-[11px] text-slate-400">
+                    weekday: 0=Sun … 6=Sat · paksha: shukla|krishna ·
+                    festivalDates: [&quot;YYYY-MM-DD&quot;]
+                  </span>
+                </div>
+                <textarea
+                  value={jsonText}
+                  onChange={(e) => setJsonText(e.target.value)}
+                  rows={7}
+                  placeholder={SPECIAL_DAYS_JSON_SAMPLE}
+                  className="w-full rounded-lg border border-slate-200 p-2 font-mono text-xs"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={importSpecialDaysJson}
+                    className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
+                  >
+                    Import (replace table)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setJsonOpen(false);
+                      setJsonText("");
+                    }}
+                    className="rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-medium hover:bg-slate-200"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {form.specialDays.length === 0 ? (
+              <p className="py-4 text-center text-xs text-slate-400">
+                No special days yet — add a row, click ✨, or import JSON.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-xs">
+                  <thead>
+                    <tr className="text-left text-[11px] uppercase tracking-wide text-slate-400">
+                      <th className="px-1 py-1 font-medium">Label (EN)</th>
+                      <th className="px-1 py-1 font-medium">Label (HI)</th>
+                      <th className="px-1 py-1 font-medium">Weekday</th>
+                      <th className="px-1 py-1 font-medium">Tithi</th>
+                      <th className="px-1 py-1 font-medium">Paksha</th>
+                      <th className="px-1 py-1 font-medium">Festival dates</th>
+                      <th className="px-1 py-1 font-medium">Note (EN)</th>
+                      <th className="px-1 py-1 font-medium">Note (HI)</th>
+                      <th className="px-1 py-1" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {form.specialDays.map((d, i) => (
+                      <tr key={i} className="align-top">
+                        <td className="px-1 py-1">
+                          <input
+                            value={d.labelEn}
+                            onChange={(e) =>
+                              patchItem("specialDays", i, {
+                                labelEn: e.target.value,
+                              })
+                            }
+                            className={tdInputCls}
+                          />
+                        </td>
+                        <td className="px-1 py-1">
+                          <input
+                            value={d.labelHi}
+                            onChange={(e) =>
+                              patchItem("specialDays", i, {
+                                labelHi: e.target.value,
+                              })
+                            }
+                            className={tdInputCls}
+                          />
+                        </td>
+                        <td className="px-1 py-1">
+                          <select
+                            value={d.weekday}
+                            onChange={(e) =>
+                              patchItem("specialDays", i, {
+                                weekday: e.target.value,
+                              })
+                            }
+                            className={tdInputCls}
+                          >
+                            <option value="">—</option>
+                            {WEEKDAYS.map((w, wi) => (
+                              <option key={wi} value={String(wi)}>
+                                {w}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-1 py-1">
+                          <input
+                            placeholder="Chaturdashi"
+                            value={d.tithi}
+                            onChange={(e) =>
+                              patchItem("specialDays", i, {
+                                tithi: e.target.value,
+                              })
+                            }
+                            className={tdInputCls}
+                          />
+                        </td>
+                        <td className="px-1 py-1">
+                          <select
+                            value={d.paksha}
+                            onChange={(e) =>
+                              patchItem("specialDays", i, {
+                                paksha: e.target.value as SpecialDay["paksha"],
+                              })
+                            }
+                            className={tdInputCls}
+                          >
+                            <option value="">—</option>
+                            <option value="shukla">Shukla</option>
+                            <option value="krishna">Krishna</option>
+                          </select>
+                        </td>
+                        <td className="px-1 py-1">
+                          <input
+                            placeholder="2026-02-15"
+                            value={d.festivalDates}
+                            onChange={(e) =>
+                              patchItem("specialDays", i, {
+                                festivalDates: e.target.value,
+                              })
+                            }
+                            className={tdInputCls}
+                          />
+                        </td>
+                        <td className="px-1 py-1">
+                          <input
+                            value={d.note}
+                            onChange={(e) =>
+                              patchItem("specialDays", i, {
+                                note: e.target.value,
+                              })
+                            }
+                            className={tdInputCls}
+                          />
+                        </td>
+                        <td className="px-1 py-1">
+                          <input
+                            value={d.noteHi}
+                            onChange={(e) =>
+                              patchItem("specialDays", i, {
+                                noteHi: e.target.value,
+                              })
+                            }
+                            className={tdInputCls}
+                          />
+                        </td>
+                        <td className="px-1 py-1 text-center">
+                          <button
+                            type="button"
+                            onClick={() => removeItem("specialDays", i)}
+                            className="rounded px-1.5 py-0.5 text-red-600 hover:bg-red-50"
+                            aria-label="Remove"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
-        </form>
-      </section>
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  {submitting
+                    ? "Saving…"
+                    : editingId
+                    ? "Save changes"
+                    : "Create deity"}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  disabled={submitting}
+                  className="rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium hover:bg-slate-200 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
 
       {/* ---- List ---- */}
       <section className="overflow-x-auto rounded-3xl bg-white shadow-sm">
@@ -834,27 +1223,42 @@ function RowSection({
   title,
   hint,
   onAdd,
+  onSuggest,
+  suggestLabel = "✨ Add suggested",
   children,
 }: {
   title: string;
   hint?: string;
   onAdd: () => void;
+  onSuggest?: () => void;
+  suggestLabel?: string;
   children: React.ReactNode;
 }) {
   return (
     <div className="rounded-2xl border border-slate-100 p-4">
-      <div className="mb-3 flex items-center justify-between">
+      <div className="mb-3 flex items-center justify-between gap-2">
         <div>
           <h3 className="text-sm font-semibold">{title}</h3>
           {hint && <p className="text-xs text-slate-400">{hint}</p>}
         </div>
-        <button
-          type="button"
-          onClick={onAdd}
-          className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-medium hover:bg-slate-200"
-        >
-          + Add
-        </button>
+        <div className="flex flex-none gap-2">
+          {onSuggest && (
+            <button
+              type="button"
+              onClick={onSuggest}
+              className="rounded-lg bg-brand-50 px-3 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100"
+            >
+              {suggestLabel}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onAdd}
+            className="rounded-lg bg-slate-100 px-3 py-1 text-xs font-medium hover:bg-slate-200"
+          >
+            + Add
+          </button>
+        </div>
       </div>
       <div className="space-y-3">{children}</div>
     </div>

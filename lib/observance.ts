@@ -1,36 +1,56 @@
 import type { Panchang } from "./panchang";
-import { normalizeTithi } from "./panchang";
+import { normalizeTithi, tithiNameToIno } from "./panchang";
 
 // Resolves which of a deity's admin-configured special days apply *today*, given
-// the computed Panchang. Three independent trigger types (see SpecialDaySchema):
-//   - weekday:       e.g. Monday → Shiva   (always works, no astro needed)
-//   - tithi:         e.g. "Chaturdashi"    (matched against the day's tithi)
-//   - festivalDates: e.g. "2026-02-15"     (curated lunar dates, exact match)
-// A single special day may carry more than one trigger; any match counts.
+// the computed Panchang.
+//
+// A special day is either:
+//   - a fixed date (festivalDates) — exact YYYY-MM-DD match, or
+//   - a recurring rule — ALL of its specified constraints must hold:
+//       weekday   e.g. Monday → Shiva        (no astro needed)
+//       tithi     e.g. "Chaturdashi"         (matched against the day's tithi)
+//       paksha    "shukla" | "krishna"       (narrows tithi to one fortnight)
+// A recurring rule needs at least a weekday or a tithi (paksha alone is half a
+// month and never stands on its own).
 
 export interface SpecialDayConfig {
   labelEn: string;
   labelHi: string;
   weekday?: number;
   tithi?: string;
+  paksha?: "shukla" | "krishna";
   festivalDates?: string[];
-  note?: string;
+  note?: string; // English note
+  noteHi?: string; // Hindi note
 }
 
 export interface Observance {
   labelEn: string;
   labelHi: string;
   note?: string;
+  noteHi?: string;
   reason: "weekday" | "tithi" | "festival";
 }
 
 function tithiMatches(configTithi: string, panchang: Panchang): boolean {
-  if (!panchang.tithiKey) return false; // panchang fell back to weekday-only
+  // Primary: match by tithi index (handles mhah's regional spellings).
+  const target = tithiNameToIno(configTithi);
+  if (target >= 0 && panchang.tithiIno >= 0) {
+    return target === panchang.tithiIno;
+  }
+  // Fallback for custom/unknown names: tolerant string compare.
+  if (!panchang.tithiKey) return false;
   const a = normalizeTithi(configTithi);
   if (!a) return false;
   const b = panchang.tithiKey;
-  // Tolerant compare — admin "Chaturdashi" vs mhah "Chaturdasi", etc.
   return a === b || a.startsWith(b) || b.startsWith(a);
+}
+
+function pakshaMatches(
+  configPaksha: "shukla" | "krishna",
+  panchang: Panchang
+): boolean {
+  return panchang.pakshaEn.toLowerCase().startsWith(configPaksha);
 }
 
 export function todaysObservances(
@@ -44,15 +64,21 @@ export function todaysObservances(
     if (!d || (!d.labelEn && !d.labelHi)) continue;
 
     let reason: Observance["reason"] | null = null;
-    if (d.weekday !== undefined && d.weekday === panchang.vaarIndex) {
-      reason = "weekday";
-    } else if (d.tithi && tithiMatches(d.tithi, panchang)) {
-      reason = "tithi";
-    } else if (
+
+    if (
       Array.isArray(d.festivalDates) &&
       d.festivalDates.includes(panchang.date)
     ) {
       reason = "festival";
+    } else {
+      const hasBase = d.weekday !== undefined || !!d.tithi;
+      if (hasBase) {
+        const checks: boolean[] = [];
+        if (d.weekday !== undefined) checks.push(d.weekday === panchang.vaarIndex);
+        if (d.tithi) checks.push(tithiMatches(d.tithi, panchang));
+        if (d.paksha) checks.push(pakshaMatches(d.paksha, panchang));
+        if (checks.every(Boolean)) reason = d.tithi ? "tithi" : "weekday";
+      }
     }
 
     if (reason) {
@@ -60,6 +86,7 @@ export function todaysObservances(
         labelEn: d.labelEn,
         labelHi: d.labelHi,
         note: d.note,
+        noteHi: d.noteHi,
         reason,
       });
     }

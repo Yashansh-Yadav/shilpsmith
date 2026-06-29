@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { ChevronLeft, ExternalLink, ShieldCheck } from "lucide-react";
 
 import { getActiveDeity } from "../../../../lib/deities";
 import { resolveLang, t, type Lang } from "../../../../lib/i18n/darshan";
@@ -42,22 +43,29 @@ export default async function ScripturePage({ params, searchParams }: Params) {
   const title = lang === "hi" ? item.titleHi : item.titleEn;
 
   return (
-    <main className="flex min-h-screen flex-col bg-slate-900">
-      <header className="flex items-center justify-between gap-4 px-4 py-3 text-white">
+    <main className="flex min-h-screen flex-col bg-slate-950">
+      {/* Sticky app-style header */}
+      <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-white/10 bg-slate-900/80 px-4 py-3 text-white backdrop-blur-md">
         <Link
           href={`/darshan/${deity.key}`}
-          className="text-sm text-white/70 hover:text-white"
+          className="inline-flex items-center gap-1 rounded-full bg-white/10 py-1.5 pl-2 pr-3 text-sm text-white/90 transition hover:bg-white/20 active:scale-95"
         >
-          ← {lang === "hi" ? deity.nameHi : deity.nameEn}
+          <ChevronLeft className="h-4 w-4" />
+          <span className="max-w-[30vw] truncate">
+            {lang === "hi" ? deity.nameHi : deity.nameEn}
+          </span>
         </Link>
-        <h1 className="truncate text-sm font-medium">{title}</h1>
+        <h1 className="min-w-0 flex-1 truncate text-center text-sm font-semibold">
+          {title}
+        </h1>
         <a
           href={item.pdfUrl}
           target="_blank"
           rel="noreferrer noopener"
-          className="whitespace-nowrap rounded-full bg-white/10 px-3 py-1.5 text-xs hover:bg-white/20"
+          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-700 active:scale-95"
         >
-          {t(lang, "readScripture")} ↗
+          {t(lang, "readScripture")}
+          <ExternalLink className="h-3.5 w-3.5" />
         </a>
       </header>
 
@@ -66,14 +74,17 @@ export default async function ScripturePage({ params, searchParams }: Params) {
         <iframe
           src={item.pdfUrl}
           title={title}
-          className="h-full min-h-[70vh] w-full bg-white"
+          className="h-full min-h-[78vh] w-full bg-white"
         />
       </div>
 
-      {/* Provenance — always shown (legal safeguard). */}
-      <footer className="px-4 py-2 text-center text-xs text-white/50">
-        Source: {item.source} · {item.license}
-      </footer>
+      {/* Provenance — shown when recorded (legal safeguard). */}
+      {(item.source || item.license) && (
+        <footer className="flex items-center justify-center gap-1.5 px-4 py-2.5 text-center text-xs text-white/40">
+          <ShieldCheck className="h-3.5 w-3.5" />
+          {[item.source, item.license].filter(Boolean).join(" · ")}
+        </footer>
+      )}
     </main>
   );
 }

@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { AudioLines, Square } from "lucide-react";
 
-// Speaks the day's basic panchang aloud using the browser's built-in
-// SpeechSynthesis API — no audio files, no network, fully client-side. The tap
-// that opened the page (or this button press) is the user gesture browsers
-// require before allowing speech. Hidden when the browser has no TTS support.
+// Speaks the day's panchang aloud (greeting → panchang → jaikara) using the
+// browser's built-in SpeechSynthesis API — no audio files, no network. Always
+// renders; if a browser lacks speech support the click simply does nothing.
+// Styled as a premium gold pill for the (dark) hero.
 export default function PanchangAnnounce({
   text,
   lang, // BCP-47, e.g. "hi-IN"
@@ -15,17 +16,10 @@ export default function PanchangAnnounce({
   lang: string;
   label: string;
 }) {
-  const [supported, setSupported] = useState(false);
   const [speaking, setSpeaking] = useState(false);
 
-  useEffect(() => {
-    setSupported(
-      typeof window !== "undefined" && "speechSynthesis" in window
-    );
-  }, []);
-
   function speak() {
-    if (!supported) return;
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     const synth = window.speechSynthesis;
     if (speaking) {
       synth.cancel();
@@ -34,6 +28,7 @@ export default function PanchangAnnounce({
     }
     const u = new SpeechSynthesisUtterance(text);
     u.lang = lang;
+    u.rate = 0.95;
     // Prefer a voice that matches the requested language if one is installed.
     const match = synth
       .getVoices()
@@ -45,16 +40,21 @@ export default function PanchangAnnounce({
     synth.speak(u);
   }
 
-  if (!supported) return null;
-
   return (
     <button
       type="button"
       onClick={speak}
-      className="inline-flex items-center gap-2 rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-cta transition hover:bg-brand-700"
+      aria-label={label}
+      className="group inline-flex items-center gap-2.5 rounded-full bg-gradient-to-b from-amber-300 to-amber-500 px-6 py-3 text-sm font-bold text-amber-950 shadow-lg shadow-amber-900/30 ring-1 ring-amber-200/60 transition hover:from-amber-200 hover:to-amber-400 hover:shadow-amber-500/40 active:scale-95"
     >
-      <span aria-hidden>{speaking ? "⏸" : "🔊"}</span>
-      {label}
+      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-950/15">
+        {speaking ? (
+          <Square className="h-3 w-3 fill-current" />
+        ) : (
+          <AudioLines className="h-4 w-4" strokeWidth={2.25} />
+        )}
+      </span>
+      {speaking ? (lang.startsWith("hi") ? "रोकें" : "Stop") : label}
     </button>
   );
 }

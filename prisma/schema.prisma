@@ -459,6 +459,11 @@ model Deity {
   mantra          String
   transliteration String?
 
+  // Closing jaikara/chant spoken at the end of the audio panchang announcement,
+  // e.g. "हर हर महादेव" / "Har Har Mahadev". Falls back to the mantra when unset.
+  jaikaraHi String?
+  jaikaraEn String?
+
   // [{ labelEn, labelHi, youtubeId, slot:"morning"|"sandhya"|"other", source, license }]
   aartis      Json @default("[]")
   // [{ labelEn, labelHi, youtubeId, source, license }]
