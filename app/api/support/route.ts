@@ -6,6 +6,7 @@ import { parseJson } from "../../../lib/middleware/validateRequest";
 import { SupportConcernSchema } from "../../../lib/validators";
 import { rateLimit } from "../../../lib/middleware/rateLimit";
 import { notifyAdmin } from "../../../lib/notify";
+import { notifyCustomerSupport } from "../../../lib/whatsappCustomer";
 import { logger } from "../../../lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -51,6 +52,11 @@ export const POST = handle(async (request: NextRequest) => {
     path: "/admin/support",
     replyTo: input.email,
   }).catch((err) => logger.error("support notification failed", { err }));
+
+  // Best-effort acknowledgement to the customer's WhatsApp (if they left one).
+  notifyCustomerSupport({ name: input.name, phone: input.phone }).catch((err) =>
+    logger.error("support customer WhatsApp failed", { err })
+  );
 
   return created(
     { received: true },

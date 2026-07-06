@@ -5,6 +5,8 @@ import { ok, handle } from "../../../../../lib/apiResponse";
 import { parseJson } from "../../../../../lib/middleware/validateRequest";
 import { OrderUpdateSchema } from "../../../../../lib/validators";
 import { NotFoundError, ValidationError } from "../../../../../lib/errors";
+import { notifyCustomerOrder } from "../../../../../lib/whatsappCustomer";
+import { logger } from "../../../../../lib/logger";
 
 export const dynamic = "force-dynamic";
 
@@ -43,11 +45,35 @@ export const PUT = handle(async (request: NextRequest, ctx: Ctx) => {
   if (input.internalNotes !== undefined) data.internalNotes = input.internalNotes;
   if (input.paymentReference !== undefined) data.paymentReference = input.paymentReference;
 
+  // Detect a status change so we only message the customer when it actually moves.
+  const before =
+    input.status !== undefined
+      ? await prisma.order.findUnique({
+          where: { id },
+          select: { status: true },
+        })
+      : null;
+
   const order = await prisma.order.update({
     where: { id },
     data,
     include: { items: true, shippingAddress: true, billingAddress: true },
   });
+
+  // Best-effort customer WhatsApp on status change (accepted / dispatched / etc.).
+  if (
+    input.status !== undefined &&
+    before &&
+    before.status !== order.status
+  ) {
+    notifyCustomerOrder(order, order.status).catch((error) =>
+      logger.error("Order status customer WhatsApp failed", {
+        error,
+        orderNumber: order.orderNumber,
+      })
+    );
+  }
+
   return ok(order, { message: "Order updated" });
 });
 

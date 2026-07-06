@@ -8,6 +8,7 @@ import { rateLimit } from "../../../../../lib/middleware/rateLimit";
 import { verifyRazorpaySignature } from "../../../../../lib/payment";
 import { AuthError, ConflictError, NotFoundError } from "../../../../../lib/errors";
 import { sendOrderConfirmationEmail } from "../../../../../lib/email";
+import { notifyCustomerOrder } from "../../../../../lib/whatsappCustomer";
 import { logger } from "../../../../../lib/logger";
 
 export const dynamic = "force-dynamic";
@@ -75,6 +76,14 @@ export const POST = handle(async (request: NextRequest) => {
 
   sendOrderConfirmationEmail(updated).catch((error) => {
     logger.error("Order confirmation email failed (post-payment)", {
+      error,
+      orderNumber: updated.orderNumber,
+    });
+  });
+
+  // Best-effort customer WhatsApp — payment received → order confirmed.
+  notifyCustomerOrder(updated, updated.status).catch((error) => {
+    logger.error("Order confirmation WhatsApp failed (post-payment)", {
       error,
       orderNumber: updated.orderNumber,
     });
