@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import toast, { Toaster } from "react-hot-toast";
 
 import OrderStatusTimeline, {
   type OrderStatus,
 } from "../../../../components/admin/OrderStatusTimeline";
+import { CARRIERS, resolveTrackingUrl } from "../../../../lib/carriers";
 
 interface OrderDetail {
   id: number;
@@ -25,6 +26,12 @@ interface OrderDetail {
   paymentStatus: string;
   paymentMethod: string;
   paymentReference: string | null;
+  trackingCarrier: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  shippedAt: string | null;
+  trackingData: { current?: { status?: string } } | null;
+  trackingSyncedAt: string | null;
   notes: string | null;
   internalNotes: string | null;
   items: {
@@ -56,7 +63,12 @@ const STATUSES: OrderStatus[] = [
   "DELIVERED",
   "CANCELLED",
   "REFUNDED",
+  "BY_MISTAKE",
 ];
+
+function statusLabel(s: string) {
+  return s.replace(/_/g, " ");
+}
 
 function formatRupee(n: number | string) {
   return `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
@@ -64,11 +76,19 @@ function formatRupee(n: number | string) {
 
 export default function AdminOrderDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const id = params?.id;
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingStatus, setSavingStatus] = useState(false);
   const [notes, setNotes] = useState("");
+  const [carrier, setCarrier] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [trackingUrlOverride, setTrackingUrlOverride] = useState("");
+  const [savingTracking, setSavingTracking] = useState(false);
+  const [refreshingLive, setRefreshingLive] = useState(false);
+  const [liveStatus, setLiveStatus] = useState<string | null>(null);
+  const [liveSyncedAt, setLiveSyncedAt] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -82,6 +102,11 @@ export default function AdminOrderDetailPage() {
     }
     setOrder(body.data);
     setNotes(body.data.internalNotes ?? "");
+    setCarrier(body.data.trackingCarrier ?? "");
+    setTrackingNumber(body.data.trackingNumber ?? "");
+    setTrackingUrlOverride("");
+    setLiveStatus(body.data.trackingData?.current?.status ?? null);
+    setLiveSyncedAt(body.data.trackingSyncedAt ?? null);
   }, [id]);
 
   useEffect(() => {
@@ -106,6 +131,26 @@ export default function AdminOrderDetailPage() {
     setOrder((cur) => (cur ? { ...cur, status } : cur));
   }
 
+  async function deleteOrder() {
+    if (!order) return;
+    if (
+      !confirm(
+        "Delete this order? It will be removed from the store and excluded from analytics. This can't be undone from the admin."
+      )
+    )
+      return;
+    const res = await fetch(`/api/admin/orders/${order.id}`, {
+      method: "DELETE",
+    });
+    const body = await res.json();
+    if (!res.ok || !body.success) {
+      toast.error(body?.error?.message ?? "Delete failed");
+      return;
+    }
+    toast.success("Order deleted");
+    router.push("/admin/orders");
+  }
+
   async function saveNotes() {
     if (!order) return;
     const res = await fetch(`/api/admin/orders/${order.id}`, {
@@ -119,6 +164,60 @@ export default function AdminOrderDetailPage() {
       return;
     }
     toast.success("Notes saved");
+  }
+
+  async function saveTracking() {
+    if (!order) return;
+    setSavingTracking(true);
+    const res = await fetch(`/api/admin/orders/${order.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        trackingCarrier: carrier,
+        trackingNumber: trackingNumber,
+        trackingUrl: trackingUrlOverride,
+      }),
+    });
+    const body = await res.json();
+    setSavingTracking(false);
+    if (!res.ok || !body.success) {
+      toast.error(body?.error?.message ?? "Failed to save tracking");
+      return;
+    }
+    toast.success("Tracking saved");
+    setOrder((cur) =>
+      cur
+        ? {
+            ...cur,
+            trackingCarrier: body.data.trackingCarrier,
+            trackingNumber: body.data.trackingNumber,
+            trackingUrl: body.data.trackingUrl,
+          }
+        : cur
+    );
+    setTrackingUrlOverride("");
+  }
+
+  async function refreshLive() {
+    if (!order) return;
+    setRefreshingLive(true);
+    const res = await fetch(`/api/admin/orders/${order.id}/track-refresh`, {
+      method: "POST",
+    });
+    const body = await res.json();
+    setRefreshingLive(false);
+    if (!res.ok || !body.success) {
+      toast.error(body?.error?.message ?? "Could not refresh live status");
+      return;
+    }
+    if (body.data.configured === false) {
+      toast("iThink API not configured — set ITHINK_ACCESS_TOKEN / ITHINK_SECRET_KEY.");
+      return;
+    }
+    const status = body.data.live?.current?.status ?? "updated";
+    setLiveStatus(status);
+    setLiveSyncedAt(body.data.liveSyncedAt ?? new Date().toISOString());
+    toast.success(`Live: ${status}`);
   }
 
   if (loading) return <p className="text-slate-500">Loading…</p>;
@@ -161,12 +260,32 @@ export default function AdminOrderDetailPage() {
                   {item.customization && Object.keys(item.customization as object).length > 0 && (
                     <dl className="mt-1 text-xs text-slate-500">
                       {Object.entries(item.customization as Record<string, unknown>).map(
-                        ([k, v]) => (
-                          <div key={k}>
-                            <dt className="inline font-medium">{k}:</dt>{" "}
-                            <dd className="inline">{String(v)}</dd>
-                          </div>
-                        )
+                        ([k, v]) => {
+                          const val = String(v);
+                          const isUrl = /^https?:\/\//i.test(val);
+                          return (
+                            <div key={k} className="flex items-center gap-1.5">
+                              <dt className="inline font-medium">{k}:</dt>{" "}
+                              {isUrl ? (
+                                <a
+                                  href={val}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1.5 align-middle"
+                                >
+                                  <img
+                                    src={val}
+                                    alt={k}
+                                    className="h-10 w-10 rounded border border-slate-200 object-cover"
+                                  />
+                                  <span className="text-slate-900 underline">View</span>
+                                </a>
+                              ) : (
+                                <dd className="inline">{val}</dd>
+                              )}
+                            </div>
+                          );
+                        }
                       )}
                     </dl>
                   )}
@@ -223,7 +342,7 @@ export default function AdminOrderDetailPage() {
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {statusLabel(s)}
                 </option>
               ))}
             </select>
@@ -236,6 +355,131 @@ export default function AdminOrderDetailPage() {
                 Ref: {order.paymentReference}
               </p>
             )}
+          </section>
+
+          <section className="rounded-3xl bg-white p-6 shadow-sm">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+              Shipping & tracking
+            </h2>
+            <p className="mb-3 text-xs text-slate-500">
+              Add a courier + tracking number before marking the order{" "}
+              <strong>Shipped</strong>. The customer is notified with the tracking
+              link.
+            </p>
+
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              Carrier
+            </label>
+            <select
+              value={carrier}
+              onChange={(e) => setCarrier(e.target.value)}
+              className="mb-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            >
+              <option value="">— Select carrier —</option>
+              {CARRIERS.map((c) => (
+                <option key={c.key} value={c.key}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              Tracking number
+            </label>
+            <input
+              value={trackingNumber}
+              onChange={(e) => setTrackingNumber(e.target.value)}
+              placeholder="AWB / consignment no."
+              className="mb-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+
+            <label className="mb-1 block text-xs font-medium text-slate-600">
+              Tracking URL override{" "}
+              <span className="font-normal text-slate-400">(optional)</span>
+            </label>
+            <input
+              value={trackingUrlOverride}
+              onChange={(e) => setTrackingUrlOverride(e.target.value)}
+              placeholder="Paste a full tracking link"
+              className="mb-3 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+            />
+
+            {(() => {
+              const preview = resolveTrackingUrl(
+                carrier || null,
+                trackingNumber || null,
+                trackingUrlOverride || null
+              );
+              const shown = preview ?? order.trackingUrl;
+              return shown ? (
+                <p className="mb-3 break-all text-xs text-slate-500">
+                  Link:{" "}
+                  <a
+                    href={shown}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-slate-900 underline"
+                  >
+                    {shown}
+                  </a>
+                </p>
+              ) : (
+                <p className="mb-3 text-xs text-amber-600">
+                  No tracking link yet — pick a carrier + number, or paste a URL.
+                </p>
+              );
+            })()}
+
+            <button
+              type="button"
+              onClick={saveTracking}
+              disabled={savingTracking}
+              className="w-full rounded-xl bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
+            >
+              {savingTracking ? "Saving…" : "Save tracking"}
+            </button>
+
+            <div className="mt-4 border-t border-slate-100 pt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                  Live status (iThink)
+                </span>
+                <button
+                  type="button"
+                  onClick={refreshLive}
+                  disabled={refreshingLive || !order.trackingNumber}
+                  className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  {refreshingLive ? "Refreshing…" : "Refresh"}
+                </button>
+              </div>
+              <p className="mt-2 text-sm font-medium text-slate-800">
+                {liveStatus ?? "—"}
+              </p>
+              {liveSyncedAt && (
+                <p className="text-[11px] text-slate-400">
+                  Updated {new Date(liveSyncedAt).toLocaleString("en-IN")}
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-3xl border border-red-100 bg-white p-6 shadow-sm">
+            <h2 className="mb-1 text-sm font-semibold uppercase tracking-wide text-red-600">
+              Danger zone
+            </h2>
+            <p className="mb-3 text-xs text-slate-500">
+              Remove this order from the store and analytics. For genuine orders
+              prefer a status change (e.g. Cancelled or By mistake) so history is
+              kept.
+            </p>
+            <button
+              type="button"
+              onClick={deleteOrder}
+              className="w-full rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+            >
+              Delete order
+            </button>
           </section>
 
           {order.shippingAddress && (

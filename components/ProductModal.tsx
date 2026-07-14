@@ -5,7 +5,7 @@
 import toast from "react-hot-toast";
 import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Box, MessageCircle, ShoppingBag, X } from "lucide-react";
+import { Box, ShoppingBag, X } from "lucide-react";
 
 import {
   priceFromProduct,
@@ -18,10 +18,13 @@ import CustomizationForm, {
   customizationToRecord,
   type CustomizationValues,
 } from "./shop/CustomizationForm";
+import DynamicCustomizationForm, {
+  dynamicValuesToRecord,
+} from "./shop/DynamicCustomizationForm";
 import ReviewSection from "./shop/ReviewSection";
 import ProductGallery from "./shop/ProductGallery";
-import WhatsAppOrderDialog from "./shop/WhatsAppOrderDialog";
 import { sanitizeHtml } from "../lib/sanitize";
+import { resolveEnabledFields } from "../lib/customization";
 
 // Descriptions are sanitized on write, but legacy rows predate that and the
 // regex below decides plain-text vs HTML rendering — so re-sanitize here too as
@@ -59,8 +62,8 @@ export default function ProductModal({ product, onClose }: Props) {
   const [variants, setVariants] = useState<VariantSummary[]>([]);
   const [selectedVariantId, setSelectedVariantId] = useState<number | null>(null);
   const [customization, setCustomization] = useState<CustomizationValues>({});
+  const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [show3D, setShow3D] = useState(false);
-  const [waOpen, setWaOpen] = useState(false);
 
   // Description collapse/expand.
   const descRef = useRef<HTMLDivElement>(null);
@@ -71,8 +74,8 @@ export default function ProductModal({ product, onClose }: Props) {
   useEffect(() => {
     setSelectedVariantId(null);
     setCustomization({});
+    setCustomValues({});
     setShow3D(false);
-    setWaOpen(false);
     setDescExpanded(false);
     setVariants(
       Array.isArray(product?.variants) ? (product.variants as VariantSummary[]) : []
@@ -127,10 +130,18 @@ export default function ProductModal({ product, onClose }: Props) {
     [basePrice, selectedVariant]
   );
 
+  // Admin-configured customization fields for this product. When none are
+  // configured we fall back to the legacy text/color/notes form.
+  const enabledFields = useMemo(
+    () => resolveEnabledFields(product?.customFields),
+    [product?.customFields]
+  );
+
   if (!product) return null;
 
   const customizable =
     product.customizable === true || product.customizable === 1;
+  const useDynamicCustomization = customizable && enabledFields.length > 0;
 
   const hasVariants = variants.length > 0;
   const variantOutOfStock =
@@ -147,7 +158,20 @@ export default function ProductModal({ product, onClose }: Props) {
       return;
     }
 
-    const cust = customizable ? customizationToRecord(customization) : undefined;
+    let cust: Record<string, string> | undefined;
+    if (useDynamicCustomization) {
+      // Enforce required fields before adding to cart.
+      const missing = enabledFields.find(
+        (f) => f.required && !(customValues[f.label] ?? "").trim()
+      );
+      if (missing) {
+        toast.error(`Please fill: ${missing.label}`);
+        return;
+      }
+      cust = dynamicValuesToRecord(customValues);
+    } else if (customizable) {
+      cust = customizationToRecord(customization);
+    }
 
     add({
       productId: product.id,
@@ -276,10 +300,38 @@ export default function ProductModal({ product, onClose }: Props) {
                 <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
                   Make it yours
                 </h3>
-                <CustomizationForm
-                  value={customization}
-                  onChange={setCustomization}
-                />
+                {useDynamicCustomization ? (
+                  <DynamicCustomizationForm
+                    fields={enabledFields}
+                    value={customValues}
+                    onChange={setCustomValues}
+                  />
+                ) : (
+                  <CustomizationForm
+                    value={customization}
+                    onChange={setCustomization}
+                  />
+                )}
+              </section>
+            )}
+
+            {product.deity?.active && (
+              <section className="rounded-2xl border border-brand-200 bg-brand-50 p-4">
+                <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold text-brand-800">
+                  <span aria-hidden>📲</span> Smart NFC idol
+                </h3>
+                <p className="mb-3 text-sm text-brand-900/80">
+                  Tap your phone on this idol to open a live darshan — aarti,
+                  bhajans, scriptures and today&apos;s panchang, in Hindi or English.
+                </p>
+                <a
+                  href={`/darshan/${product.deity.key}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-cta transition hover:bg-brand-700"
+                >
+                  View live darshan →
+                </a>
               </section>
             )}
 
@@ -301,29 +353,9 @@ export default function ProductModal({ product, onClose }: Props) {
                   ? "Out of stock"
                   : "Add to Cart"}
             </button>
-            <button
-              type="button"
-              onClick={() => setWaOpen(true)}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 py-3.5 font-semibold text-white shadow-glow transition hover:-translate-y-0.5 hover:bg-brand-700"
-            >
-              <MessageCircle className="h-4 w-4" strokeWidth={2.25} />
-              Order on WhatsApp
-            </button>
           </div>
         </div>
       </div>
-
-      <WhatsAppOrderDialog
-        open={waOpen}
-        onClose={() => setWaOpen(false)}
-        productName={product.name}
-        price={unitPrice}
-        variantName={selectedVariant?.name}
-        customization={
-          customizable ? customizationToRecord(customization) : undefined
-        }
-        whatsappNumber={process.env.NEXT_PUBLIC_WHATSAPP_NUMBER}
-      />
     </div>
   );
 }

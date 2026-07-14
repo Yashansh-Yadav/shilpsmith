@@ -43,6 +43,9 @@ export const GET = handle(async (request: NextRequest) => {
       category: true,
       images: { orderBy: { id: "asc" } },
       variants: { orderBy: { createdAt: "asc" } },
+      // Smart-NFC idols: expose the linked deity so the storefront can show a
+      // "View live darshan" link. Only active deities should surface.
+      deity: { select: { key: true, nameEn: true, active: true } },
     },
     orderBy,
     take: query.limit,

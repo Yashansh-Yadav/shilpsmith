@@ -5,15 +5,16 @@ import { created, handle } from "../../../lib/apiResponse";
 import { parseJson } from "../../../lib/middleware/validateRequest";
 import { SupportConcernSchema } from "../../../lib/validators";
 import { rateLimit } from "../../../lib/middleware/rateLimit";
-import { sendSupportConcernEmail } from "../../../lib/email";
+import { notifyAdmin } from "../../../lib/notify";
+import { notifyCustomerSupport } from "../../../lib/whatsappCustomer";
 import { logger } from "../../../lib/logger";
 
 export const dynamic = "force-dynamic";
 
 // Public "raise a concern" endpoint. Persists the request as a Lead row (no
-// schema migration needed) with a structured `notes` payload, and emails the
-// business. Email is fire-and-forget so a missing Resend key never blocks the
-// customer.
+// schema migration needed) with a structured `notes` payload, and notifies the
+// business (email + WhatsApp). Notification is fire-and-forget so missing config
+// never blocks the customer.
 export const POST = handle(async (request: NextRequest) => {
   rateLimit(request, { windowMs: 60_000, max: 5, namespace: "support" });
 
@@ -37,14 +38,25 @@ export const POST = handle(async (request: NextRequest) => {
     },
   });
 
-  sendSupportConcernEmail({
-    name: input.name,
-    email: input.email,
-    phone: input.phone,
-    category: input.category,
-    orderNumber: input.orderNumber,
-    message: input.message,
-  }).catch((err) => logger.error("support email failed", { err }));
+  notifyAdmin({
+    type: "support",
+    title: `New support request · ${input.category}`,
+    lines: [
+      { label: "Name", value: input.name },
+      { label: "Email", value: input.email },
+      { label: "Phone", value: input.phone ?? "—" },
+      { label: "Category", value: input.category },
+      { label: "Order #", value: input.orderNumber ?? "—" },
+    ],
+    body: input.message,
+    path: "/admin/support",
+    replyTo: input.email,
+  }).catch((err) => logger.error("support notification failed", { err }));
+
+  // Best-effort acknowledgement to the customer's WhatsApp (if they left one).
+  notifyCustomerSupport({ name: input.name, phone: input.phone }).catch((err) =>
+    logger.error("support customer WhatsApp failed", { err })
+  );
 
   return created(
     { received: true },

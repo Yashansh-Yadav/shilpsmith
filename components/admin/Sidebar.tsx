@@ -8,6 +8,7 @@ import NotificationBell from "./NotificationBell";
 
 const NAV: { href: string; label: string; match?: RegExp }[] = [
   { href: "/admin", label: "Products", match: /^\/admin\/?$/ },
+  { href: "/admin/deities", label: "Deities", match: /^\/admin\/deities/ },
   { href: "/admin/orders", label: "Orders", match: /^\/admin\/orders/ },
   { href: "/admin/inventory", label: "Inventory", match: /^\/admin\/inventory/ },
   { href: "/admin/analytics", label: "Analytics", match: /^\/admin\/analytics/ },

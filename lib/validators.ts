@@ -1,6 +1,29 @@
 import { z } from "zod";
 
 import { sanitizeHtml } from "./sanitize";
+import { CUSTOM_FIELD_KEYS } from "./customization";
+
+// Per-product customization config: a map of enabled catalog field key →
+// { placeholder?, required? }. Unknown keys are rejected.
+const CustomFieldConfigSchema = z
+  .object({
+    placeholder: z.string().trim().max(120).optional(),
+    required: z.boolean().optional(),
+  })
+  .strict();
+
+// Partial map of enabled catalog field key → config. Use a string-keyed record
+// (inherently partial — any subset, including none) and reject keys that aren't
+// in the catalog. NOTE: do NOT use z.record(z.enum(...)) here — in Zod v4 an
+// enum-keyed record is exhaustive (requires every key), so unchecking a field
+// would wrongly fail validation.
+const CATALOG_KEY_SET = new Set<string>(CUSTOM_FIELD_KEYS);
+
+export const CustomFieldsSchema = z
+  .record(z.string(), CustomFieldConfigSchema)
+  .refine((obj) => Object.keys(obj).every((k) => CATALOG_KEY_SET.has(k)), {
+    message: "Unknown customization field",
+  });
 
 // ---------------------------------------------------------------------------
 // Primitives
@@ -124,6 +147,9 @@ export const ProductCreateSchema = z
       .transform((v) => (v ? v : undefined)),
     featured: z.boolean().optional().default(false),
     customizable: z.boolean().optional().default(false),
+    customFields: CustomFieldsSchema.optional(),
+    // Optional link to a Deity catalog entry (Darshan / NFC idols).
+    deityId: z.number().int().positive().optional().nullable(),
     stockStatus: z.enum(stockStatusValues).optional().default("in-stock"),
     stock: z.number().int().min(0).optional().default(0),
     whatsappMessage: z.string().max(1000).optional().default(""),
@@ -141,6 +167,190 @@ export const CategoryCreateSchema = z
   .strict();
 
 export const CategoryUpdateSchema = CategoryCreateSchema.partial().strict();
+
+// ---------------------------------------------------------------------------
+// Darshan / NFC idols — Deity catalog
+//
+// Everything here is a *reference* (YouTube id / external URL), never hosted
+// media, and every media item must carry source + license so provenance is
+// always recorded (legal safeguard — see CLAUDE.md "Darshan" notes).
+// ---------------------------------------------------------------------------
+
+// Extract the 11-char YouTube video id from whatever the admin pastes — a bare
+// id or any common URL form (watch?v=, youtu.be/, /embed/, /shorts/, /live/,
+// with or without extra query params). Returns the input untouched if nothing
+// matches, so the refine below produces a clear error.
+const YT_ID = /[A-Za-z0-9_-]{11}/;
+export function extractYouTubeId(raw: string): string {
+  const s = raw.trim();
+  if (/^[A-Za-z0-9_-]{11}$/.test(s)) return s; // already a bare id
+  const patterns = [
+    /[?&]v=([A-Za-z0-9_-]{11})/, // watch?v=ID
+    /youtu\.be\/([A-Za-z0-9_-]{11})/, // youtu.be/ID
+    /\/embed\/([A-Za-z0-9_-]{11})/, // /embed/ID
+    /\/shorts\/([A-Za-z0-9_-]{11})/, // /shorts/ID
+    /\/live\/([A-Za-z0-9_-]{11})/, // /live/ID
+  ];
+  for (const p of patterns) {
+    const m = s.match(p);
+    if (m) return m[1];
+  }
+  // Last resort: if the string contains exactly one 11-char token, use it.
+  const loose = s.match(YT_ID);
+  return loose ? loose[0] : s;
+}
+
+// Accepts a YouTube link or a bare 11-char id; normalizes to the id. Still
+// "embed only" — we store just the id and build the embed URL ourselves.
+const youtubeIdSchema = z
+  .string()
+  .trim()
+  .min(1, "YouTube link or video id is required")
+  .transform(extractYouTubeId)
+  .refine(
+    (v) => /^[A-Za-z0-9_-]{11}$/.test(v),
+    "Paste a valid YouTube link or 11-character video id"
+  );
+
+// External http(s) URL — used for scripture PDFs. We link, never rehost.
+const externalUrlSchema = z
+  .string()
+  .trim()
+  .url("Must be a valid http(s) URL")
+  .regex(/^https?:\/\//i, "Must be an http(s) URL");
+
+// Provenance fields. Optional for now (low-friction content entry); still
+// recommended for the legal record, and surfaced in the admin link-health view
+// and the scripture reader when present.
+const provenanceFields = {
+  source: z.string().trim().max(200).optional().default(""),
+  license: z.string().trim().max(200).optional().default(""),
+};
+
+const localizedShort = (max = 120) =>
+  z.string().trim().min(1).max(max);
+
+export const AartiSchema = z
+  .object({
+    labelEn: localizedShort(),
+    labelHi: localizedShort(),
+    youtubeId: youtubeIdSchema,
+    slot: z.enum(["morning", "sandhya", "other"]).default("other"),
+    ...provenanceFields,
+  })
+  .strict();
+
+export const BhajanSchema = z
+  .object({
+    labelEn: localizedShort(),
+    labelHi: localizedShort(),
+    youtubeId: youtubeIdSchema,
+    ...provenanceFields,
+  })
+  .strict();
+
+export const ScriptureSchema = z
+  .object({
+    titleEn: localizedShort(),
+    titleHi: localizedShort(),
+    lang: z.enum(["hi", "sa", "en"]).default("hi"),
+    pdfUrl: externalUrlSchema,
+    // Optional one-line summary shown on the scripture card.
+    description: z.string().trim().max(160).optional(),
+    ...provenanceFields,
+  })
+  .strict();
+
+// A dedicated day for the deity. At least one trigger (weekday / tithi /
+// festivalDates) must be present, else the rule can never match.
+export const SpecialDaySchema = z
+  .object({
+    labelEn: localizedShort(),
+    labelHi: localizedShort(),
+    weekday: z.number().int().min(0).max(6).optional(), // 0=Sun .. 6=Sat
+    tithi: z.string().trim().max(40).optional(),
+    // Narrows a tithi rule to one fortnight (e.g. Krishna Chaturdashi =
+    // Shivratri). Only meaningful together with `tithi`.
+    paksha: z.enum(["shukla", "krishna"]).optional(),
+    festivalDates: z
+      .array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD"))
+      .max(60)
+      .optional(),
+    // Date-range trigger for multi-day observances (e.g. Sawan/Shravan Maas,
+    // Navratri). Active for every day from startDate to endDate (inclusive).
+    startDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+      .optional(),
+    endDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD")
+      .optional(),
+    note: z.string().trim().max(2000).optional(), // English note
+    noteHi: z.string().trim().max(2000).optional(), // Hindi note
+  })
+  .strict()
+  .refine(
+    (d) =>
+      d.weekday !== undefined ||
+      (d.tithi && d.tithi.length > 0) ||
+      (d.festivalDates && d.festivalDates.length > 0) ||
+      (d.startDate && d.startDate.length > 0),
+    {
+      message:
+        "A special day needs a weekday, tithi, festival date, or start date",
+    }
+  );
+
+// Defaults-free base so the update schema (.partial()) doesn't silently reset
+// array fields to [] — same gotcha documented for variants/discounts.
+const DeityFields = {
+  key: slugSchema,
+  active: z.boolean().optional().default(true),
+  nameEn: z.string().trim().min(1).max(120),
+  nameHi: z.string().trim().min(1).max(120),
+  mantra: z.string().trim().min(1).max(200),
+  transliteration: z.string().trim().max(200).optional(),
+  jaikaraHi: z.string().trim().max(120).optional(),
+  jaikaraEn: z.string().trim().max(120).optional(),
+  aartis: z.array(AartiSchema).max(20).optional().default([]),
+  bhajans: z.array(BhajanSchema).max(50).optional().default([]),
+  scriptures: z.array(ScriptureSchema).max(30).optional().default([]),
+  specialDays: z.array(SpecialDaySchema).max(50).optional().default([]),
+  sortOrder: z.number().int().min(0).optional().default(0),
+};
+
+export const DeityCreateSchema = z.object(DeityFields).strict();
+
+// Update: build off a defaults-free copy so a partial PUT (e.g. just
+// { sortOrder }) never wipes aartis/scriptures back to [].
+const DeityFieldsNoDefaults = {
+  key: slugSchema,
+  active: z.boolean(),
+  nameEn: z.string().trim().min(1).max(120),
+  nameHi: z.string().trim().min(1).max(120),
+  mantra: z.string().trim().min(1).max(200),
+  transliteration: z.string().trim().max(200).optional(),
+  jaikaraHi: z.string().trim().max(120).optional(),
+  jaikaraEn: z.string().trim().max(120).optional(),
+  aartis: z.array(AartiSchema).max(20),
+  bhajans: z.array(BhajanSchema).max(50),
+  scriptures: z.array(ScriptureSchema).max(30),
+  specialDays: z.array(SpecialDaySchema).max(50),
+  sortOrder: z.number().int().min(0),
+};
+
+export const DeityUpdateSchema = z
+  .object(DeityFieldsNoDefaults)
+  .partial()
+  .strict();
+
+export type DeityCreateInput = z.infer<typeof DeityCreateSchema>;
+export type DeityUpdateInput = z.infer<typeof DeityUpdateSchema>;
+export type Aarti = z.infer<typeof AartiSchema>;
+export type Bhajan = z.infer<typeof BhajanSchema>;
+export type Scripture = z.infer<typeof ScriptureSchema>;
+export type SpecialDay = z.infer<typeof SpecialDaySchema>;
 
 // ---------------------------------------------------------------------------
 // Public catalog: search + filter query
@@ -257,13 +467,32 @@ const orderStatusValues = [
   "DELIVERED",
   "CANCELLED",
   "REFUNDED",
+  "BY_MISTAKE",
 ] as const;
+
+// Tracking URL: a valid http(s) URL, or empty string to clear it.
+const trackingUrlSchema = z
+  .union([z.string().trim().url().max(500), z.literal("")])
+  .optional();
 
 export const OrderUpdateSchema = z
   .object({
     status: z.enum(orderStatusValues).optional(),
     internalNotes: z.string().max(1000).optional(),
     paymentReference: z.string().max(200).optional(),
+    // Shipment tracking. Empty strings clear the respective field.
+    trackingCarrier: z.string().trim().max(40).optional(),
+    trackingNumber: z.string().trim().max(100).optional(),
+    trackingUrl: trackingUrlSchema,
+  })
+  .strict();
+
+// Public order tracking lookup — order number + email must BOTH match, so the
+// numeric-id order page can't be enumerated. Consumed by /api/orders/track.
+export const OrderTrackQuerySchema = z
+  .object({
+    orderNumber: z.string().trim().min(1).max(40),
+    email: emailSchema,
   })
   .strict();
 
@@ -480,5 +709,6 @@ export type AddressInput = z.infer<typeof AddressSchema>;
 export type CartItemInput = z.infer<typeof CartItemSchema>;
 export type OrderCreateInput = z.infer<typeof OrderCreateSchema>;
 export type OrderUpdateInput = z.infer<typeof OrderUpdateSchema>;
+export type OrderTrackQueryInput = z.infer<typeof OrderTrackQuerySchema>;
 export type ReviewInput = z.infer<typeof ReviewSchema>;
 export type DiscountCodeInput = z.infer<typeof DiscountCodeSchema>;

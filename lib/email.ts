@@ -2,6 +2,8 @@ import { Resend } from "resend";
 
 import { logger } from "./logger";
 import { renderOrderConfirmationEmail } from "./email/templates/orderConfirmation";
+import { renderOrderShippedEmail } from "./email/templates/orderShipped";
+import { carrierLabel } from "./carriers";
 
 // Lazy Resend client. We tolerate a missing key in dev / for offline payment
 // methods so the order flow still works end-to-end without email delivery.
@@ -47,12 +49,11 @@ export async function sendOrderConfirmationEmail(order: OrderEmailPayload) {
     })),
   });
 
-  const recipients = [order.customerEmail];
-  if (ADMIN_EMAIL) recipients.push(ADMIN_EMAIL);
-
+  // Customer-only — the admin gets its own richer alert via lib/notify.ts
+  // (email + WhatsApp), so we don't double-send here.
   const result = await client.emails.send({
     from: FROM,
-    to: recipients,
+    to: [order.customerEmail],
     subject: `ShilpSmith order ${order.orderNumber} confirmed`,
     html,
   });
@@ -68,73 +69,89 @@ export async function sendOrderConfirmationEmail(order: OrderEmailPayload) {
   return { sent: true, id: result.data?.id };
 }
 
-interface SupportConcernPayload {
-  name: string;
-  email: string;
-  phone?: string;
-  category: string;
-  orderNumber?: string;
-  message: string;
+interface OrderShippedPayload {
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  trackingCarrier?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl: string;
 }
 
-function escapeHtml(s: string): string {
+export async function sendOrderShippedEmail(order: OrderShippedPayload) {
+  const client = getClient();
+  if (!client) {
+    logger.warn("Resend not configured, skipping order shipped email", {
+      orderNumber: order.orderNumber,
+    });
+    return { sent: false, reason: "no-resend-key" as const };
+  }
+
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
+  const html = renderOrderShippedEmail({
+    orderNumber: order.orderNumber,
+    customerName: order.customerName,
+    carrierLabel: carrierLabel(order.trackingCarrier),
+    trackingNumber: order.trackingNumber ?? null,
+    trackingUrl: order.trackingUrl,
+    trackPageUrl: siteUrl
+      ? `${siteUrl}/track?orderNumber=${encodeURIComponent(
+          order.orderNumber
+        )}&email=${encodeURIComponent(order.customerEmail)}`
+      : null,
+  });
+
+  const result = await client.emails.send({
+    from: FROM,
+    to: [order.customerEmail],
+    subject: `Your ShilpSmith order ${order.orderNumber} has shipped`,
+    html,
+  });
+
+  if (result.error) {
+    logger.error("Resend rejected order shipped email", {
+      error: result.error,
+      orderNumber: order.orderNumber,
+    });
+    return { sent: false, reason: "resend-error" as const };
+  }
+
+  return { sent: true, id: result.data?.id };
+}
+
+export function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
 
-// Notify the business of a new support concern. Sent to ADMIN_EMAIL with the
-// customer's address as reply-to so staff can respond directly. Fire-and-forget
-// at the call site — never blocks the customer's submission.
-export async function sendSupportConcernEmail(concern: SupportConcernPayload) {
+// Generic admin-facing email, used by the notification dispatcher (lib/notify.ts)
+// for new orders / reviews / support requests. Sends only to ADMIN_EMAIL; the
+// caller passes `replyTo` (e.g. the customer's address) where relevant.
+export async function sendAdminEmail(opts: {
+  subject: string;
+  html: string;
+  replyTo?: string;
+}) {
   const client = getClient();
   if (!client || !ADMIN_EMAIL) {
-    logger.warn("Resend/ADMIN_EMAIL not configured, skipping support email", {
-      category: concern.category,
+    logger.warn("Resend/ADMIN_EMAIL not configured, skipping admin email", {
+      subject: opts.subject,
     });
     return { sent: false, reason: "not-configured" as const };
   }
 
-  const rows: [string, string][] = [
-    ["Name", concern.name],
-    ["Email", concern.email],
-    ["Phone", concern.phone || "—"],
-    ["Category", concern.category],
-    ["Order #", concern.orderNumber || "—"],
-  ];
-
-  const html = `
-    <div style="font-family:system-ui,sans-serif;max-width:600px;margin:auto">
-      <h2 style="margin:0 0 12px">New support request</h2>
-      <table style="width:100%;border-collapse:collapse;font-size:14px">
-        ${rows
-          .map(
-            ([k, v]) =>
-              `<tr><td style="padding:6px 8px;color:#64748b;width:120px">${k}</td><td style="padding:6px 8px;font-weight:600">${escapeHtml(
-                v
-              )}</td></tr>`
-          )
-          .join("")}
-      </table>
-      <h3 style="margin:18px 0 6px">Message</h3>
-      <p style="white-space:pre-wrap;font-size:14px;line-height:1.6;background:#f8fafc;padding:12px;border-radius:8px">${escapeHtml(
-        concern.message
-      )}</p>
-    </div>`;
-
   const result = await client.emails.send({
     from: FROM,
     to: [ADMIN_EMAIL],
-    replyTo: concern.email,
-    subject: `Support: ${concern.category}${
-      concern.orderNumber ? ` · ${concern.orderNumber}` : ""
-    } — ${concern.name}`,
-    html,
+    ...(opts.replyTo ? { replyTo: opts.replyTo } : {}),
+    subject: opts.subject,
+    html: opts.html,
   });
 
   if (result.error) {
-    logger.error("Resend rejected support concern", { error: result.error });
+    logger.error("Resend rejected admin email", { error: result.error });
     return { sent: false, reason: "resend-error" as const };
   }
 

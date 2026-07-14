@@ -134,6 +134,12 @@ export default function Home() {
               >
                 Custom Orders
               </a>
+              <Link
+                href="/track"
+                className="transition hover:text-brand-700"
+              >
+                Track Order
+              </Link>
             </nav>
 
             <div className="flex items-center gap-2 sm:gap-3">
@@ -201,6 +207,7 @@ export default function Home() {
                     { href: "#featured", label: "Featured" },
                     { href: "#new", label: "New Arrivals" },
                     { href: "#custom", label: "Custom Orders" },
+                    { href: "/track", label: "Track Order" },
                   ].map((item) =>
                     item.href.startsWith("#") ? (
                       <a
