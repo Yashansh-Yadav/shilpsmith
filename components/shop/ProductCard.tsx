@@ -21,6 +21,7 @@ export interface StorefrontProduct {
   modelUrl?: string | null;
   stockStatus?: string;
   category?: { name: string; slug: string };
+  deity?: { key: string; nameEn: string; active: boolean } | null;
 }
 
 interface Props {

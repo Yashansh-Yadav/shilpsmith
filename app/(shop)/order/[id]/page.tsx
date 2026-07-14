@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { prisma } from "../../../../lib/prisma";
+import { carrierLabel } from "../../../../lib/carriers";
 
 function formatRupee(n: number | string | { toString(): string }) {
   return `₹${Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
@@ -67,6 +68,38 @@ export default async function OrderConfirmationPage({ params }: Params) {
                 );
               })}
             </ol>
+          )}
+
+          {order.trackingUrl && (
+            <section className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+              <h2 className="text-sm font-semibold text-emerald-800">
+                Shipment tracking
+              </h2>
+              <dl className="mt-2 space-y-1 text-sm text-emerald-900">
+                {order.trackingCarrier && (
+                  <div className="flex justify-between">
+                    <dt className="text-emerald-700">Carrier</dt>
+                    <dd className="font-medium">
+                      {carrierLabel(order.trackingCarrier)}
+                    </dd>
+                  </div>
+                )}
+                {order.trackingNumber && (
+                  <div className="flex justify-between">
+                    <dt className="text-emerald-700">Tracking no.</dt>
+                    <dd className="font-mono">{order.trackingNumber}</dd>
+                  </div>
+                )}
+              </dl>
+              <a
+                href={order.trackingUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-block rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+              >
+                Track shipment →
+              </a>
+            </section>
           )}
 
           <section className="mb-6">

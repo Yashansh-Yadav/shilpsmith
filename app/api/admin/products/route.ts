@@ -92,6 +92,7 @@ export const POST = handle(async (request: NextRequest) => {
       stockStatus: input.stockStatus,
       stock: input.stock,
       modelUrl: input.modelUrl ?? null,
+      deityId: input.deityId ?? null,
       whatsappMessage: input.whatsappMessage,
       categoryId: category.id,
       images: { create: imageUrls.map((url) => ({ url })) },

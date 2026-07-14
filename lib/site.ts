@@ -54,6 +54,8 @@ export function absoluteUrl(path = "/"): string {
 // footer always surfaces the compliance pages site-wide.
 export const PRIMARY_NAV = [
   { href: "/search", label: "Shop" },
+  { href: "/smart-idols", label: "Smart Idols" },
+  { href: "/track", label: "Track Order" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Support" },
 ];
@@ -66,6 +68,7 @@ export const FOOTER_GROUPS: {
     title: "Shop",
     links: [
       { href: "/search", label: "All products" },
+      { href: "/smart-idols", label: "Smart NFC idols" },
       { href: "/search?customizable=true", label: "Custom orders" },
       { href: "/search?sort=featured", label: "Featured" },
     ],
@@ -75,6 +78,7 @@ export const FOOTER_GROUPS: {
     links: [
       { href: "/about", label: "About us" },
       { href: "/contact", label: "Support / Contact" },
+      { href: "/track", label: "Track order" },
     ],
   },
   {

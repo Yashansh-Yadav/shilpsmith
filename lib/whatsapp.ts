@@ -1,75 +1,58 @@
 import { logger } from "./logger";
 
-// WhatsApp Cloud API (Meta) sender for admin alerts. Tolerant of missing config
-// like lib/email.ts — returns {sent:false} and logs instead of throwing so the
-// notification dispatcher never breaks a user request.
+// WhatsApp Cloud API (Meta) sender. Reusable for BOTH admin alerts (to the
+// configured WHATSAPP_NOTIFY_TO) and customer messages (to any recipient).
+// Tolerant of missing config like lib/email.ts — returns {sent:false} and logs
+// instead of throwing, so notifications never break a request.
 //
-// Two modes:
-//  - TEMPLATE (recommended for production): set WHATSAPP_TEMPLATE_NAME. Required
-//    for business-initiated messages outside the 24h customer-service window.
-//    The template must have a single body parameter {{1}}; we pass a one-line
-//    summary into it (template params can't contain newlines/tabs, so the full
-//    multi-line text is only used in free-form mode).
-//  - TEXT (free-form): no template name set. Only delivered if the recipient
-//    messaged the business number within the last 24h — handy for local testing.
+// Two delivery modes per message:
+//  - TEMPLATE (required for business-initiated messages outside the 24h window,
+//    i.e. all order updates): pass a Meta-approved template name + positional
+//    body params.
+//  - TEXT (free-form): only delivered if the recipient messaged the business
+//    number within the last 24h — handy for local testing.
 
 const API_VERSION = "v21.0";
 
-function config() {
+export type WhatsAppResult = { sent: boolean; reason?: string };
+
+function creds() {
   const token = process.env.WHATSAPP_API_TOKEN;
   const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
-  const to = process.env.WHATSAPP_NOTIFY_TO;
-  if (!token || !phoneNumberId || !to) return null;
+  if (!token || !phoneNumberId) return null;
   return {
     token,
     phoneNumberId,
-    to,
-    template: process.env.WHATSAPP_TEMPLATE_NAME || "",
     lang: process.env.WHATSAPP_TEMPLATE_LANG || "en",
   };
 }
 
-// Collapse to a single line — template body parameters reject newlines, tabs,
-// and runs of 4+ spaces.
+export function whatsappConfigured(): boolean {
+  return creds() !== null;
+}
+
+// Normalize an Indian phone to WhatsApp's international form (digits only, with
+// country code). Accepts "9876543210", "+91 98765 43210", "098765 43210", etc.
+export function normalizeWhatsAppNumber(raw: string | null | undefined): string {
+  let d = String(raw ?? "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.length === 10) d = "91" + d; // bare 10-digit Indian number
+  else if (d.length === 11 && d.startsWith("0")) d = "91" + d.slice(1);
+  return d;
+}
+
+// Template body params can't contain newlines/tabs or long whitespace runs.
 function oneLine(s: string): string {
   return s.replace(/\s+/g, " ").trim().slice(0, 1000);
 }
 
-export async function sendWhatsAppNotification(opts: {
-  text: string; // full multi-line message (free-form mode)
-  summary: string; // single-line summary (template parameter)
-}): Promise<{ sent: boolean; reason?: string }> {
-  const c = config();
+async function post(payload: object): Promise<WhatsAppResult> {
+  const c = creds();
   if (!c) {
-    logger.warn("WhatsApp Cloud API not configured, skipping notification");
+    logger.warn("WhatsApp Cloud API not configured, skipping message");
     return { sent: false, reason: "not-configured" };
   }
-
   const url = `https://graph.facebook.com/${API_VERSION}/${c.phoneNumberId}/messages`;
-
-  const payload = c.template
-    ? {
-        messaging_product: "whatsapp",
-        to: c.to,
-        type: "template",
-        template: {
-          name: c.template,
-          language: { code: c.lang },
-          components: [
-            {
-              type: "body",
-              parameters: [{ type: "text", text: oneLine(opts.summary) }],
-            },
-          ],
-        },
-      }
-    : {
-        messaging_product: "whatsapp",
-        to: c.to,
-        type: "text",
-        text: { preview_url: false, body: opts.text },
-      };
-
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -79,7 +62,6 @@ export async function sendWhatsAppNotification(opts: {
       },
       body: JSON.stringify(payload),
     });
-
     if (!res.ok) {
       const body = await res.text().catch(() => "");
       logger.error("WhatsApp Cloud API rejected message", {
@@ -88,10 +70,75 @@ export async function sendWhatsAppNotification(opts: {
       });
       return { sent: false, reason: "api-error" };
     }
-
     return { sent: true };
   } catch (error) {
     logger.error("WhatsApp Cloud API request failed", { error });
     return { sent: false, reason: "network" };
   }
+}
+
+// Send a Meta-approved template to any recipient with positional body params.
+export async function sendWhatsAppTemplate(opts: {
+  to: string;
+  template: string;
+  lang?: string;
+  params?: string[];
+}): Promise<WhatsAppResult> {
+  const to = normalizeWhatsAppNumber(opts.to);
+  if (!to) return { sent: false, reason: "no-recipient" };
+  const c = creds();
+  return post({
+    messaging_product: "whatsapp",
+    to,
+    type: "template",
+    template: {
+      name: opts.template,
+      language: { code: opts.lang || c?.lang || "en" },
+      components:
+        opts.params && opts.params.length
+          ? [
+              {
+                type: "body",
+                parameters: opts.params.map((p) => ({
+                  type: "text",
+                  text: oneLine(p),
+                })),
+              },
+            ]
+          : [],
+    },
+  });
+}
+
+// Free-form text (only delivered within the 24h customer-service window).
+export async function sendWhatsAppText(opts: {
+  to: string;
+  body: string;
+}): Promise<WhatsAppResult> {
+  const to = normalizeWhatsAppNumber(opts.to);
+  if (!to) return { sent: false, reason: "no-recipient" };
+  return post({
+    messaging_product: "whatsapp",
+    to,
+    type: "text",
+    text: { preview_url: false, body: opts.body },
+  });
+}
+
+// Admin alert to the configured WHATSAPP_NOTIFY_TO. Uses WHATSAPP_TEMPLATE_NAME
+// (single {{1}} body param) when set, else free-form text. Unchanged behavior —
+// consumed by lib/notify.ts.
+export async function sendWhatsAppNotification(opts: {
+  text: string;
+  summary: string;
+}): Promise<WhatsAppResult> {
+  const to = process.env.WHATSAPP_NOTIFY_TO;
+  if (!to) {
+    logger.warn("WHATSAPP_NOTIFY_TO not set, skipping admin WhatsApp");
+    return { sent: false, reason: "not-configured" };
+  }
+  const template = process.env.WHATSAPP_TEMPLATE_NAME || "";
+  return template
+    ? sendWhatsAppTemplate({ to, template, params: [opts.summary] })
+    : sendWhatsAppText({ to, body: opts.text });
 }

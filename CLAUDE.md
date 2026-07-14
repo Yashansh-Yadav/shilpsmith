@@ -326,3 +326,47 @@ Server component that renders a title from the slug and delegates to [ProductGri
 ### Design tokens — [tailwind.config.ts](tailwind.config.ts)
 
 The revamp leans on custom Tailwind tokens used pervasively across `components/shop/` and the homepage — reuse these instead of ad-hoc values: `brand`/`accent` color scales (brand is emerald), `shadow-lift` (card hover) / `shadow-cta` (primary buttons) / `shadow-glow`, `rounded-4xl` (2rem), and the `fade-in-up` / `shimmer` animations. Classes like `glass`, `text-brand-gradient`, `font-spec`, `bg-build-grid`, `bg-orb`, and `bg-layer-lines` are custom CSS (in `globals.css`), not Tailwind config — grep there before assuming a utility is missing.
+
+## Phase 7 — admin notifications, dynamic customization, support, SEO
+
+This phase added a multi-channel admin alerting layer, replaced the fixed customization form with an admin-configurable one, added a public support flow, and built out the SEO/compliance surface. Two schema additions (`Product.customFields`, `OrderStatus.BY_MISTAKE`); migrations `*_product_custom_fields` and `*_order_status_by_mistake`.
+
+### Admin notifications — [lib/notify.ts](lib/notify.ts)
+
+`notifyAdmin(n: AdminNotification)` is the single dispatcher: it fans one event (`type: "order" | "review" | "support"`) out to **email + WhatsApp + Telegram** via `Promise.allSettled`. Each channel **self-disables when its env isn't set** (logs a warning, returns `{ sent: false }`) and one channel failing never affects the others or the caller. Build a notification once with `{ title, lines, body?, path?, replyTo? }`; the dispatcher renders text/HTML/summary per channel.
+
+- **Always call fire-and-forget with `.catch()`** from request handlers — same rule as the order-confirmation email; notifications must never block or fail the customer's action. Wired into [/api/orders](app/api/orders/route.ts), [/api/reviews](app/api/reviews/route.ts), and [/api/support](app/api/support/route.ts).
+- Channels: [lib/telegram.ts](lib/telegram.ts) (Bot API — free, serverless-friendly, plain-text no `parse_mode`), [lib/whatsapp.ts](lib/whatsapp.ts) (Meta WhatsApp **Cloud API** — template mode for production / free-form text mode within the 24h window for testing), and `sendAdminEmail` in [lib/email.ts](lib/email.ts).
+- The old `components/shop/WhatsAppOrderDialog.tsx` (client-side `wa.me` deep-link order flow) was **removed** in favor of this server-side notification model. Customer-facing `wa.me` CTAs (homepage, checkout) still exist via `whatsappLink()` in `lib/site.ts`.
+
+### Dynamic per-product customization — [lib/customization.ts](lib/customization.ts)
+
+Replaces the fixed `CustomizationForm` (engraving/color/notes) with an **admin-configurable** model. The admin doesn't author fields from scratch — they tick which of a fixed `CUSTOMIZATION_CATALOG` (engraving / size / color / description / image) a product uses and set a per-field placeholder + required flag. Stored on `Product.customFields` (Json) as `Record<fieldKey, { placeholder?, required? }>` (presence of a key = enabled).
+
+- `lib/customization.ts` is plain data (no React/Node deps) — shared by the admin builder, the storefront renderer, and server validation. `resolveEnabledFields(config)` returns enabled fields in catalog order with placeholders/required resolved.
+- [components/shop/DynamicCustomizationForm.tsx](components/shop/DynamicCustomizationForm.tsx) renders the resolved fields on the storefront (inside ProductModal); validated via `CustomFieldsSchema` in `lib/validators.ts` and persisted through the product create/update routes.
+
+### Support / "raise a concern" — [/api/support](app/api/support/route.ts)
+
+Public POST (rate-limited 5/min/IP). **No schema migration** — persists as a `Lead` row with contact/category details packed into `notes` as a JSON marker (`{ type: "support", email, phone, category, orderNumber }`); the admin support inbox at [/admin/support](app/admin/support/page.tsx) parses it back out. Fires `notifyAdmin({ type: "support" })`. Input via `SupportConcernSchema`; UI in [components/site/SupportForm.tsx](components/site/SupportForm.tsx) on the `/contact` page.
+
+### `BY_MISTAKE` order status
+
+New `OrderStatus` value for orders placed in error (test/duplicate). Like `CANCELLED`/`REFUNDED`, it is **excluded from analytics** simply by being absent from `COUNTED_STATUSES` in [/api/admin/analytics](app/api/admin/analytics/route.ts).
+
+### Settings now partially read — [lib/settings.ts](lib/settings.ts)
+
+The Phase 4 caveat ("settings persisted but not read") is now partly resolved: `getOnlinePaymentsEnabled()` reads the `payments` Settings row to gate Razorpay. **Fails closed (off)** on any missing row / DB error, so online payments stay off until an admin explicitly enables them. Shipping/tax/WhatsApp-number are still hardcoded — wire the rest through this module.
+
+### SEO, legal & site identity
+
+- [lib/site.ts](lib/site.ts) is the **single source of truth** for public identity (name, description, contact, nav, footer groups, social links, `whatsappLink()`, `absoluteUrl()`) — used by metadata, [app/sitemap.ts](app/sitemap.ts), [app/robots.ts](app/robots.ts), [app/manifest.ts](app/manifest.ts), JSON-LD, the footer, and legal pages. Edit business-facing constants here, not inline.
+- Legal/marketing pages: `/about`, `/contact`, `/terms`, `/privacy`, `/shipping-returns`. `POLICY_LAST_UPDATED` is a constant (not `new Date()`) — bump it manually when a policy actually changes.
+- Product `description` is now **rich-text HTML** authored in the admin editor and **sanitized at the boundary** via `sanitizeHtml` in [lib/sanitize.ts](lib/sanitize.ts) (the `min(1)` runs on raw input first). Products also gained a `stockStatus` enum field (`in-stock | low-stock | out-of-stock`).
+
+### Phase 7 env vars
+
+- `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` — Telegram admin alerts (group chat id for a team)
+- `WHATSAPP_API_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_NOTIFY_TO` — WhatsApp Cloud API admin alerts; optional `WHATSAPP_TEMPLATE_NAME` / `WHATSAPP_TEMPLATE_LANG` (template mode for production)
+- `NEXT_PUBLIC_SITE_URL` — public origin for sitemap/robots/canonical/JSON-LD (default `https://shilpsmith.com`)
+- `NEXT_PUBLIC_SUPPORT_EMAIL` — public support address shown on the site (empty when unset; callers guard rendering)

@@ -183,3 +183,56 @@ body {
 
 /* The cart/category scrollers hide their bar (handled via Tailwind in
  * the JSX) — these rules only apply to default scrollers. */
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Darshan / NFC idols — divine, mobile-app aesthetic
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/* Rich devotional hero: deep indigo→violet base with warm saffron/rose glow. */
+.darshan-hero {
+  background-image:
+    radial-gradient(1100px 520px at 50% -12%, rgba(251, 191, 36, 0.30), transparent 62%),
+    radial-gradient(700px 460px at 82% 14%, rgba(244, 63, 94, 0.20), transparent 60%),
+    radial-gradient(620px 460px at 12% 24%, rgba(99, 102, 241, 0.30), transparent 60%),
+    linear-gradient(160deg, #1e1b4b 0%, #312e81 38%, #5b21b6 72%, #7c2d12 130%);
+}
+
+/* Golden aura placed behind the deity name. */
+.darshan-aura {
+  background: radial-gradient(
+    circle,
+    rgba(251, 191, 36, 0.55) 0%,
+    rgba(251, 146, 60, 0.18) 45%,
+    transparent 72%
+  );
+  filter: blur(36px);
+}
+
+/* Faint concentric mandala lines for the hero backdrop. */
+.darshan-mandala {
+  background-image: repeating-radial-gradient(
+    circle at 50% 38%,
+    rgba(255, 255, 255, 0.05) 0px,
+    rgba(255, 255, 255, 0.05) 1px,
+    transparent 1px,
+    transparent 15px
+  );
+  mask-image: radial-gradient(circle at 50% 38%, #000 0%, transparent 70%);
+  -webkit-mask-image: radial-gradient(circle at 50% 38%, #000 0%, transparent 70%);
+}
+
+/* Soft breathing halo (diya / aura glow). */
+@keyframes darshanHalo {
+  0%, 100% { opacity: 0.45; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(1.07); }
+}
+.animate-halo {
+  animation: darshanHalo 4.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-halo { animation: none; }
+}
+
+/* Hide scrollbar on the mobile panchang rail while keeping it scrollable. */
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

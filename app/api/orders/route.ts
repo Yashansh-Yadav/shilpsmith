@@ -10,6 +10,7 @@ import { rateLimit } from "../../../lib/middleware/rateLimit";
 import { logger } from "../../../lib/logger";
 import { sendOrderConfirmationEmail } from "../../../lib/email";
 import { notifyAdmin } from "../../../lib/notify";
+import { notifyCustomerOrder } from "../../../lib/whatsappCustomer";
 import { getOnlinePaymentsEnabled } from "../../../lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -288,6 +289,14 @@ export const POST = handle(async (request: NextRequest) => {
     path: `/admin/orders/${result.id}`,
   }).catch((error) =>
     logger.error("Order admin notification failed", {
+      error,
+      orderNumber: result.orderNumber,
+    })
+  );
+
+  // Best-effort customer WhatsApp ("order received"); never fail the order.
+  notifyCustomerOrder(result, result.status).catch((error) =>
+    logger.error("Order customer WhatsApp failed", {
       error,
       orderNumber: result.orderNumber,
     })

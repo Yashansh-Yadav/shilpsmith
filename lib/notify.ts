@@ -1,8 +1,10 @@
 import { logger } from "./logger";
 import { sendAdminEmail, escapeHtml } from "./email";
 import { sendWhatsAppNotification } from "./whatsapp";
-import { sendTelegramNotification } from "./telegram";
 import { SITE_URL } from "./site";
+
+// Note: Telegram is intentionally not used (banned in India). Admin alerts go
+// out over Email + WhatsApp only. lib/telegram.ts is kept but unwired.
 
 // Single admin-notification dispatcher. Fans a single event out to every
 // configured channel (email + WhatsApp). Each channel is independently tolerant
@@ -71,11 +73,10 @@ export async function notifyAdmin(n: AdminNotification): Promise<void> {
   const text = buildText(n);
 
   // Each channel self-disables when its env isn't set, so this fans out to
-  // whatever is configured (Telegram now; email/WhatsApp ready when keyed).
+  // whatever is configured (Email + WhatsApp).
   const channels: [string, Promise<unknown>][] = [
     ["email", sendAdminEmail({ subject: n.title, html: buildHtml(n), replyTo: n.replyTo })],
     ["whatsapp", sendWhatsAppNotification({ text, summary: buildSummary(n) })],
-    ["telegram", sendTelegramNotification(text)],
   ];
 
   const results = await Promise.allSettled(channels.map(([, p]) => p));
