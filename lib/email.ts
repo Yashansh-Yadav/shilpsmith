@@ -2,6 +2,8 @@ import { Resend } from "resend";
 
 import { logger } from "./logger";
 import { renderOrderConfirmationEmail } from "./email/templates/orderConfirmation";
+import { renderOrderShippedEmail } from "./email/templates/orderShipped";
+import { carrierLabel } from "./carriers";
 
 // Lazy Resend client. We tolerate a missing key in dev / for offline payment
 // methods so the order flow still works end-to-end without email delivery.
@@ -58,6 +60,56 @@ export async function sendOrderConfirmationEmail(order: OrderEmailPayload) {
 
   if (result.error) {
     logger.error("Resend rejected order confirmation", {
+      error: result.error,
+      orderNumber: order.orderNumber,
+    });
+    return { sent: false, reason: "resend-error" as const };
+  }
+
+  return { sent: true, id: result.data?.id };
+}
+
+interface OrderShippedPayload {
+  orderNumber: string;
+  customerName: string;
+  customerEmail: string;
+  trackingCarrier?: string | null;
+  trackingNumber?: string | null;
+  trackingUrl: string;
+}
+
+export async function sendOrderShippedEmail(order: OrderShippedPayload) {
+  const client = getClient();
+  if (!client) {
+    logger.warn("Resend not configured, skipping order shipped email", {
+      orderNumber: order.orderNumber,
+    });
+    return { sent: false, reason: "no-resend-key" as const };
+  }
+
+  const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "").replace(/\/$/, "");
+  const html = renderOrderShippedEmail({
+    orderNumber: order.orderNumber,
+    customerName: order.customerName,
+    carrierLabel: carrierLabel(order.trackingCarrier),
+    trackingNumber: order.trackingNumber ?? null,
+    trackingUrl: order.trackingUrl,
+    trackPageUrl: siteUrl
+      ? `${siteUrl}/track?orderNumber=${encodeURIComponent(
+          order.orderNumber
+        )}&email=${encodeURIComponent(order.customerEmail)}`
+      : null,
+  });
+
+  const result = await client.emails.send({
+    from: FROM,
+    to: [order.customerEmail],
+    subject: `Your ShilpSmith order ${order.orderNumber} has shipped`,
+    html,
+  });
+
+  if (result.error) {
+    logger.error("Resend rejected order shipped email", {
       error: result.error,
       orderNumber: order.orderNumber,
     });

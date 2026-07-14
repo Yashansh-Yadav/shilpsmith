@@ -470,11 +470,29 @@ const orderStatusValues = [
   "BY_MISTAKE",
 ] as const;
 
+// Tracking URL: a valid http(s) URL, or empty string to clear it.
+const trackingUrlSchema = z
+  .union([z.string().trim().url().max(500), z.literal("")])
+  .optional();
+
 export const OrderUpdateSchema = z
   .object({
     status: z.enum(orderStatusValues).optional(),
     internalNotes: z.string().max(1000).optional(),
     paymentReference: z.string().max(200).optional(),
+    // Shipment tracking. Empty strings clear the respective field.
+    trackingCarrier: z.string().trim().max(40).optional(),
+    trackingNumber: z.string().trim().max(100).optional(),
+    trackingUrl: trackingUrlSchema,
+  })
+  .strict();
+
+// Public order tracking lookup — order number + email must BOTH match, so the
+// numeric-id order page can't be enumerated. Consumed by /api/orders/track.
+export const OrderTrackQuerySchema = z
+  .object({
+    orderNumber: z.string().trim().min(1).max(40),
+    email: emailSchema,
   })
   .strict();
 
@@ -691,5 +709,6 @@ export type AddressInput = z.infer<typeof AddressSchema>;
 export type CartItemInput = z.infer<typeof CartItemSchema>;
 export type OrderCreateInput = z.infer<typeof OrderCreateSchema>;
 export type OrderUpdateInput = z.infer<typeof OrderUpdateSchema>;
+export type OrderTrackQueryInput = z.infer<typeof OrderTrackQuerySchema>;
 export type ReviewInput = z.infer<typeof ReviewSchema>;
 export type DiscountCodeInput = z.infer<typeof DiscountCodeSchema>;

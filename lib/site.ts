@@ -55,6 +55,7 @@ export function absoluteUrl(path = "/"): string {
 export const PRIMARY_NAV = [
   { href: "/search", label: "Shop" },
   { href: "/smart-idols", label: "Smart Idols" },
+  { href: "/track", label: "Track Order" },
   { href: "/about", label: "About" },
   { href: "/contact", label: "Support" },
 ];
@@ -77,6 +78,7 @@ export const FOOTER_GROUPS: {
     links: [
       { href: "/about", label: "About us" },
       { href: "/contact", label: "Support / Contact" },
+      { href: "/track", label: "Track order" },
     ],
   },
   {

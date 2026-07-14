@@ -29,7 +29,7 @@ const STATUS_PHRASE: Record<OrderStatus, string | null> = {
   PENDING: "received and is being reviewed",
   CONFIRMED: "confirmed",
   PROCESSING: "being prepared",
-  SHIPPED: "dispatched and on its way",
+  SHIPPED: "dispatched and on its way visit https://shilpsmith.com/track to track your order",
   DELIVERED: "delivered",
   CANCELLED: "cancelled",
   REFUNDED: "refunded",
@@ -42,25 +42,55 @@ export interface CustomerOrderLike {
   customerPhone: string;
 }
 
+export interface OrderTracking {
+  carrier?: string | null;
+  number?: string | null;
+  url?: string | null;
+}
+
 // Notify the customer about an order status. Safe to call for any status —
 // no-ops for statuses with no customer message (e.g. BY_MISTAKE) or a missing
 // phone. Fire-and-forget at call sites.
+//
+// On SHIPPED, when a tracking URL is available it is appended to the free-form
+// message and passed as an OPTIONAL 4th template param ({{4}}). Keep the order
+// template's first three params as name / order number / status phrase; only add
+// {{4}} to the template if you want the link inline (Meta ignores extra body
+// params only if the template declares them, so a 3-param template still works
+// because we omit {{4}} when there's no tracking URL — see below).
 export async function notifyCustomerOrder(
   order: CustomerOrderLike,
-  status: string
+  status: string,
+  tracking?: OrderTracking
 ): Promise<void> {
   const phrase = STATUS_PHRASE[status as OrderStatus];
   if (!phrase) return; // unknown / internal status → no customer message
   if (!order.customerPhone) return;
 
+  const trackingUrl =
+    status === "SHIPPED" ? tracking?.url?.trim() || "" : "";
+
   const template = process.env.WHATSAPP_TEMPLATE_ORDER || "";
-  const fallback = `Namaste ${order.customerName}, your ShilpSmith order ${order.orderNumber} is ${phrase}. Thank you for shopping with us!`;
+  const fallback =
+    `Namaste ${order.customerName}, your ShilpSmith order ${order.orderNumber} is ${phrase}.` +
+    (trackingUrl ? ` Track it here: ${trackingUrl}` : "") +
+    ` Thank you for shopping with us!`;
+
+  // Only send {{4}} when we actually have a tracking URL AND the deployment uses
+  // a 4-param template (WHATSAPP_TEMPLATE_ORDER_HAS_TRACKING=1). Otherwise stick
+  // to the 3-param body so existing approved templates keep working.
+  const templateHasTracking =
+    process.env.WHATSAPP_TEMPLATE_ORDER_HAS_TRACKING === "1";
+  const params =
+    trackingUrl && templateHasTracking
+      ? [order.customerName, order.orderNumber, phrase, trackingUrl]
+      : [order.customerName, order.orderNumber, phrase];
 
   const res = template
     ? await sendWhatsAppTemplate({
         to: order.customerPhone,
         template,
-        params: [order.customerName, order.orderNumber, phrase],
+        params,
       })
     : await sendWhatsAppText({ to: order.customerPhone, body: fallback });
 

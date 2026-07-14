@@ -268,6 +268,22 @@ model Order {
   notes            String?
   internalNotes    String?
 
+  // Shipment tracking. Populated by the admin when an order moves to SHIPPED.
+  // `trackingCarrier` is a carrier key from lib/carriers.ts; `trackingUrl` is the
+  // resolved customer-facing tracking link (auto-built from the carrier template
+  // or an admin-supplied override). See lib/carriers.ts.
+  trackingCarrier String?
+  trackingNumber  String?
+  trackingUrl     String?
+  shippedAt       DateTime?
+
+  // Cached live tracking pulled from the shipping aggregator (iThink Logistics).
+  // `trackingData` holds the normalized last response (current status + scans),
+  // `trackingSyncedAt` gates re-fetching so we don't hit the API on every view.
+  // See lib/ithink.ts.
+  trackingData     Json?
+  trackingSyncedAt DateTime?
+
   deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
