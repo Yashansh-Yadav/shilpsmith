@@ -18,6 +18,7 @@ const STRINGS = {
     readScripture: "पढ़ें",
     todayPanchang: "आज का पंचांग",
     auspiciousToday: "आज का शुभ अवसर",
+    dedicatedDay: "समर्पित दिन",
     upcoming: "आगामी पर्व",
     noUpcoming: "इस वर्ष कोई आगामी पर्व नहीं",
     tithi: "तिथि",
@@ -42,6 +43,7 @@ const STRINGS = {
     readScripture: "Read",
     todayPanchang: "Today's Panchang",
     auspiciousToday: "Auspicious today",
+    dedicatedDay: "Dedicated day",
     upcoming: "Upcoming events",
     noUpcoming: "No more events this year",
     tithi: "Tithi",
@@ -72,6 +74,22 @@ export function resolveLang(value: string | null | undefined): Lang {
 // BCP-47 tag for the Web Speech API voice used to announce the panchang.
 export function speechLang(lang: Lang): string {
   return lang === "hi" ? "hi-IN" : "en-IN";
+}
+
+// "Tuesday is dedicated to Hanuman" / "मंगलवार हनुमान को समर्पित है".
+// `weekday` and `deity` must already be in `lang`.
+export function dedicatedTo(lang: Lang, weekday: string, deity: string): string {
+  return lang === "hi"
+    ? `${weekday} ${deity} को समर्पित है`
+    : `${weekday} is dedicated to ${deity}`;
+}
+
+// When the next occurrence lands: "Today" / "Tomorrow" / "Tue, 21 Jul".
+// `date` is a pre-formatted date string used only for daysAway >= 2.
+export function whenLabel(lang: Lang, daysAway: number, date: string): string {
+  if (daysAway === 0) return lang === "hi" ? "आज" : "Today";
+  if (daysAway === 1) return lang === "hi" ? "कल" : "Tomorrow";
+  return lang === "hi" ? `अगला — ${date}` : `Next — ${date}`;
 }
 
 // Time-of-day greeting that opens the spoken panchang. `hour` is the local

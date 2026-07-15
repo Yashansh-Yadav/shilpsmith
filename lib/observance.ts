@@ -107,3 +107,61 @@ export function todaysObservances(
   const rank = { festival: 0, range: 1, tithi: 2, weekday: 3 } as const;
   return out.sort((a, b) => rank[a.reason] - rank[b.reason]);
 }
+
+// A deity's weekly dedication (e.g. Tuesday → Hanuman) plus the next calendar
+// date it falls on. These are the weekday-only rules that `lib/upcoming.ts`
+// deliberately skips — a weekly habit isn't an "event", but it IS the single
+// most actionable thing on a deity's page, so it gets its own surface.
+
+export interface WeeklyDedication {
+  weekday: number; // 0=Sun .. 6=Sat
+  labelEn: string;
+  labelHi: string;
+  note?: string;
+  noteHi?: string;
+  nextDate: string; // YYYY-MM-DD, === today when daysAway is 0
+  daysAway: number; // 0 = today, 1 = tomorrow, … 6
+}
+
+const DAY_MS = 86_400_000;
+
+function addDays(dateKey: string, n: number): string {
+  return new Date(Date.parse(`${dateKey}T00:00:00Z`) + n * DAY_MS)
+    .toISOString()
+    .slice(0, 10);
+}
+
+export function weeklyDedications(
+  specialDays: SpecialDayConfig[] | null | undefined,
+  fromDateKey: string,
+  vaarIndex: number
+): WeeklyDedication[] {
+  if (!Array.isArray(specialDays)) return [];
+  const out: WeeklyDedication[] = [];
+  const seen = new Set<number>();
+
+  for (const d of specialDays) {
+    if (!d || d.weekday === undefined) continue;
+    // Only *pure* weekly rules. A weekday paired with a tithi/date is a
+    // narrower occasion (handled by todaysObservances / getUpcomingEvents),
+    // not a standing "this weekday belongs to this deity" dedication.
+    if (d.tithi || d.startDate || d.festivalDates?.length) continue;
+    if (!Number.isInteger(d.weekday) || d.weekday < 0 || d.weekday > 6) continue;
+    if (seen.has(d.weekday)) continue;
+    seen.add(d.weekday);
+
+    const daysAway = (d.weekday - vaarIndex + 7) % 7;
+    out.push({
+      weekday: d.weekday,
+      labelEn: d.labelEn,
+      labelHi: d.labelHi,
+      note: d.note,
+      noteHi: d.noteHi,
+      nextDate: addDays(fromDateKey, daysAway),
+      daysAway,
+    });
+  }
+
+  // Soonest first, so today's dedication (if any) leads.
+  return out.sort((a, b) => a.daysAway - b.daysAway);
+}
