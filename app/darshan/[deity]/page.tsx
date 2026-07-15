@@ -21,13 +21,15 @@ import {
 } from "lucide-react";
 
 import { getActiveDeity } from "../../../lib/deities";
-import { getTodayPanchang } from "../../../lib/panchang";
-import { todaysObservances } from "../../../lib/observance";
+import { getTodayPanchang, VAAR_EN, VAAR_HI } from "../../../lib/panchang";
+import { todaysObservances, weeklyDedications } from "../../../lib/observance";
 import { getUpcomingEvents } from "../../../lib/upcoming";
 import {
   resolveLang,
   speechLang,
   greeting,
+  dedicatedTo,
+  whenLabel,
   t,
   type Lang,
 } from "../../../lib/i18n/darshan";
@@ -75,6 +77,11 @@ export default async function DarshanPage({ params }: Params) {
 
   const panchang = await getTodayPanchang();
   const observances = todaysObservances(deity.specialDays, panchang);
+  const dedications = weeklyDedications(
+    deity.specialDays,
+    panchang.date,
+    panchang.vaarIndex
+  );
   const upcoming = await getUpcomingEvents(
     deity.key,
     deity.specialDays,
@@ -177,6 +184,26 @@ export default async function DarshanPage({ params }: Params) {
     };
   });
 
+  // Weekly dedications ("Tuesday is dedicated to Hanuman") + when they next land.
+  const nextFmt = new Intl.DateTimeFormat(loc, {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC",
+  });
+  // The note is intentionally not shown here: the seeded weekday notes just
+  // restate the title ("Monday - The weekly day dedicated to Lord Shiva"). They
+  // still surface in the observance banner on the day itself.
+  const dedicationItems = dedications.map((d) => ({
+    title: dedicatedTo(lang, (lang === "hi" ? VAAR_HI : VAAR_EN)[d.weekday] ?? "", name),
+    when: whenLabel(
+      lang,
+      d.daysAway,
+      nextFmt.format(new Date(`${d.nextDate}T00:00:00Z`))
+    ),
+    isToday: d.daysAway === 0,
+  }));
+
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-6xl">
@@ -267,6 +294,50 @@ export default async function DarshanPage({ params }: Params) {
               ))}
             </div>
           </section>
+
+          {/* ─── Weekly dedication ─── */}
+          {dedicationItems.length > 0 && (
+            <section className="rounded-[1.75rem] border border-indigo-100 bg-white p-5 shadow-sm lg:p-6">
+              <h2 className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-wide text-indigo-700">
+                <CalendarHeart className="h-4 w-4" />
+                {t(lang, "dedicatedDay")}
+              </h2>
+              <ul className="grid gap-2.5 sm:grid-cols-2">
+                {dedicationItems.map((d, i) => (
+                  <li
+                    key={i}
+                    className={`flex items-start gap-3 rounded-2xl p-3.5 ${
+                      d.isToday
+                        ? "bg-gradient-to-br from-indigo-50 to-violet-50 ring-1 ring-indigo-200"
+                        : "bg-slate-50"
+                    }`}
+                  >
+                    <span
+                      className={`flex h-9 w-9 flex-none items-center justify-center rounded-full ${
+                        d.isToday
+                          ? "bg-indigo-100 text-indigo-600"
+                          : "bg-white text-slate-400"
+                      }`}
+                    >
+                      <CalendarDays className="h-5 w-5" strokeWidth={2} />
+                    </span>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-slate-800">
+                        {d.title}
+                      </div>
+                      <div
+                        className={`mt-0.5 text-xs font-semibold ${
+                          d.isToday ? "text-indigo-600" : "text-slate-500"
+                        }`}
+                      >
+                        {d.when}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           {/* ─── Observance ─── */}
           {observances.length > 0 && (
