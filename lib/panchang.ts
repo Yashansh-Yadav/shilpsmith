@@ -39,7 +39,7 @@ const DEFAULT_LAT = Number(process.env.NEXT_PUBLIC_DEFAULT_LAT ?? "28.6139");
 const DEFAULT_LNG = Number(process.env.NEXT_PUBLIC_DEFAULT_LNG ?? "77.209");
 const IST_OFFSET_MIN = 330; // +05:30
 
-const VAAR_HI = [
+export const VAAR_HI = [
   "रविवार",
   "सोमवार",
   "मंगलवार",
@@ -48,7 +48,7 @@ const VAAR_HI = [
   "शुक्रवार",
   "शनिवार",
 ];
-const VAAR_EN = [
+export const VAAR_EN = [
   "Sunday",
   "Monday",
   "Tuesday",
