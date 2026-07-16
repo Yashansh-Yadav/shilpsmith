@@ -64,8 +64,26 @@ export async function notifyCustomerOrder(
   tracking?: OrderTracking
 ): Promise<void> {
   const phrase = STATUS_PHRASE[status as OrderStatus];
-  if (!phrase) return; // unknown / internal status → no customer message
-  if (!order.customerPhone) return;
+  // Log the skips — a silent return here looks identical to "never called".
+  if (!phrase) {
+    logger.info("customer order WhatsApp skipped: no message for status", {
+      orderNumber: order.orderNumber,
+      status,
+    });
+    return; // unknown / internal status → no customer message
+  }
+  if (!order.customerPhone) {
+    logger.warn("customer order WhatsApp skipped: order has no phone", {
+      orderNumber: order.orderNumber,
+      status,
+    });
+    return;
+  }
+
+  logger.info("customer order WhatsApp sending", {
+    orderNumber: order.orderNumber,
+    status,
+  });
 
   const trackingUrl =
     status === "SHIPPED" ? tracking?.url?.trim() || "" : "";

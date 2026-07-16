@@ -5,7 +5,6 @@ import {
   SITE_NAME,
   SITE_LEGAL_NAME,
   SUPPORT_EMAIL,
-  WHATSAPP_NUMBER,
   BUSINESS_COUNTRY,
   FOOTER_GROUPS,
   SOCIAL_LINKS,
@@ -17,6 +16,7 @@ import {
 export default function SiteFooter() {
   const year = 2026;
   const socials = Object.entries(SOCIAL_LINKS).filter(([, url]) => url);
+  const waLink = whatsappLink("Hi! I have a question about ShilpSmith.");
 
   return (
     <footer className="border-t border-slate-800 bg-slate-950 text-slate-300">
@@ -40,9 +40,9 @@ export default function SiteFooter() {
                   {SUPPORT_EMAIL}
                 </a>
               )}
-              {WHATSAPP_NUMBER && (
+              {waLink && (
                 <a
-                  href={whatsappLink("Hi! I have a question about ShilpSmith.")}
+                  href={waLink}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-2 text-slate-300 transition hover:text-white"

@@ -4,12 +4,14 @@ import type { CartItem, PricingBreakdown } from "../../lib/store/cart";
 import type { AddressFormValues } from "./AddressForm";
 
 function formatRupee(n: number) {
-  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
 interface Props {
   items: CartItem[];
   pricing: PricingBreakdown;
+  /** Name of the applied discount, shown on the discount line when present. */
+  discountLabel?: string | null;
   shippingAddress: AddressFormValues;
   paymentMethod: "RAZORPAY" | "WHATSAPP" | "COD";
 }
@@ -17,6 +19,7 @@ interface Props {
 export default function OrderReview({
   items,
   pricing,
+  discountLabel,
   shippingAddress,
   paymentMethod,
 }: Props) {
@@ -105,7 +108,10 @@ export default function OrderReview({
           />
           <Row label="Tax (GST)" value={formatRupee(pricing.tax)} />
           {pricing.discount > 0 && (
-            <Row label="Discount" value={`− ${formatRupee(pricing.discount)}`} />
+            <Row
+              label={discountLabel ? `Discount · ${discountLabel}` : "Discount"}
+              value={`− ${formatRupee(pricing.discount)}`}
+            />
           )}
           <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 text-base font-bold">
             <dt>Total</dt>

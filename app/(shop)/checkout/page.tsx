@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
 import { useCartStore, computePricing } from "../../../lib/store/cart";
+import { useShippingConfig } from "../../../lib/useShippingConfig";
 import AddressForm, {
   EMPTY_ADDRESS,
   type AddressFormValues,
@@ -16,11 +17,23 @@ import PaymentCheckout from "../../../components/shop/PaymentCheckout";
 type Step = "address" | "payment" | "review";
 type PaymentMethod = "RAZORPAY" | "COD";
 
+function formatRupee(n: number) {
+  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+}
+
 interface CreatedOrder {
   id: number;
   orderNumber: string;
+  guestToken: string;
   total: number;
   paymentMethod: PaymentMethod;
+}
+
+// The confirmation page is only reachable with the token — the id alone is
+// sequential and guards nothing. Build the link in one place so a caller can't
+// forget it and quietly produce a dead link.
+function orderUrl(order: CreatedOrder): string {
+  return `/order/${order.id}?t=${encodeURIComponent(order.guestToken)}`;
 }
 
 const STEPS: { id: Step; label: string }[] = [
@@ -33,7 +46,6 @@ export default function CheckoutPage() {
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const clear = useCartStore((s) => s.clear);
-  const pricing = useMemo(() => computePricing(items), [items]);
 
   const [step, setStep] = useState<Step>("address");
   const [shippingAddress, setShippingAddress] =
@@ -49,6 +61,64 @@ export default function CheckoutPage() {
   >({});
   const [discountCode, setDiscountCode] = useState("");
   const [onlinePaymentsEnabled, setOnlinePaymentsEnabled] = useState(false);
+
+  // Live discount preview from the server (authoritative pricing lives in
+  // /api/orders; this just shows the customer the same number in advance).
+  const [discountInfo, setDiscountInfo] = useState<{
+    amount: number;
+    name: string;
+    code: string | null;
+    automatic: boolean;
+  } | null>(null);
+  const [discountError, setDiscountError] = useState<string | null>(null);
+  const [discountBeaten, setDiscountBeaten] = useState(false);
+
+  // Re-price whenever the cart or typed code changes. Debounced so typing a
+  // code doesn't fire a request per keystroke. Runs even with no code so an
+  // automatic event discount shows up on its own.
+  useEffect(() => {
+    if (items.length === 0) {
+      setDiscountInfo(null);
+      setDiscountError(null);
+      setDiscountBeaten(false);
+      return;
+    }
+    let cancelled = false;
+    const handle = setTimeout(() => {
+      fetch("/api/discounts/preview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((i) => ({
+            productId: i.productId,
+            ...(i.variantId ? { variantId: i.variantId } : {}),
+            quantity: i.quantity,
+          })),
+          code: discountCode.trim() || null,
+        }),
+      })
+        .then((r) => r.json())
+        .then((body) => {
+          if (cancelled || !body?.success) return;
+          setDiscountInfo(body.data.discount);
+          setDiscountError(body.data.codeError);
+          setDiscountBeaten(body.data.codeBeaten);
+        })
+        .catch(() => {
+          /* preview is best-effort; the order route still enforces */
+        });
+    }, 400);
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+  }, [items, discountCode]);
+
+  const shippingConfig = useShippingConfig();
+  const pricingWithDiscount = useMemo(
+    () => computePricing(items, discountInfo?.amount ?? 0, shippingConfig),
+    [items, discountInfo, shippingConfig]
+  );
 
   // Online (Razorpay) payments are admin-gated. Read the public flag and, if
   // it's off, make sure we never sit on a Razorpay selection.
@@ -163,27 +233,42 @@ export default function CheckoutPage() {
       ...(discountCode.trim() ? { discountCode: discountCode.trim() } : {}),
     };
 
-    const res = await fetch("/api/orders", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const body = await res.json();
-    setSubmitting(false);
+    try {
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (!res.ok || !body.success) {
-      const detail = body?.error?.details?.[0];
+      // A gateway timeout or error page yields HTML, not JSON — don't let the
+      // parse throw take the whole handler down with it.
+      const body = await res.json().catch(() => null);
+
+      if (!res.ok || !body?.success) {
+        const detail = body?.error?.details?.[0];
+        toast.error(
+          detail
+            ? `${detail.field ?? "field"}: ${detail.message}`
+            : body?.error?.message ??
+                "We couldn't place your order. Please try again."
+        );
+        return null;
+      }
+
+      const order: CreatedOrder = body.data;
+      setCreatedOrder(order);
+      return order;
+    } catch {
+      // Network drop / aborted request. Without this the button below stays
+      // disabled on "Placing order…" forever and the only way out is a reload,
+      // which loses the address the customer just typed.
       toast.error(
-        detail
-          ? `${detail.field ?? "field"}: ${detail.message}`
-          : body?.error?.message ?? "Failed to create order"
+        "Connection problem — your order was not placed. Please check your network and try again."
       );
       return null;
+    } finally {
+      setSubmitting(false);
     }
-
-    const order: CreatedOrder = body.data;
-    setCreatedOrder(order);
-    return order;
   }
 
   async function onConfirmReview() {
@@ -198,7 +283,7 @@ export default function CheckoutPage() {
 
     // Cash on delivery: clear cart, go to confirmation.
     clear();
-    router.push(`/order/${order.id}`);
+    router.push(orderUrl(order));
   }
 
   return (
@@ -334,7 +419,8 @@ export default function CheckoutPage() {
               <h2 className="mb-4 text-xl font-bold">Review &amp; place order</h2>
               <OrderReview
                 items={items}
-                pricing={pricing}
+                pricing={pricingWithDiscount}
+                discountLabel={discountInfo?.name}
                 shippingAddress={shippingAddress}
                 paymentMethod={paymentMethod}
               />
@@ -350,9 +436,24 @@ export default function CheckoutPage() {
                   placeholder="Enter code"
                   className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono"
                 />
-                <p className="mt-1 text-xs text-slate-500">
-                  Applied server-side. Validation errors will show here on submit.
-                </p>
+                {/* Live feedback so the customer isn't guessing. */}
+                {discountError ? (
+                  <p className="mt-1 text-xs font-medium text-red-600">
+                    {discountError}
+                  </p>
+                ) : discountInfo ? (
+                  <p className="mt-1 text-xs font-medium text-emerald-700">
+                    {discountInfo.automatic
+                      ? `${discountInfo.name} applied — you save ${formatRupee(discountInfo.amount)}`
+                      : `Code applied — you save ${formatRupee(discountInfo.amount)}`}
+                    {discountBeaten &&
+                      ` (better than your code, so we used ${discountInfo.name})`}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Have a code? Enter it above — the total updates instantly.
+                  </p>
+                )}
               </div>
 
               {createdOrder && paymentMethod === "RAZORPAY" ? (
@@ -370,7 +471,7 @@ export default function CheckoutPage() {
                     customerPhone={shippingAddress.phone}
                     onSuccess={() => {
                       clear();
-                      router.push(`/order/${createdOrder.id}`);
+                      router.push(orderUrl(createdOrder));
                     }}
                     onFailure={(m) => toast.error(m)}
                   />

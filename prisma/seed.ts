@@ -178,14 +178,27 @@ const DEITIES = [
 ] as const;
 
 async function main() {
-  // Demo admin
-  const demoEmail = "admin@shilpsmith.com";
-  const demoPassword = "demo";
+  // This seed creates a SUPER_ADMIN. Running it against production would hand
+  // out full access — and because the upsert below has an `update` branch, it
+  // would also silently reset an already-hardened password back to the demo
+  // one. Refuse outright; there is no legitimate reason to seed prod.
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Refusing to seed a production database. Unset NODE_ENV=production if this is genuinely a local/dev database."
+    );
+  }
+
+  // Demo admin. Password comes from the environment so a real deployment can
+  // set its own; the fallback exists only for local development.
+  const demoEmail = process.env.SEED_ADMIN_EMAIL || "admin@shilpsmith.com";
+  const demoPassword = process.env.SEED_ADMIN_PASSWORD || "demo";
   const passwordHash = await bcrypt.hash(demoPassword, 10);
 
   await prisma.admin.upsert({
     where: { email: demoEmail },
-    update: { password: passwordHash, role: "SUPER_ADMIN", name: "Demo Admin" },
+    // Only fill in a password when creating. Re-running the seed to refresh
+    // categories must never reset the password of an existing admin.
+    update: { role: "SUPER_ADMIN" },
     create: {
       email: demoEmail,
       password: passwordHash,
@@ -193,7 +206,7 @@ async function main() {
       name: "Demo Admin",
     },
   });
-  console.log(`Admin upserted: ${demoEmail} (password: ${demoPassword})`);
+  console.log(`Admin upserted: ${demoEmail}`);
 
   // Categories
   for (const c of CATEGORIES) {
