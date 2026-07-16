@@ -8,7 +8,6 @@ import SupportForm from "../../components/site/SupportForm";
 import {
   SITE_LEGAL_NAME,
   SUPPORT_EMAIL,
-  WHATSAPP_NUMBER,
   whatsappLink,
 } from "../../lib/site";
 
@@ -19,6 +18,8 @@ export const metadata: Metadata = {
 };
 
 export default function ContactPage() {
+  const waLink = whatsappLink("Hi! I need help with ShilpSmith.");
+
   return (
     <PageShell>
       <Toaster />
@@ -51,9 +52,9 @@ export default function ContactPage() {
               </a>
             )}
 
-            {WHATSAPP_NUMBER && (
+            {waLink && (
               <a
-                href={whatsappLink("Hi! I need help with ShilpSmith.")}
+                href={waLink}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-start gap-3 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm transition hover:border-slate-200"

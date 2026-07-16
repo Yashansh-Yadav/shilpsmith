@@ -1,4 +1,5 @@
 import { logger } from "./logger";
+import { normalizeWhatsAppNumber } from "./site";
 
 // WhatsApp Cloud API (Meta) sender. Reusable for BOTH admin alerts (to the
 // configured WHATSAPP_NOTIFY_TO) and customer messages (to any recipient).
@@ -31,15 +32,9 @@ export function whatsappConfigured(): boolean {
   return creds() !== null;
 }
 
-// Normalize an Indian phone to WhatsApp's international form (digits only, with
-// country code). Accepts "9876543210", "+91 98765 43210", "098765 43210", etc.
-export function normalizeWhatsAppNumber(raw: string | null | undefined): string {
-  let d = String(raw ?? "").replace(/\D/g, "");
-  if (!d) return "";
-  if (d.length === 10) d = "91" + d; // bare 10-digit Indian number
-  else if (d.length === 11 && d.startsWith("0")) d = "91" + d.slice(1);
-  return d;
-}
+// Re-exported for existing callers; canonical implementation is in lib/site.ts
+// so the client bundle can use it without pulling in this server-only module.
+export { normalizeWhatsAppNumber };
 
 // Template body params can't contain newlines/tabs or long whitespace runs.
 function oneLine(s: string): string {
@@ -70,6 +65,14 @@ async function post(payload: object): Promise<WhatsAppResult> {
       });
       return { sent: false, reason: "api-error" };
     }
+    // Log successes too — otherwise a working send is indistinguishable from
+    // "never fired" in the logs, which is impossible to debug.
+    const okBody = await res.text().catch(() => "");
+    logger.info("WhatsApp Cloud API message accepted", {
+      to: (payload as { to?: string }).to,
+      type: (payload as { type?: string }).type,
+      response: okBody.slice(0, 300),
+    });
     return { sent: true };
   } catch (error) {
     logger.error("WhatsApp Cloud API request failed", { error });

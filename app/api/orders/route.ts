@@ -4,14 +4,17 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../../../lib/prisma";
 import { created, handle } from "../../../lib/apiResponse";
 import { parseJson } from "../../../lib/middleware/validateRequest";
-import { OrderCreateSchema, parsePrice } from "../../../lib/validators";
+import { OrderCreateSchema } from "../../../lib/validators";
 import { ValidationError, ConflictError } from "../../../lib/errors";
 import { rateLimit } from "../../../lib/middleware/rateLimit";
 import { logger } from "../../../lib/logger";
 import { sendOrderConfirmationEmail } from "../../../lib/email";
 import { notifyAdmin } from "../../../lib/notify";
 import { notifyCustomerOrder } from "../../../lib/whatsappCustomer";
-import { getOnlinePaymentsEnabled } from "../../../lib/settings";
+import { getOnlinePaymentsEnabled, getShippingConfig } from "../../../lib/settings";
+import { computeShipping } from "../../../lib/shipping";
+import { effectivePrice, resolveBestDiscount, rejectionMessage } from "../../../lib/discounts";
+import { loadDiscountCandidates } from "../../../lib/discountQuery";
 
 export const dynamic = "force-dynamic";
 
@@ -26,13 +29,6 @@ function generateOrderNumber(): string {
   )}${String(d.getUTCDate()).padStart(2, "0")}`;
   const suffix = Math.floor(10000 + Math.random() * 90000);
   return `ORD-${ymd}-${suffix}`;
-}
-
-// Flat shipping rule, mirrors the cart store. Kept here so the server is the
-// source of truth for the price the customer is actually billed.
-function computeShipping(subtotal: number): number {
-  if (subtotal === 0) return 0;
-  return subtotal >= 1000 ? 0 : 50;
 }
 
 export const POST = handle(async (request: NextRequest) => {
@@ -57,6 +53,8 @@ export const POST = handle(async (request: NextRequest) => {
       id: true,
       name: true,
       price: true,
+      discountPrice: true,
+      categoryId: true,
       stockStatus: true,
       stock: true,
     },
@@ -110,25 +108,45 @@ export const POST = handle(async (request: NextRequest) => {
           ]
         );
       }
-      if (variant.stock > 0 && item.quantity > variant.stock) {
+      // stock is authoritative: 0 means none left, not "untracked".
+      if (variant.stock <= 0) {
+        throw new ConflictError(
+          `'${product.name} (${variant.name})' is out of stock`
+        );
+      }
+      if (item.quantity > variant.stock) {
         throw new ConflictError(
           `Only ${variant.stock} of '${product.name} (${variant.name})' available`
         );
       }
-    } else if (product.stock > 0 && item.quantity > product.stock) {
-      throw new ConflictError(
-        `Only ${product.stock} of '${product.name}' available`
-      );
+    } else {
+      if (product.stock <= 0) {
+        throw new ConflictError(`'${product.name}' is out of stock`);
+      }
+      if (item.quantity > product.stock) {
+        throw new ConflictError(
+          `Only ${product.stock} of '${product.name}' available`
+        );
+      }
     }
   }
 
-  // Compute totals server-side. Variant priceModifier is added to base price.
+  // Compute totals server-side. `effectivePrice` applies the product's own sale
+  // price (discountPrice); variant priceModifier is added on top. Never trust a
+  // client-sent price — everything here comes from productMap/variantMap.
   let subtotal = 0;
+  const discountLines: {
+    productId: number;
+    categoryId: number | null;
+    unitPrice: number;
+    quantity: number;
+  }[] = [];
+
   const orderItemsCreate = input.items.map((item) => {
     const product = productMap.get(item.productId)!;
     const variant = item.variantId != null ? variantMap.get(item.variantId)! : null;
 
-    const base = parsePrice(product.price);
+    const base = effectivePrice(product);
     if (!Number.isFinite(base) || base <= 0) {
       throw new ConflictError(
         `'${product.name}' has an invalid price configured`
@@ -143,6 +161,13 @@ export const POST = handle(async (request: NextRequest) => {
     const lineSubtotal = unit * item.quantity;
     subtotal += lineSubtotal;
 
+    discountLines.push({
+      productId: product.id,
+      categoryId: product.categoryId,
+      unitPrice: unit,
+      quantity: item.quantity,
+    });
+
     return {
       productId: product.id,
       variantId: variant?.id ?? null,
@@ -156,46 +181,100 @@ export const POST = handle(async (request: NextRequest) => {
     };
   });
 
-  // Optional discount code lookup (validation only; redemption side-effects
-  // would also bump usedCount in a single transaction, but we keep the
-  // happy path simple here).
-  let discount = 0;
-  let discountCodeId: number | null = null;
-  if (input.discountCode) {
-    const code = await prisma.discountCode.findUnique({
-      where: { code: input.discountCode.toUpperCase() },
-    });
-    const now = new Date();
-    const valid =
-      code &&
-      code.active &&
-      (!code.startsAt || code.startsAt <= now) &&
-      (!code.expiresAt || code.expiresAt > now) &&
-      (!code.maxUses || code.usedCount < code.maxUses) &&
-      (!code.minOrderValue || subtotal >= Number(code.minOrderValue));
+  // Resolve the single best discount — automatic event discounts plus, if the
+  // customer typed one, their code. They don't stack; the biggest saving wins.
+  // This is the authoritative computation: the client previews the same numbers
+  // but the order is priced from here.
+  const candidates = await loadDiscountCandidates(
+    prisma,
+    input.discountCode ?? null
+  );
+  const resolution = resolveBestDiscount(candidates, discountLines, {
+    typedCode: input.discountCode ?? null,
+  });
 
-    if (!valid) {
-      throw new ValidationError("Discount code is not valid", [
-        { field: "discountCode", message: "Invalid or expired code" },
-      ]);
-    }
-    if (code.type === "PERCENTAGE") {
-      discount = (subtotal * Number(code.value)) / 100;
-    } else {
-      discount = Number(code.value);
-    }
-    discount = Math.min(discount, subtotal);
-    discountCodeId = code.id;
+  // If the customer typed a code and it was refused outright, tell them why
+  // rather than silently dropping it — they expected it to work.
+  if (resolution.codeRejection) {
+    const rule = candidates.find(
+      (c) => c.code?.toUpperCase() === input.discountCode?.trim().toUpperCase()
+    );
+    throw new ValidationError("Discount code is not valid", [
+      {
+        field: "discountCode",
+        message: rejectionMessage(
+          resolution.codeRejection,
+          rule?.minOrderValue ?? null
+        ),
+      },
+    ]);
   }
 
-  const shipping = computeShipping(subtotal);
+  const discount = resolution.best?.amount ?? 0;
+  const discountCodeId = resolution.best?.id ?? null;
+
+  // Shipping from admin Settings (not a hardcoded rule) — authoritative here.
+  const shipping = computeShipping(subtotal, await getShippingConfig());
   const tax = 0;
   const total = Math.max(0, subtotal + shipping + tax - discount);
 
   const orderNumber = generateOrderNumber();
 
+  // Sum quantities per product/variant — the same product can appear in the cart
+  // more than once (different variant or customization), and each line must
+  // count against the same shelf.
+  const productQty = new Map<number, number>();
+  const variantQty = new Map<number, number>();
+  for (const item of input.items) {
+    if (item.variantId != null) {
+      variantQty.set(
+        item.variantId,
+        (variantQty.get(item.variantId) ?? 0) + item.quantity
+      );
+    } else {
+      productQty.set(
+        item.productId,
+        (productQty.get(item.productId) ?? 0) + item.quantity
+      );
+    }
+  }
+
   const result = await prisma.$transaction(
     async (tx) => {
+    // Claim stock first, conditionally. The pre-flight checks above give nice
+    // error messages but can't prevent two shoppers passing them at the same
+    // instant — `updateMany` with a `gte` guard is what actually closes the
+    // race, because the DB evaluates the condition and the write atomically.
+    // count === 0 means someone else took the last unit in between.
+    for (const [productId, qty] of productQty) {
+      const claimed = await tx.product.updateMany({
+        where: { id: productId, deletedAt: null, stock: { gte: qty } },
+        data: { stock: { decrement: qty } },
+      });
+      if (claimed.count === 0) {
+        const name = productMap.get(productId)?.name ?? `Product ${productId}`;
+        throw new ConflictError(
+          `'${name}' just sold out — please adjust the quantity and try again`
+        );
+      }
+    }
+
+    for (const [variantId, qty] of variantQty) {
+      const claimed = await tx.productVariant.updateMany({
+        where: { id: variantId, stock: { gte: qty } },
+        data: { stock: { decrement: qty } },
+      });
+      if (claimed.count === 0) {
+        const v = variantMap.get(variantId);
+        const name = v
+          ? `${productMap.get(v.productId)?.name ?? "Item"} (${v.name})`
+          : `Variant ${variantId}`;
+        throw new ConflictError(
+          `'${name}' just sold out — please adjust the quantity and try again`
+        );
+      }
+    }
+
     const shippingAddress = await tx.address.create({
       data: {
         fullName: input.shippingAddress.fullName,
@@ -306,6 +385,10 @@ export const POST = handle(async (request: NextRequest) => {
     {
       id: result.id,
       orderNumber: result.orderNumber,
+      // The client needs this to build the confirmation link — it's the only
+      // thing that authorises viewing the order. Safe to hand to the buyer who
+      // just created it; never expose it on any listing endpoint.
+      guestToken: result.guestToken,
       total: Number(result.total),
       paymentMethod: result.paymentMethod,
       paymentStatus: result.paymentStatus,

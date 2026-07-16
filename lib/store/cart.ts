@@ -3,7 +3,12 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
-import { parsePrice } from "../validators";
+import { effectivePrice } from "../discounts";
+import {
+  computeShipping,
+  DEFAULT_SHIPPING,
+  type ShippingConfig,
+} from "../shipping";
 
 // --- Types -----------------------------------------------------------------
 
@@ -53,7 +58,8 @@ interface CartState {
 
 export function computePricing(
   items: CartItem[],
-  discount: number = 0
+  discount: number = 0,
+  shippingConfig: ShippingConfig = DEFAULT_SHIPPING
 ): PricingBreakdown {
   const subtotal = items.reduce(
     (acc, i) => acc + i.unitPrice * i.quantity,
@@ -61,8 +67,9 @@ export function computePricing(
   );
   const itemCount = items.reduce((acc, i) => acc + i.quantity, 0);
 
-  // Flat shipping for orders under ₹1000.
-  const shipping = subtotal === 0 ? 0 : subtotal >= 1000 ? 0 : 50;
+  // Shipping comes from admin Settings (default rule until configured). Same
+  // calculator the order route uses, so the displayed charge matches the bill.
+  const shipping = computeShipping(subtotal, shippingConfig);
   // GST placeholder: 0% for now — surfaced in UI to keep the line item visible.
   const tax = 0;
   const total = Math.max(0, subtotal + shipping + tax - discount);
@@ -192,7 +199,13 @@ if (typeof window !== "undefined" && "BroadcastChannel" in window) {
 
 // --- Helpers used outside React --------------------------------------------
 
-export function priceFromProduct(product: { price: string }): number {
-  const n = parsePrice(product.price);
-  return Number.isFinite(n) ? n : 0;
+// The price a customer actually pays for one unit. Delegates to effectivePrice
+// so a product's own sale price (discountPrice) is honoured everywhere the cart
+// and modal quote a price — previously this read `price` only, so a sale price
+// shown on the card was never charged.
+export function priceFromProduct(product: {
+  price: string;
+  discountPrice?: string | null;
+}): number {
+  return effectivePrice(product);
 }

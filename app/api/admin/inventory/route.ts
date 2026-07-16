@@ -34,11 +34,39 @@ export const PUT = handle(async (request: NextRequest) => {
 
   await prisma.$transaction(async (tx) => {
     if (input.products?.length) {
+      // Existing thresholds, so a stock-only save can still derive the right
+      // status without the client having to send one.
+      const existing = new Map(
+        (
+          await tx.product.findMany({
+            where: { id: { in: input.products.map((p) => p.id) } },
+            select: { id: true, lowStockThreshold: true },
+          })
+        ).map((p) => [p.id, p])
+      );
+
       for (const p of input.products) {
         const data: Record<string, unknown> = {};
         if (p.stock !== undefined) data.stock = p.stock;
         if (p.lowStockThreshold !== undefined) data.lowStockThreshold = p.lowStockThreshold;
-        if (p.stockStatus !== undefined) data.stockStatus = p.stockStatus;
+
+        if (p.stockStatus !== undefined) {
+          // Explicit admin override always wins — it's how you take something
+          // off sale while still holding units.
+          data.stockStatus = p.stockStatus;
+        } else if (p.stock !== undefined) {
+          // Otherwise keep status in step with the count, so the storefront
+          // badge and the order route can't disagree.
+          const threshold =
+            p.lowStockThreshold ?? existing.get(p.id)?.lowStockThreshold ?? 0;
+          data.stockStatus =
+            p.stock <= 0
+              ? "out-of-stock"
+              : p.stock <= threshold
+                ? "low-stock"
+                : "in-stock";
+        }
+
         if (Object.keys(data).length === 0) continue;
         await tx.product.update({ where: { id: p.id }, data });
       }

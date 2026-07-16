@@ -8,7 +8,6 @@ import {
   SITE_NAME,
   SITE_LEGAL_NAME,
   BUSINESS_COUNTRY,
-  WHATSAPP_NUMBER,
   whatsappLink,
 } from "../../lib/site";
 
@@ -60,6 +59,10 @@ const STEPS = [
 ];
 
 export default function AboutPage() {
+  const waLink = whatsappLink(
+    "Hi! I'd like to start a custom 3D printed product."
+  );
+
   return (
     <PageShell>
       <PageHeader
@@ -146,11 +149,9 @@ export default function AboutPage() {
               Shop the catalog
               <ArrowRight className="h-4 w-4" />
             </Link>
-            {WHATSAPP_NUMBER && (
+            {waLink && (
               <a
-                href={whatsappLink(
-                  "Hi! I'd like to start a custom 3D printed product."
-                )}
+                href={waLink}
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 rounded-2xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-brand-700"

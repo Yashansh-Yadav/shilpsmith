@@ -7,13 +7,17 @@ import { Menu, X, MessageCircle } from "lucide-react";
 
 import BrandLogoText from "../../public/brandLogo_Text.png";
 import BrandLogoFigure from "../../public/brandLogo_figure.png";
-import { PRIMARY_NAV, WHATSAPP_NUMBER, whatsappLink } from "../../lib/site";
+import { PRIMARY_NAV, whatsappLink } from "../../lib/site";
 
 // Lightweight shared header for the marketing / legal / support pages. The
 // homepage keeps its own bespoke hero navbar; this gives every other page a
 // consistent, navigable top bar.
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
+
+  // Guard on the link itself, not the raw number — whatsappLink() is null when
+  // there's no usable number, and that's what decides whether the CTA works.
+  const waLink = whatsappLink("Hi! I have a question about ShilpSmith products.");
 
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
@@ -42,9 +46,9 @@ export default function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          {WHATSAPP_NUMBER && (
+          {waLink && (
             <a
-              href={whatsappLink("Hi! I have a question about ShilpSmith products.")}
+              href={waLink}
               target="_blank"
               rel="noreferrer"
               className="hidden items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-cta transition hover:bg-brand-700 sm:inline-flex"

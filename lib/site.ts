@@ -41,8 +41,29 @@ export const SOCIAL_LINKS = {
   youtube: "",
 };
 
-export function whatsappLink(message?: string): string {
-  const base = `https://wa.me/${WHATSAPP_NUMBER}`;
+// Normalize an Indian phone to WhatsApp's international form (digits only, with
+// country code). Accepts "9876543210", "+91 98765 43210", "098765 43210", etc.
+//
+// Canonical copy lives here rather than in lib/whatsapp.ts because this module
+// is dependency-free and safe to pull into the client bundle; lib/whatsapp.ts
+// imports it from here.
+export function normalizeWhatsAppNumber(raw: string | null | undefined): string {
+  let d = String(raw ?? "").replace(/\D/g, "");
+  if (!d) return "";
+  if (d.length === 10) d = "91" + d; // bare 10-digit Indian number
+  else if (d.length === 11 && d.startsWith("0")) d = "91" + d.slice(1);
+  return d;
+}
+
+// wa.me requires a full international number. A bare 10-digit Indian number
+// (which is what the env has historically held) silently produces an
+// invalid-number error page — so normalize here rather than trusting the env to
+// be formatted correctly. Returns null when there's no usable number so callers
+// can skip rendering the CTA instead of linking to wa.me/undefined.
+export function whatsappLink(message?: string): string | null {
+  const number = normalizeWhatsAppNumber(WHATSAPP_NUMBER);
+  if (!number) return null;
+  const base = `https://wa.me/${number}`;
   return message ? `${base}?text=${encodeURIComponent(message)}` : base;
 }
 
