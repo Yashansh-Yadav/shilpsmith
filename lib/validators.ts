@@ -534,17 +534,28 @@ const discountTypeValues = ["PERCENTAGE", "FIXED"] as const;
 
 // Base shape — exposed without defaults / refine so update schemas can build
 // on it. PercentageRefine() applies the "≤ 100% off" rule.
+const discountScopeValues = ["ALL", "CATEGORY", "PRODUCT"] as const;
+
 const DiscountCodeFields = z.object({
+  // Optional: omit for an automatic event discount, provide for a typed code.
+  // Empty string is coerced to undefined so the admin form can leave it blank.
   code: z
     .string()
     .trim()
     .toUpperCase()
     .min(3)
     .max(40)
-    .regex(/^[A-Z0-9_-]+$/, "Code may only contain uppercase letters, numbers, _ and -"),
+    .regex(/^[A-Z0-9_-]+$/, "Code may only contain uppercase letters, numbers, _ and -")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  // Human label — required, since an automatic discount has no code to show.
+  name: z.string().trim().min(1, "Please enter a name").max(120),
   description: z.string().max(500).optional(),
   type: z.enum(discountTypeValues),
   value: z.number().positive(),
+  scope: z.enum(discountScopeValues).optional().default("ALL"),
+  categoryId: z.number().int().positive().optional(),
+  productIds: z.array(z.number().int().positive()).optional(),
   minOrderValue: z.number().nonnegative().optional(),
   maxUses: z.number().int().positive().optional(),
   perUserLimit: z.number().int().positive().optional(),
@@ -553,21 +564,39 @@ const DiscountCodeFields = z.object({
   active: z.boolean().optional(),
 });
 
-function percentageRefine<S extends z.ZodTypeAny>(schema: S) {
-  return schema.refine(
-    (v: { type?: string; value?: number }) =>
-      v.type !== "PERCENTAGE" || (v.value ?? 0) <= 100,
-    { path: ["value"], message: "Percentage discount cannot exceed 100" }
-  );
+// Cross-field rules shared by create + update: percentage cap, scope needs its
+// target, and (for a typed code) the window must be sane.
+function discountRefinements<S extends z.ZodTypeAny>(schema: S) {
+  return schema
+    .refine(
+      (v: { type?: string; value?: number }) =>
+        v.type !== "PERCENTAGE" || (v.value ?? 0) <= 100,
+      { path: ["value"], message: "Percentage discount cannot exceed 100" }
+    )
+    .refine(
+      (v: { scope?: string; categoryId?: number }) =>
+        v.scope !== "CATEGORY" || v.categoryId != null,
+      { path: ["categoryId"], message: "Pick a category for a category-scoped discount" }
+    )
+    .refine(
+      (v: { scope?: string; productIds?: number[] }) =>
+        v.scope !== "PRODUCT" || (v.productIds != null && v.productIds.length > 0),
+      { path: ["productIds"], message: "Pick at least one product for a product-scoped discount" }
+    )
+    .refine(
+      (v: { startsAt?: Date; expiresAt?: Date }) =>
+        !v.startsAt || !v.expiresAt || v.expiresAt > v.startsAt,
+      { path: ["expiresAt"], message: "End date must be after the start date" }
+    );
 }
 
-export const DiscountCodeSchema = percentageRefine(
+export const DiscountCodeSchema = discountRefinements(
   DiscountCodeFields.extend({
     active: z.boolean().optional().default(true),
   }).strict()
 );
 
-export const DiscountCodeUpdateSchema = percentageRefine(
+export const DiscountCodeUpdateSchema = discountRefinements(
   DiscountCodeFields.partial().strict()
 );
 

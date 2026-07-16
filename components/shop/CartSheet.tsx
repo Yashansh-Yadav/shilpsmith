@@ -11,10 +11,11 @@ import {
 } from "lucide-react";
 
 import { useCartStore, computePricing } from "../../lib/store/cart";
+import { useShippingConfig } from "../../lib/useShippingConfig";
 import ProductImage from "./ProductImage";
 
 function formatRupee(n: number) {
-  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
 export default function CartSheet() {
@@ -25,7 +26,8 @@ export default function CartSheet() {
   const dec = useCartStore((s) => s.dec);
   const remove = useCartStore((s) => s.remove);
 
-  const pricing = computePricing(items);
+  const shippingConfig = useShippingConfig();
+  const pricing = computePricing(items, 0, shippingConfig);
 
   // Lock body scroll while open.
   useEffect(() => {

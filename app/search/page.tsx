@@ -9,6 +9,9 @@ import { ArrowLeft, Search as SearchIcon } from "lucide-react";
 
 import CartSheet, { CartButton } from "../../components/shop/CartSheet";
 import ProductImage from "../../components/shop/ProductImage";
+import DiscountRibbon from "../../components/shop/DiscountRibbon";
+import ProductModal from "../../components/ProductModal";
+import { cardDisplay } from "../../lib/discounts";
 
 interface Category {
   id: number;
@@ -27,8 +30,12 @@ interface ProductRow {
   shortDescription: string;
   description: string;
   price: string;
+  discountPrice?: string | null;
+  eventDiscountPercent?: number | null;
   customizable: boolean;
   featured: boolean;
+  stock?: number;
+  stockStatus?: string;
   images: ProductImage[];
   category: { slug: string; name: string };
 }
@@ -36,7 +43,7 @@ interface ProductRow {
 function formatRupee(s: string) {
   const n = Number(String(s).replace(/[^\d.]/g, ""));
   if (!Number.isFinite(n) || n === 0) return s;
-  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
 function SearchInner() {
@@ -60,6 +67,9 @@ function SearchInner() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [results, setResults] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(false);
+  // Clicking a card opens the product modal here — previously it navigated to
+  // /?productId=… which the homepage ignores, so every result was a dead end.
+  const [selected, setSelected] = useState<ProductRow | null>(null);
 
   useEffect(() => {
     fetch("/api/categories")
@@ -241,37 +251,71 @@ function SearchInner() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-                {results.map((p) => (
-                  <Link
-                    key={p.id}
-                    href={`/?productId=${p.id}`}
-                    className="block overflow-hidden rounded-2xl border border-slate-100 bg-white transition hover:shadow-2xl"
-                  >
-                    <ProductImage
-                      src={p.images?.[0]?.url}
-                      alt={p.name}
-                      productId={p.id}
-                      aspectClass="h-40 w-full sm:h-52 lg:h-64"
-                    />
-                    <div className="p-3 lg:p-4">
-                      <h3 className="line-clamp-1 text-sm font-bold lg:text-base">
-                        {p.name}
-                      </h3>
-                      <p className="mt-1 line-clamp-2 text-xs text-slate-500 lg:text-sm">
-                        {p.shortDescription || p.description}
-                      </p>
-                      <p className="mt-2 text-sm font-bold lg:text-base">
-                        {formatRupee(p.price)}
-                      </p>
-                    </div>
-                  </Link>
-                ))}
+                {results.map((p) => {
+                  const { price, listPrice, percentOff: pct } = cardDisplay(p);
+                  const outOfStock =
+                    p.stockStatus === "out-of-stock" || p.stock === 0;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setSelected(p)}
+                      className="block w-full overflow-hidden rounded-2xl border border-slate-100 bg-white text-left transition hover:shadow-2xl"
+                    >
+                      <div className="relative overflow-hidden">
+                        <ProductImage
+                          src={p.images?.[0]?.url}
+                          alt={p.name}
+                          productId={p.id}
+                          aspectClass={`h-40 w-full sm:h-52 lg:h-64 ${
+                            outOfStock ? "opacity-60 grayscale" : ""
+                          }`}
+                        />
+                        {outOfStock && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-white/10">
+                            <span className="rounded-full bg-slate-900/85 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm backdrop-blur">
+                              Out of stock
+                            </span>
+                          </div>
+                        )}
+                        {!outOfStock && listPrice != null && pct > 0 && (
+                          <DiscountRibbon percent={pct} />
+                        )}
+                      </div>
+                      <div className="p-3 lg:p-4">
+                        <h3 className="line-clamp-1 text-sm font-bold lg:text-base">
+                          {p.name}
+                        </h3>
+                        <p className="mt-1 line-clamp-2 text-xs text-slate-500 lg:text-sm">
+                          {p.shortDescription || p.description}
+                        </p>
+                        <div className="mt-2 flex items-baseline gap-2">
+                          {listPrice != null ? (
+                            <>
+                              <span className="text-sm font-bold text-brand-700 lg:text-base">
+                                {formatRupee(String(price))}
+                              </span>
+                              <span className="text-xs text-slate-400 line-through">
+                                {formatRupee(String(listPrice))}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-sm font-bold lg:text-base">
+                              {formatRupee(p.price)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </section>
         </div>
       </div>
 
+      <ProductModal product={selected} onClose={() => setSelected(null)} />
       <CartSheet />
     </main>
   );

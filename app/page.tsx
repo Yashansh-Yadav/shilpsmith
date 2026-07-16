@@ -18,6 +18,7 @@ import HeroBanner from "../public/heroImage_v1.png";
 import BrandLogo_text from "../public/brandLogo_Text.png";
 import BrandLogo_figure from "../public/brandLogo_figure.png";
 
+import { whatsappLink } from "../lib/site";
 import CartSheet, { CartButton } from "../components/shop/CartSheet";
 import ProductCarousel from "../components/shop/ProductCarousel";
 import SectionHeader from "../components/shop/SectionHeader";
@@ -82,7 +83,13 @@ export default function Home() {
     router.push(trimmed ? `/search?q=${encodeURIComponent(trimmed)}` : "/search");
   }
 
-  const whatsapp = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
+  // Build every wa.me link through the shared helper — it adds the country code
+  // the env doesn't carry, and returns null when there's no usable number so a
+  // CTA is dropped rather than pointing at wa.me/undefined.
+  const waPlain = whatsappLink();
+  const waCustom = whatsappLink("Hi I want a custom 3D printed product");
+  const waIdea = whatsappLink("Hi I have an idea for a 3D printed product");
+  const waCreate = whatsappLink("Hi I want to create a custom 3D printed product");
 
   return (
     <main className="bg-slate-50 text-slate-900">
@@ -160,9 +167,9 @@ export default function Home() {
 
               <CartButton />
 
-              {whatsapp && (
+              {waPlain && (
                 <a
-                  href={`https://wa.me/${whatsapp}`}
+                  href={waPlain}
                   target="_blank"
                   rel="noreferrer"
                   className="hidden items-center gap-2 whitespace-nowrap rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white shadow-cta transition hover:bg-brand-700 sm:inline-flex"
@@ -277,15 +284,17 @@ export default function Home() {
                 Shop the catalog
                 <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
               </Link>
-              <a
-                href={`https://wa.me/${whatsapp}?text=Hi%20I%20want%20a%20custom%203D%20printed%20product`}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-brand-500 hover:text-slate-900"
-              >
-                <MessageCircle className="h-4 w-4" />
-                Get a custom quote
-              </a>
+              {waCustom && (
+                <a
+                  href={waCustom}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-brand-500 hover:text-slate-900"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Get a custom quote
+                </a>
+              )}
             </div>
 
             <div className="mt-12 grid w-full grid-cols-3 gap-3 sm:gap-4">
@@ -347,10 +356,10 @@ export default function Home() {
             title="The first picks are still in the studio"
             subtitle="Our team is curating standout creations. Land here as the catalog goes live — or commission one yourself in the meantime."
             cta={
-              whatsapp
+              waCustom
                 ? {
                     label: "Start a custom order",
-                    href: `https://wa.me/${whatsapp}?text=Hi%20I%20want%20a%20custom%203D%20printed%20product`,
+                    href: waCustom,
                     external: true,
                   }
                 : undefined
@@ -382,10 +391,10 @@ export default function Home() {
             title="Fresh prints rolling off the press"
             subtitle="New drops land here the moment they leave the printer. Be the first to know — or share an idea and we'll make it for you."
             cta={
-              whatsapp
+              waIdea
                 ? {
                     label: "Pitch us an idea",
-                    href: `https://wa.me/${whatsapp}?text=Hi%20I%20have%20an%20idea%20for%20a%203D%20printed%20product`,
+                    href: waIdea,
                     external: true,
                   }
                 : undefined
@@ -568,15 +577,17 @@ export default function Home() {
                   <p className="mt-2 text-sm text-slate-300">
                     Free design consultation. No deposit required.
                   </p>
-                  <a
-                    href={`https://wa.me/${whatsapp}?text=Hi%20I%20want%20to%20create%20a%20custom%203D%20printed%20product`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 py-4 font-semibold shadow-cta transition hover:-translate-y-0.5 hover:bg-brand-700"
-                  >
-                    <MessageCircle className="h-5 w-5" />
-                    Chat on WhatsApp
-                  </a>
+                  {waCreate && (
+                    <a
+                      href={waCreate}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 py-4 font-semibold shadow-cta transition hover:-translate-y-0.5 hover:bg-brand-700"
+                    >
+                      <MessageCircle className="h-5 w-5" />
+                      Chat on WhatsApp
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
@@ -594,14 +605,25 @@ export default function Home() {
             Browse inspiration, customize your design, and place your order
             directly through WhatsApp.
           </p>
-          <a
-            href={`https://wa.me/${whatsapp}`}
-            target="_blank"
-            rel="noreferrer"
-            className="mt-8 inline-block rounded-2xl bg-white px-8 py-4 font-semibold text-slate-900 shadow-lg"
-          >
-            Order via WhatsApp
-          </a>
+          {waPlain ? (
+            <a
+              href={waPlain}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-8 inline-block rounded-2xl bg-white px-8 py-4 font-semibold text-slate-900 shadow-lg"
+            >
+              Order via WhatsApp
+            </a>
+          ) : (
+            // No WhatsApp configured — still give the section an action rather
+            // than leaving the heading stranded with no way forward.
+            <Link
+              href="/search"
+              className="mt-8 inline-block rounded-2xl bg-white px-8 py-4 font-semibold text-slate-900 shadow-lg"
+            >
+              Browse the catalog
+            </Link>
+          )}
         </div>
       </section>
 

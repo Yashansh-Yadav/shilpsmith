@@ -11,6 +11,7 @@ import {
   priceFromProduct,
   useCartStore,
 } from "../lib/store/cart";
+import { parsePriceString } from "../lib/discounts";
 import VariantSelector, {
   type VariantSummary,
 } from "./shop/VariantSelector";
@@ -52,7 +53,7 @@ type Props = {
 };
 
 function formatRupee(n: number) {
-  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
 export default function ProductModal({ product, onClose }: Props) {
@@ -125,10 +126,31 @@ export default function ProductModal({ product, onClose }: Props) {
     () => variants.find((v) => v.id === selectedVariantId) ?? null,
     [variants, selectedVariantId]
   );
+
+  // The price stored in the cart: sale price + variant modifier, WITHOUT the
+  // event discount. Event discounts are order-level and apply across the whole
+  // cart at checkout (shown there as a discount line), so they must not be
+  // baked into the line price here.
   const unitPrice = useMemo(
     () => basePrice + Number(selectedVariant?.priceModifier ?? 0),
     [basePrice, selectedVariant]
   );
+
+  // What's DISPLAYED: the line price with any advertisable automatic event
+  // discount folded in, struck against the original list price. Keeps the modal
+  // in step with the card the customer just clicked.
+  const eventPct = product?.eventDiscountPercent ?? 0;
+  const displayUnit = useMemo(
+    () => (eventPct > 0 ? Math.round(unitPrice * (1 - eventPct / 100)) : unitPrice),
+    [unitPrice, eventPct]
+  );
+  const listUnit = useMemo(() => {
+    if (!product) return null;
+    const list =
+      parsePriceString(product.price) +
+      Number(selectedVariant?.priceModifier ?? 0);
+    return Number.isFinite(list) && displayUnit < list ? list : null;
+  }, [product, selectedVariant, displayUnit]);
 
   // Admin-configured customization fields for this product. When none are
   // configured we fall back to the legacy text/color/notes form.
@@ -239,8 +261,18 @@ export default function ProductModal({ product, onClose }: Props) {
               <h2 className="pr-10 text-2xl font-black leading-tight tracking-tight sm:text-3xl lg:text-4xl">
                 {product.name}
               </h2>
-              <p className="mt-3 flex items-baseline gap-2 text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
-                {formatRupee(unitPrice)}
+              <p className="mt-3 flex flex-wrap items-baseline gap-2 text-xl font-black tracking-tight text-slate-900 sm:text-2xl">
+                {formatRupee(displayUnit)}
+                {listUnit != null && (
+                  <span className="text-sm font-normal text-slate-400 line-through">
+                    {formatRupee(listUnit)}
+                  </span>
+                )}
+                {eventPct > 0 && (
+                  <span className="rounded-full bg-brand-600 px-2 py-0.5 text-[11px] font-black uppercase tracking-wide text-white">
+                    {eventPct}% off
+                  </span>
+                )}
                 {selectedVariant && (
                   <span className="text-sm font-normal text-slate-500">
                     base {formatRupee(basePrice)}

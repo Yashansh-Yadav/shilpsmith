@@ -41,9 +41,13 @@ export async function middleware(request: NextRequest) {
   return NextResponse.redirect(loginUrl);
 }
 
-// Match admin UI + admin APIs only; exclude the upload route so unauthenticated
-// uploads keep failing only via the surrounding admin UI gate, not by middleware
-// redirect (admin form posts FormData via fetch and shouldn't get HTML back).
+// Match admin UI + admin APIs only.
+//
+// /api/upload is deliberately NOT matched — the public storefront posts customer
+// customization images to it. It is not protected by "the admin UI" (that gate
+// is client-side and the route is directly reachable); it does its own
+// rate-limiting and checks the session itself for the admin-only model path.
+// See app/api/upload/route.ts.
 export const config = {
   matcher: ["/admin/:path*", "/api/admin/:path*"],
 };

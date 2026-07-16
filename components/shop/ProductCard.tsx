@@ -2,8 +2,9 @@
 
 import { Box } from "lucide-react";
 
-import { parsePrice } from "../../lib/validators";
+import { cardDisplay } from "../../lib/discounts";
 import ProductImage from "./ProductImage";
+import DiscountRibbon from "./DiscountRibbon";
 
 export interface StorefrontProduct {
   id: number;
@@ -13,12 +14,15 @@ export interface StorefrontProduct {
   description?: string | null;
   price: string;
   discountPrice?: string | null;
+  /** Best advertisable automatic event discount (%), attached by the API. */
+  eventDiscountPercent?: number | null;
   customizable?: boolean;
   featured?: boolean;
   createdAt?: string | Date;
   images?: { url: string }[];
   variants?: unknown[];
   modelUrl?: string | null;
+  stock?: number;
   stockStatus?: string;
   category?: { name: string; slug: string };
   deity?: { key: string; nameEn: string; active: boolean } | null;
@@ -31,42 +35,20 @@ interface Props {
 }
 
 function formatRupee(n: number) {
-  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
-}
-
-function isNew(createdAt?: string | Date): boolean {
-  if (!createdAt) return false;
-  const date = typeof createdAt === "string" ? new Date(createdAt) : createdAt;
-  return Date.now() - date.getTime() < 30 * 24 * 60 * 60 * 1000;
+  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
 export default function ProductCard({ product, onSelect, size = "default" }: Props) {
-  const base = parsePrice(product.price);
-  const sale =
-    product.discountPrice && parsePrice(product.discountPrice) < base
-      ? parsePrice(product.discountPrice)
-      : null;
+  // cardDisplay combines the product's own sale price with any advertisable
+  // automatic event discount — one place decides what the card shows, in step
+  // with what checkout charges.
+  const { price, listPrice, percentOff: pct } = cardDisplay(product);
 
-  const badges: { label: string; cls: string }[] = [];
-  if (isNew(product.createdAt)) {
-    badges.push({
-      label: "NEW",
-      cls: "bg-brand-600 text-white",
-    });
-  }
-  if (product.featured) {
-    badges.push({
-      label: "FEATURED",
-      cls: "bg-slate-900 text-white",
-    });
-  }
-  if (sale != null) {
-    const pct = Math.round(((base - sale) / base) * 100);
-    badges.push({
-      label: `-${pct}%`,
-      cls: "bg-amber-500 text-white",
-    });
-  }
+  // Out of stock is authoritative on the count (0), with stockStatus as an
+  // explicit admin override — matches what the order route enforces, so the
+  // badge never disagrees with what checkout allows.
+  const outOfStock =
+    product.stockStatus === "out-of-stock" || product.stock === 0;
 
   return (
     <button
@@ -83,26 +65,29 @@ export default function ProductCard({ product, onSelect, size = "default" }: Pro
           alt={product.name}
           productId={product.id}
           aspectClass={size === "compact" ? "aspect-square" : "aspect-[4/5]"}
-          className="transition duration-500 group-hover:scale-[1.04]"
+          className={`transition duration-500 group-hover:scale-[1.04] ${
+            outOfStock ? "opacity-60 grayscale" : ""
+          }`}
         />
 
-        {/* Badges */}
-        {badges.length > 0 && (
-          <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1">
-            {badges.map((b) => (
-              <span
-                key={b.label}
-                className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider shadow-sm ${b.cls}`}
-              >
-                {b.label}
-              </span>
-            ))}
+        {/* Out-of-stock overlay — a soft veil + centred pill so it reads as
+            deliberate rather than broken. Suppresses the sale ribbon below. */}
+        {outOfStock && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/10">
+            <span className="rounded-full bg-slate-900/85 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm backdrop-blur">
+              Out of stock
+            </span>
           </div>
         )}
 
-        {/* 3D indicator */}
+        {/* Discount ribbon — top-right, only when in stock and genuinely on sale. */}
+        {!outOfStock && listPrice != null && pct > 0 && (
+          <DiscountRibbon percent={pct} />
+        )}
+
+        {/* 3D indicator — top-left, so it never collides with the ribbon. */}
         {product.modelUrl && (
-          <span className="absolute right-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-900 shadow-sm backdrop-blur">
+          <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-900 shadow-sm backdrop-blur">
             <Box className="h-3 w-3" strokeWidth={2.5} />
             3D
           </span>
@@ -123,18 +108,18 @@ export default function ProductCard({ product, onSelect, size = "default" }: Pro
         </p>
 
         <div className="mt-3 flex items-baseline gap-2">
-          {sale != null ? (
+          {listPrice != null ? (
             <>
               <span className="font-spec text-sm font-bold text-brand-700 sm:text-base">
-                {formatRupee(sale)}
+                {formatRupee(price)}
               </span>
               <span className="font-spec text-[11px] text-slate-400 line-through">
-                {formatRupee(base)}
+                {formatRupee(listPrice)}
               </span>
             </>
           ) : (
             <span className="font-spec text-sm font-bold text-slate-900 sm:text-base">
-              {Number.isFinite(base) && base > 0 ? formatRupee(base) : product.price}
+              {price > 0 ? formatRupee(price) : product.price}
             </span>
           )}
         </div>

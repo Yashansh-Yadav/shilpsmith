@@ -11,6 +11,11 @@ export const dynamic = "force-dynamic";
 export const GET = handle(async () => {
   const codes = await prisma.discountCode.findMany({
     orderBy: { createdAt: "desc" },
+    include: {
+      category: { select: { id: true, name: true, slug: true } },
+      products: { select: { productId: true } },
+      _count: { select: { orders: true } },
+    },
   });
   return ok(codes);
 });
@@ -20,10 +25,15 @@ export const POST = handle(async (request: NextRequest) => {
 
   const code = await prisma.discountCode.create({
     data: {
-      code: input.code,
+      code: input.code ?? null,
+      name: input.name,
       description: input.description,
       type: input.type,
       value: new Prisma.Decimal(input.value.toFixed(2)),
+      scope: input.scope,
+      // Only keep the scope's own target; clear the other so a later scope
+      // change can't leave a stale category/product filter behind.
+      categoryId: input.scope === "CATEGORY" ? (input.categoryId ?? null) : null,
       minOrderValue:
         input.minOrderValue !== undefined
           ? new Prisma.Decimal(input.minOrderValue.toFixed(2))
@@ -33,7 +43,11 @@ export const POST = handle(async (request: NextRequest) => {
       startsAt: input.startsAt ?? null,
       expiresAt: input.expiresAt ?? null,
       active: input.active,
+      ...(input.scope === "PRODUCT" && input.productIds?.length
+        ? { products: { create: input.productIds.map((productId) => ({ productId })) } }
+        : {}),
     },
+    include: { products: { select: { productId: true } } },
   });
-  return created(code, "Discount code created");
+  return created(code, "Discount created");
 });
