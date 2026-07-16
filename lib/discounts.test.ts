@@ -1,6 +1,7 @@
 import {
   effectivePrice,
   listPriceIfDiscounted,
+  cardDisplay,
   resolveBestDiscount,
   evaluateDiscount,
   type DiscountRule,
@@ -142,11 +143,15 @@ const tieB = rule({ id: 2, code: "TIE", name: "Typed", value: 10 });
 r = resolveBestDiscount([tieA, tieB], lines, { typedCode: "TIE" });
 check("tie -> automatic wins (customer needn't type)", r.best?.name, "Auto");
 
-console.log("\n--- discountPrice + event stack correctly (sale price first) ---");
-// Product on sale 1000 -> 800, then a 15% event on the SALE price.
-const salePriceLines = [line({ productId: 1, categoryId: 10, unitPrice: effectivePrice({ price: "1000", discountPrice: "800" }) })];
-r = resolveBestDiscount([rule({ value: 15, name: "Diwali" })], salePriceLines, {});
-check("event applies to the 800 sale price, not 1000", r.best?.amount, 120);
+console.log("\n--- sale price vs event: single best wins, never both ---");
+// A product's own sale price and an event discount COMPETE (best single wins).
+// Product list ₹1000, sale price ₹800.
+//  - 10% event off list = ₹900 → sale (₹800) wins → pay ₹800, NOT ₹720.
+check("sale ₹800 beats 10% event", cardDisplay({ price: "1000", discountPrice: "800", eventDiscountPercent: 10 }).price, 800);
+//  - 25% event off list = ₹750 → event wins → pay ₹750.
+check("25% event beats ₹800 sale", cardDisplay({ price: "1000", discountPrice: "800", eventDiscountPercent: 25 }).price, 750);
+//  - never the stacked ₹720.
+check("never stacks (not 720)", cardDisplay({ price: "1000", discountPrice: "800", eventDiscountPercent: 10 }).price !== 720, true);
 
 console.log(failures === 0 ? "\nALL PASS" : `\n${failures} FAILURE(S)`);
 process.exit(failures === 0 ? 0 : 1);

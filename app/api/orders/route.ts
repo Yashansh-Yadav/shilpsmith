@@ -13,7 +13,12 @@ import { notifyAdmin } from "../../../lib/notify";
 import { notifyCustomerOrder } from "../../../lib/whatsappCustomer";
 import { getOnlinePaymentsEnabled, getShippingConfig } from "../../../lib/settings";
 import { computeShipping } from "../../../lib/shipping";
-import { effectivePrice, resolveBestDiscount, rejectionMessage } from "../../../lib/discounts";
+import {
+  effectivePrice,
+  parsePriceString,
+  resolveBestDiscount,
+  rejectionMessage,
+} from "../../../lib/discounts";
 import { loadDiscountCandidates } from "../../../lib/discountQuery";
 
 export const dynamic = "force-dynamic";
@@ -131,60 +136,47 @@ export const POST = handle(async (request: NextRequest) => {
     }
   }
 
-  // Compute totals server-side. `effectivePrice` applies the product's own sale
-  // price (discountPrice); variant priceModifier is added on top. Never trust a
-  // client-sent price — everything here comes from productMap/variantMap.
-  let subtotal = 0;
-  const discountLines: {
-    productId: number;
-    categoryId: number | null;
-    unitPrice: number;
-    quantity: number;
-  }[] = [];
-
-  const orderItemsCreate = input.items.map((item) => {
+  // Collect list + sale prices per line. A product's own sale price
+  // (discountPrice) and any event/coupon discount COMPETE — the customer gets
+  // the single best one, never both — so we hold both prices, decide the winner
+  // below, and only then set each order item's price. Never trust a client
+  // price; everything comes from productMap/variantMap.
+  const lineData = input.items.map((item) => {
     const product = productMap.get(item.productId)!;
     const variant = item.variantId != null ? variantMap.get(item.variantId)! : null;
+    const modifier = variant ? Number(variant.priceModifier) : 0;
 
-    const base = effectivePrice(product);
-    if (!Number.isFinite(base) || base <= 0) {
-      throw new ConflictError(
-        `'${product.name}' has an invalid price configured`
-      );
+    const listBase = parsePriceString(product.price);
+    if (!Number.isFinite(listBase) || listBase <= 0) {
+      throw new ConflictError(`'${product.name}' has an invalid price configured`);
     }
-    const unit = base + (variant ? Number(variant.priceModifier) : 0);
-    if (unit <= 0) {
+    const listUnit = listBase + modifier;
+    const saleUnit = effectivePrice(product) + modifier; // sale price, or list if none
+    if (listUnit <= 0) {
       throw new ConflictError(
         `'${product.name}' (${variant?.name ?? "base"}) has a non-positive total price`
       );
     }
-    const lineSubtotal = unit * item.quantity;
-    subtotal += lineSubtotal;
-
-    discountLines.push({
-      productId: product.id,
-      categoryId: product.categoryId,
-      unitPrice: unit,
-      quantity: item.quantity,
-    });
-
-    return {
-      productId: product.id,
-      variantId: variant?.id ?? null,
-      productName: variant ? `${product.name} (${variant.name})` : product.name,
-      unitPrice: new Prisma.Decimal(unit.toFixed(2)),
-      quantity: item.quantity,
-      subtotal: new Prisma.Decimal(lineSubtotal.toFixed(2)),
-      customization: item.customization
-        ? (item.customization as Prisma.InputJsonValue)
-        : Prisma.JsonNull,
-    };
+    return { item, product, variant, listUnit, saleUnit };
   });
 
-  // Resolve the single best discount — automatic event discounts plus, if the
-  // customer typed one, their code. They don't stack; the biggest saving wins.
-  // This is the authoritative computation: the client previews the same numbers
-  // but the order is priced from here.
+  const listSubtotal = lineData.reduce(
+    (s, l) => s + l.listUnit * l.item.quantity,
+    0
+  );
+  // What the customer saves if the product sale prices win.
+  const saleMarkdown = Math.round(
+    lineData.reduce((s, l) => s + (l.listUnit - l.saleUnit) * l.item.quantity, 0)
+  );
+
+  // Best event/coupon, evaluated on LIST prices so it competes fairly with the
+  // sale prices instead of stacking on top of them.
+  const discountLines = lineData.map((l) => ({
+    productId: l.product.id,
+    categoryId: l.product.categoryId,
+    unitPrice: l.listUnit,
+    quantity: l.item.quantity,
+  }));
   const candidates = await loadDiscountCandidates(
     prisma,
     input.discountCode ?? null
@@ -210,8 +202,32 @@ export const POST = handle(async (request: NextRequest) => {
     ]);
   }
 
-  const discount = resolution.best?.amount ?? 0;
-  const discountCodeId = resolution.best?.id ?? null;
+  const eventAmount = resolution.best?.amount ?? 0;
+
+  // Single best discount wins. If the event/coupon beats the sale prices, charge
+  // list and apply it; otherwise the sale prices stand and no event applies on
+  // top. Never both.
+  const eventWins = eventAmount > saleMarkdown;
+  const subtotal = eventWins ? listSubtotal : listSubtotal - saleMarkdown;
+  const discount = eventWins ? eventAmount : 0;
+  const discountCodeId = eventWins ? resolution.best?.id ?? null : null;
+
+  // Price each order item by the winner: list price when the event wins (the
+  // event shows as the discount line), sale price otherwise.
+  const orderItemsCreate = lineData.map(({ item, product, variant, listUnit, saleUnit }) => {
+    const unit = eventWins ? listUnit : saleUnit;
+    return {
+      productId: product.id,
+      variantId: variant?.id ?? null,
+      productName: variant ? `${product.name} (${variant.name})` : product.name,
+      unitPrice: new Prisma.Decimal(unit.toFixed(2)),
+      quantity: item.quantity,
+      subtotal: new Prisma.Decimal((unit * item.quantity).toFixed(2)),
+      customization: item.customization
+        ? (item.customization as Prisma.InputJsonValue)
+        : Prisma.JsonNull,
+    };
+  });
 
   // Shipping from admin Settings (not a hardcoded rule) — authoritative here.
   const shipping = computeShipping(subtotal, await getShippingConfig());

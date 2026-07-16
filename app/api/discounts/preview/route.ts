@@ -7,6 +7,7 @@ import { parseJson } from "../../../../lib/middleware/validateRequest";
 import { rateLimit } from "../../../../lib/middleware/rateLimit";
 import {
   effectivePrice,
+  parsePriceString,
   resolveBestDiscount,
   rejectionMessage,
   type DiscountLine,
@@ -60,25 +61,31 @@ export const POST = handle(async (request: NextRequest) => {
     : [];
   const variantMap = new Map(variants.map((v) => [v.id, v]));
 
-  // Build priced lines from the live catalog — same effectivePrice the order
-  // route uses, so the preview matches what will actually be charged.
+  // Price lines at LIST so the event/coupon competes with the product sale
+  // prices (best single wins, never both) — the same rule the order route uses.
+  // Track the sale markdown to compare against.
+  let saleMarkdown = 0;
   const lines: DiscountLine[] = [];
   for (const item of input.items) {
     const product = productMap.get(item.productId);
     if (!product) continue;
-    const base = effectivePrice(product);
-    if (base <= 0) continue;
+    const listBase = parsePriceString(product.price);
+    if (!Number.isFinite(listBase) || listBase <= 0) continue;
     const mod =
       item.variantId != null
         ? Number(variantMap.get(item.variantId)?.priceModifier ?? 0)
         : 0;
+    const listUnit = listBase + mod;
+    const saleUnit = effectivePrice(product) + mod;
+    saleMarkdown += (listUnit - saleUnit) * item.quantity;
     lines.push({
       productId: product.id,
       categoryId: product.categoryId,
-      unitPrice: base + mod,
+      unitPrice: listUnit,
       quantity: item.quantity,
     });
   }
+  saleMarkdown = Math.round(saleMarkdown);
 
   const candidates = await loadDiscountCandidates(prisma, input.code ?? null);
   const resolution = resolveBestDiscount(candidates, lines, {
@@ -89,15 +96,23 @@ export const POST = handle(async (request: NextRequest) => {
     (c) => c.code?.toUpperCase() === input.code?.trim().toUpperCase()
   );
 
+  const eventAmount = resolution.best?.amount ?? 0;
+  const eventWins = eventAmount > saleMarkdown;
+  // The cart already shows sale prices, so surface only the discount BEYOND
+  // them — i.e. the extra the event saves over the sale prices. Zero when the
+  // sale prices already win.
+  const shownAmount = eventWins ? eventAmount - saleMarkdown : 0;
+
   return ok({
-    discount: resolution.best
-      ? {
-          amount: resolution.best.amount,
-          name: resolution.best.name,
-          code: resolution.best.code,
-          automatic: resolution.best.automatic,
-        }
-      : null,
+    discount:
+      eventWins && shownAmount > 0 && resolution.best
+        ? {
+            amount: shownAmount,
+            name: resolution.best.name,
+            code: resolution.best.code,
+            automatic: resolution.best.automatic,
+          }
+        : null,
     // When the customer typed a code that lost to a better automatic discount,
     // tell them — otherwise "my code did nothing" looks like a bug.
     codeBeaten: resolution.codeBeaten,

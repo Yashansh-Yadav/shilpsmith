@@ -199,11 +199,13 @@ export function cardDisplay(product: {
   eventDiscountPercent?: number | null;
 }): CardDisplay {
   const list = parsePriceString(product.price);
-  const sale = effectivePrice(product); // includes discountPrice
+  const sale = effectivePrice(product); // the product's own sale price, or list
   const evPct = product.eventDiscountPercent ?? 0;
-  // Whole rupees — Indian retail doesn't price in paise, and a 10%-off ₹599
-  // should read ₹539, not ₹539.1.
-  const final = evPct > 0 ? Math.round(sale * (1 - evPct / 100)) : sale;
+  // The sale price and the event discount COMPETE — show whichever is cheaper,
+  // never both stacked. Event is computed off the LIST price so the comparison
+  // is fair. Whole rupees (Indian retail doesn't price in paise).
+  const eventPrice = evPct > 0 ? Math.round(list * (1 - evPct / 100)) : list;
+  const final = Math.min(sale, eventPrice);
 
   const hasList = Number.isFinite(list) && list > 0 && final < list;
   return {
