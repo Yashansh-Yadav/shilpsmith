@@ -136,6 +136,7 @@ export default function ProductModal({ product, onClose }: Props) {
     [basePrice, selectedVariant]
   );
 
+<<<<<<< HEAD
   // What's DISPLAYED: the line price with any advertisable automatic event
   // discount folded in, struck against the original list price. Keeps the modal
   // in step with the card the customer just clicked.
@@ -144,6 +145,20 @@ export default function ProductModal({ product, onClose }: Props) {
     () => (eventPct > 0 ? Math.round(unitPrice * (1 - eventPct / 100)) : unitPrice),
     [unitPrice, eventPct]
   );
+=======
+  // What's DISPLAYED: the better of the product's sale price or the event
+  // discount — never both stacked. Event is computed off the LIST price, then
+  // we show whichever is cheaper. Keeps the modal in step with the card.
+  const eventPct = product?.eventDiscountPercent ?? 0;
+  const displayUnit = useMemo(() => {
+    const modifier = Number(selectedVariant?.priceModifier ?? 0);
+    const listRaw = product ? parsePriceString(product.price) + modifier : unitPrice;
+    const eventPrice =
+      eventPct > 0 ? Math.round(listRaw * (1 - eventPct / 100)) : listRaw;
+    // unitPrice is the sale price; take the single best against the event.
+    return Math.min(unitPrice, eventPrice);
+  }, [unitPrice, eventPct, product, selectedVariant]);
+>>>>>>> 834743cf2044314ba2a270e448fcd08275b69741
   const listUnit = useMemo(() => {
     if (!product) return null;
     const list =

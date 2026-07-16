@@ -145,6 +145,7 @@ export const POST = handle(async (request: NextRequest) => {
   const orderItemsCreate = input.items.map((item) => {
     const product = productMap.get(item.productId)!;
     const variant = item.variantId != null ? variantMap.get(item.variantId)! : null;
+    const modifier = variant ? Number(variant.priceModifier) : 0;
 
     const base = effectivePrice(product);
     if (!Number.isFinite(base) || base <= 0) {
@@ -152,14 +153,15 @@ export const POST = handle(async (request: NextRequest) => {
         `'${product.name}' has an invalid price configured`
       );
     }
-    const unit = base + (variant ? Number(variant.priceModifier) : 0);
-    if (unit <= 0) {
+    const listUnit = listBase + modifier;
+    const saleUnit = effectivePrice(product) + modifier; // sale price, or list if none
+    if (listUnit <= 0) {
       throw new ConflictError(
         `'${product.name}' (${variant?.name ?? "base"}) has a non-positive total price`
       );
     }
-    const lineSubtotal = unit * item.quantity;
-    subtotal += lineSubtotal;
+    return { item, product, variant, listUnit, saleUnit };
+  });
 
     discountLines.push({
       productId: product.id,
@@ -174,13 +176,14 @@ export const POST = handle(async (request: NextRequest) => {
       productName: variant ? `${product.name} (${variant.name})` : product.name,
       unitPrice: new Prisma.Decimal(unit.toFixed(2)),
       quantity: item.quantity,
-      subtotal: new Prisma.Decimal(lineSubtotal.toFixed(2)),
+      subtotal: new Prisma.Decimal((unit * item.quantity).toFixed(2)),
       customization: item.customization
         ? (item.customization as Prisma.InputJsonValue)
         : Prisma.JsonNull,
     };
   });
 
+<<<<<<< HEAD
   // Resolve the single best discount — automatic event discounts plus, if the
   // customer typed one, their code. They don't stack; the biggest saving wins.
   // This is the authoritative computation: the client previews the same numbers
@@ -213,6 +216,8 @@ export const POST = handle(async (request: NextRequest) => {
   const discount = resolution.best?.amount ?? 0;
   const discountCodeId = resolution.best?.id ?? null;
 
+=======
+>>>>>>> 834743cf2044314ba2a270e448fcd08275b69741
   // Shipping from admin Settings (not a hardcoded rule) — authoritative here.
   const shipping = computeShipping(subtotal, await getShippingConfig());
   const tax = 0;
