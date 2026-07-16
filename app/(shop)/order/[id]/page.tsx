@@ -16,15 +16,28 @@ const STATUS_STEPS = [
   { id: "DELIVERED", label: "Delivered" },
 ] as const;
 
-type Params = { params: Promise<{ id: string }> };
+type Params = {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ t?: string }>;
+};
 
-export default async function OrderConfirmationPage({ params }: Params) {
+export default async function OrderConfirmationPage({
+  params,
+  searchParams,
+}: Params) {
   const { id } = await params;
+  const { t: token } = await searchParams;
   const orderId = Number(id);
   if (!Number.isInteger(orderId) || orderId <= 0) notFound();
 
+  // This page renders name, phone, email and full address, and `id` is
+  // sequential — so the token is what stops someone counting 1..n and scraping
+  // every customer. Treat a missing/wrong token exactly like a missing order so
+  // neither case confirms the other exists.
+  if (!token) notFound();
+
   const order = await prisma.order.findFirst({
-    where: { id: orderId, deletedAt: null },
+    where: { id: orderId, guestToken: token, deletedAt: null },
     include: {
       items: true,
       shippingAddress: true,

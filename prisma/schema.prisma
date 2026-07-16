@@ -70,7 +70,8 @@ model Category {
   description String?
   image       String?
 
-  products Product[]
+  products  Product[]
+  discounts DiscountCode[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -119,6 +120,7 @@ model Product {
   orderItems    OrderItem[]
   cartItems     CartItem[]
   wishlistItems WishlistItem[]
+  discounts     DiscountProduct[]
 
   deletedAt DateTime?
   createdAt DateTime  @default(now())
@@ -235,6 +237,13 @@ enum PaymentMethod {
 model Order {
   id          Int    @id @default(autoincrement())
   orderNumber String @unique
+
+  // Unguessable per-order key. `id` is sequential, so it can't gate access to
+  // the confirmation page on its own — anyone could count 1..n and scrape every
+  // customer's name, phone, email and address. The post-checkout link carries
+  // this token and /order/[id] requires it. Guest checkout has no accounts, so
+  // this is the only thing standing between an order and the open internet.
+  guestToken String @unique @default(cuid())
 
   userId Int?
   user   User? @relation(fields: [userId], references: [id])
@@ -393,13 +402,43 @@ enum DiscountType {
   FIXED
 }
 
+// What a discount applies to. CATEGORY uses `categoryId`; PRODUCT uses the
+// `products` join. ALL ignores both.
+enum DiscountScope {
+  ALL
+  CATEGORY
+  PRODUCT
+}
+
+// Covers BOTH customer-typed codes and automatic event discounts — the only
+// difference is whether `code` is set:
+//
+//   code = "3DFESTO"  → customer must type it at checkout
+//   code = null       → applies automatically (e.g. a Diwali sale)
+//
+// They share one model because they share every rule that matters (window,
+// scope, min order value, usage caps) and, crucially, one enforcement path in
+// /api/orders. A parallel "Sale" table would mean two places to get pricing
+// wrong. See lib/discounts.ts for the resolution logic.
 model DiscountCode {
   id Int @id @default(autoincrement())
 
-  code        String       @unique
+  // Null = automatic discount, no code needed. Unique still holds for non-null
+  // values; Postgres treats NULLs as distinct, so many automatic discounts can
+  // coexist.
+  code        String?      @unique
+  // Human label, shown to the customer when an automatic discount applies
+  // ("Diwali Festival Sale — 15% off"). Required: an automatic discount with no
+  // code has nothing else to identify it by.
+  name        String
   description String?
   type        DiscountType
   value       Decimal      @db.Decimal(10, 2)
+
+  scope      DiscountScope @default(ALL)
+  categoryId Int?
+  category   Category?         @relation(fields: [categoryId], references: [id])
+  products   DiscountProduct[]
 
   minOrderValue Decimal? @db.Decimal(10, 2)
   maxUses       Int?
@@ -417,6 +456,19 @@ model DiscountCode {
 
   @@index([code])
   @@index([active])
+  @@index([categoryId])
+}
+
+// Products a PRODUCT-scoped discount applies to.
+model DiscountProduct {
+  discountCodeId Int
+  discountCode   DiscountCode @relation(fields: [discountCodeId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([discountCodeId, productId])
+  @@index([productId])
 }
 
 // Generic key/value site settings.

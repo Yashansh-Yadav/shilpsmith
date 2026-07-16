@@ -25,11 +25,21 @@ export const PUT = handle(async (request: NextRequest, ctx: Ctx) => {
   const input = await parseJson(request, DiscountCodeUpdateSchema);
 
   const data: Record<string, unknown> = {};
-  if (input.code !== undefined) data.code = input.code;
+  if (input.code !== undefined) data.code = input.code ?? null;
+  if (input.name !== undefined) data.name = input.name;
   if (input.description !== undefined) data.description = input.description;
   if (input.type !== undefined) data.type = input.type;
   if (input.value !== undefined) {
     data.value = new Prisma.Decimal(input.value.toFixed(2));
+  }
+  if (input.scope !== undefined) {
+    data.scope = input.scope;
+    // Changing scope clears the previous scope's target. CATEGORY sets its own
+    // categoryId below; PRODUCT rewrites the join; ALL clears both.
+    if (input.scope !== "CATEGORY") data.categoryId = null;
+  }
+  if (input.categoryId !== undefined && (input.scope ?? "CATEGORY") === "CATEGORY") {
+    data.categoryId = input.categoryId ?? null;
   }
   if (input.minOrderValue !== undefined) {
     data.minOrderValue =
@@ -43,7 +53,28 @@ export const PUT = handle(async (request: NextRequest, ctx: Ctx) => {
   if (input.expiresAt !== undefined) data.expiresAt = input.expiresAt;
   if (input.active !== undefined) data.active = input.active;
 
-  const code = await prisma.discountCode.update({ where: { id }, data });
+  // When the discount is (or becomes) product-scoped and a product list was
+  // sent, replace the join rows to match exactly.
+  const rewriteProducts =
+    input.productIds !== undefined &&
+    (input.scope === "PRODUCT" || input.scope === undefined);
+
+  const code = await prisma.$transaction(async (tx) => {
+    const updated = await tx.discountCode.update({ where: { id }, data });
+    if (rewriteProducts) {
+      await tx.discountProduct.deleteMany({ where: { discountCodeId: id } });
+      if (updated.scope === "PRODUCT" && input.productIds?.length) {
+        await tx.discountProduct.createMany({
+          data: input.productIds.map((productId) => ({ discountCodeId: id, productId })),
+        });
+      }
+    }
+    return tx.discountCode.findUniqueOrThrow({
+      where: { id },
+      include: { products: { select: { productId: true } } },
+    });
+  });
+
   return ok(code, { message: "Discount updated" });
 });
 

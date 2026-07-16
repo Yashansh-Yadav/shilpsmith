@@ -8,6 +8,8 @@ import {
   ProductSearchQuerySchema,
   parsePrice,
 } from "../../../lib/validators";
+import { cardAutoPercent } from "../../../lib/discounts";
+import { loadActiveAutomaticDiscounts } from "../../../lib/discountQuery";
 
 export const GET = handle(async (request: NextRequest) => {
   const query = parseQuery(request, ProductSearchQuerySchema);
@@ -76,5 +78,13 @@ export const GET = handle(async (request: NextRequest) => {
     products = filtered.map((x) => x.p);
   }
 
-  return ok(products);
+  // Advertise any applicable automatic event discount on each product card.
+  const autoDiscounts = await loadActiveAutomaticDiscounts(prisma);
+  const now = new Date();
+  const decorated = products.map((p) => ({
+    ...p,
+    eventDiscountPercent: cardAutoPercent(p, autoDiscounts, now),
+  }));
+
+  return ok(decorated);
 });

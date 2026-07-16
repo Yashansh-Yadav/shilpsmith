@@ -6,10 +6,11 @@ import { Toaster } from "react-hot-toast";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { useCartStore, computePricing } from "../../../lib/store/cart";
+import { useShippingConfig } from "../../../lib/useShippingConfig";
 import ProductImage from "../../../components/shop/ProductImage";
 
 function formatRupee(n: number) {
-  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
+  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
 export default function CartPage() {
@@ -19,7 +20,8 @@ export default function CartPage() {
   const remove = useCartStore((s) => s.remove);
   const clear = useCartStore((s) => s.clear);
 
-  const pricing = computePricing(items);
+  const shippingConfig = useShippingConfig();
+  const pricing = computePricing(items, 0, shippingConfig);
 
   return (
     <main className="min-h-screen bg-slate-50 py-10">

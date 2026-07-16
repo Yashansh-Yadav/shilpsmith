@@ -1,5 +1,7 @@
 import { prisma } from "../../../lib/prisma";
 import { ok, handle } from "../../../lib/apiResponse";
+import { cardAutoPercent } from "../../../lib/discounts";
+import { loadActiveAutomaticDiscounts } from "../../../lib/discountQuery";
 
 export const dynamic = "force-dynamic";
 // Cheap edge cache so the homepage doesn't re-query Postgres on every hit.
@@ -90,10 +92,19 @@ export const GET = handle(async () => {
   // Graceful fallback for a fresh catalog with no orders yet.
   if (trending.length === 0) trending = featured.length > 0 ? featured : newest;
 
+  // Tag each product with the automatic event discount that can be advertised
+  // on its card (e.g. a storewide "10% off"). Loaded once, applied to every
+  // shelf so the badge is consistent across the homepage.
+  const autoDiscounts = await loadActiveAutomaticDiscounts(prisma);
+  const withEvent = <T extends { id: number; categoryId: number | null }>(p: T) => ({
+    ...p,
+    eventDiscountPercent: cardAutoPercent(p, autoDiscounts, now),
+  });
+
   return ok({
-    featured,
-    newest,
-    trending,
+    featured: featured.map(withEvent),
+    newest: newest.map(withEvent),
+    trending: trending.map(withEvent),
     categories,
     testimonials,
   });
