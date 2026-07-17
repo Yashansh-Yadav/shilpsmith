@@ -32,6 +32,8 @@ import type { StorefrontProduct } from "../components/shop/ProductCard";
 import EmptyShelf from "../components/shop/EmptyShelf";
 import Reveal from "../components/shop/Reveal";
 import HowItWorks from "../components/shop/HowItWorks";
+import StudioStory from "../components/shop/StudioStory";
+import FAQ from "../components/shop/FAQ";
 import ProductModal from "../components/ProductModal";
 import SiteFooter from "../components/site/SiteFooter";
 
@@ -331,9 +333,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─────────────────────── How it works ─────────────────────── */}
-      <HowItWorks />
-
       {/* ────────────────────────── Featured ────────────────────────── */}
       <Section id="featured" className="bg-white">
         <Reveal>
@@ -451,6 +450,12 @@ export default function Home() {
         )}
         </Reveal>
       </Section>
+
+      {/* ─────────────────────── How it works ─────────────────────── */}
+      <HowItWorks />
+
+      {/* ─────────────────────── Our craft / studio story ─────────────────────── */}
+      <StudioStory />
 
       {/* ────────────────────────── Why us ────────────────────────── */}
       <section className="bg-white py-16 lg:py-24">
@@ -594,6 +599,9 @@ export default function Home() {
           </Reveal>
         </div>
       </section>
+
+      {/* ────────────────────────── FAQ ────────────────────────── */}
+      <FAQ />
 
       {/* ────────────────────────── Footer ────────────────────────── */}
       <section className="bg-slate-900 py-16 text-white sm:py-20">
