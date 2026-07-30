@@ -5,7 +5,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Toaster } from "react-hot-toast";
 
-import { ArrowLeft, Search as SearchIcon } from "lucide-react";
+import { Home, Search as SearchIcon } from "lucide-react";
 
 import CartSheet, { CartButton } from "../../components/shop/CartSheet";
 import ProductImage from "../../components/shop/ProductImage";
@@ -140,10 +140,11 @@ function SearchInner() {
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+              aria-label="Home"
+              title="Home"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Home
+              <Home className="h-4 w-4" strokeWidth={2.25} />
             </Link>
             <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
               Browse products
