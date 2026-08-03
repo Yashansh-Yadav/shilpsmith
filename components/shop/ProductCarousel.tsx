@@ -7,7 +7,6 @@ import ProductCard, { type StorefrontProduct } from "./ProductCard";
 
 interface Props {
   products: StorefrontProduct[];
-  onSelect: (product: StorefrontProduct) => void;
   // Width of each card on desktop. Mobile always shows ~1.7 cards so users see
   // that the row is scrollable.
   cardWidthClass?: string;
@@ -16,7 +15,6 @@ interface Props {
 
 export default function ProductCarousel({
   products,
-  onSelect,
   cardWidthClass = "w-[180px] sm:w-[200px] lg:w-[220px]",
   emptyMessage,
 }: Props) {
@@ -99,7 +97,7 @@ export default function ProductCarousel({
       >
         {products.map((p) => (
           <div key={p.id} className={`flex-none snap-start ${cardWidthClass}`}>
-            <ProductCard product={p} onSelect={onSelect} />
+            <ProductCard product={p} />
           </div>
         ))}
       </div>

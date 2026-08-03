@@ -26,3 +26,28 @@ export function computeShipping(
   if (config.freeAbove != null && subtotal >= config.freeAbove) return 0;
   return config.flatRate;
 }
+
+function rupees(n: number): string {
+  return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
+}
+
+/**
+ * The shipping promise to show a customer BEFORE they have a cart (product
+ * page, marketing copy).
+ *
+ * Derived from the same config computeShipping() charges from, so the storefront
+ * can't advertise a rule the checkout doesn't honour — this exists because the
+ * product page originally hardcoded "Free shipping over ₹1,000" while the admin
+ * had shipping set to free on everything.
+ */
+export function shippingNote(config: ShippingConfig = DEFAULT_SHIPPING): string {
+  // No fee at all, or a threshold of 0 that every order clears.
+  if (config.flatRate <= 0) return "Free shipping on all orders";
+  if (config.freeAbove != null && config.freeAbove <= 0) {
+    return "Free shipping on all orders";
+  }
+  if (config.freeAbove != null) {
+    return `Free shipping over ${rupees(config.freeAbove)}`;
+  }
+  return `${rupees(config.flatRate)} flat shipping`;
+}

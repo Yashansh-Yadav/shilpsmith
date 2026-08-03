@@ -12,8 +12,8 @@ import {
   WHATSAPP_NUMBER,
   OG_IMAGE,
   BRAND_LOGO,
-  SOCIAL_LINKS,
 } from "../lib/site";
+import { getSocialLinks } from "../lib/settings";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -78,11 +78,26 @@ export const metadata: Metadata = {
   category: "shopping",
 };
 
+// The Organization JSON-LD below reads social profiles from the database, so
+// otherwise-static pages need a refresh window or they'd serve whatever was in
+// the DB at build time forever. Admin saves also revalidate the cache tag
+// directly, so this is only the backstop. Pages with a shorter revalidate (e.g.
+// /products/[slug] at 60s) keep theirs.
+export const revalidate = 300;
+
 // Organization + WebSite structured data. Helps Google build the brand knowledge
 // panel and enables the sitelinks search box. ContactPoint surfaces support
-// channels; sameAs links social profiles when configured.
-function StructuredData() {
-  const sameAs = Object.values(SOCIAL_LINKS).filter(Boolean);
+// channels; `sameAs` claims the business's social profiles.
+//
+// `sameAs` is the single strongest signal for entity disambiguation — it's what
+// stops a search/AI answer from attaching a similarly-named stranger's account
+// to this brand. The URLs come from admin → Settings → Social profiles, cached
+// (and tag-revalidated on save) so this per-page read isn't a per-page query.
+//
+// Async on purpose: it's a nested server component, so the root layout itself
+// stays synchronous.
+async function StructuredData() {
+  const sameAs = (await getSocialLinks()).map((s) => s.url);
   const graph = {
     "@context": "https://schema.org",
     "@graph": [

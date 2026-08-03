@@ -10,7 +10,6 @@ import { Home, Search as SearchIcon } from "lucide-react";
 import CartSheet, { CartButton } from "../../components/shop/CartSheet";
 import ProductImage from "../../components/shop/ProductImage";
 import DiscountRibbon from "../../components/shop/DiscountRibbon";
-import ProductModal from "../../components/ProductModal";
 import { cardDisplay } from "../../lib/discounts";
 
 interface Category {
@@ -67,9 +66,6 @@ function SearchInner() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [results, setResults] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(false);
-  // Clicking a card opens the product modal here — previously it navigated to
-  // /?productId=… which the homepage ignores, so every result was a dead end.
-  const [selected, setSelected] = useState<ProductRow | null>(null);
 
   useEffect(() => {
     fetch("/api/categories")
@@ -257,10 +253,9 @@ function SearchInner() {
                   const outOfStock =
                     p.stockStatus === "out-of-stock" || p.stock === 0;
                   return (
-                    <button
+                    <Link
                       key={p.id}
-                      type="button"
-                      onClick={() => setSelected(p)}
+                      href={`/products/${p.slug}`}
                       className="block w-full overflow-hidden rounded-2xl border border-slate-100 bg-white text-left transition hover:shadow-2xl"
                     >
                       <div className="relative overflow-hidden">
@@ -307,7 +302,7 @@ function SearchInner() {
                           )}
                         </div>
                       </div>
-                    </button>
+                    </Link>
                   );
                 })}
               </div>
@@ -316,7 +311,6 @@ function SearchInner() {
         </div>
       </div>
 
-      <ProductModal product={selected} onClose={() => setSelected(null)} />
       <CartSheet />
     </main>
   );
