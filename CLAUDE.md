@@ -112,7 +112,8 @@ The `.env` file in the repo root is gitignored, but **the gitignore file is `.gi
 ### Cart (client-only, anonymous)
 
 - [lib/store/cart.ts](lib/store/cart.ts) — Zustand `useCartStore` persisted to localStorage; `BroadcastChannel('shilpsmith-cart-sync')` keeps multiple tabs in lockstep without storage-event timing issues. `computePricing()` is the single source for subtotal/shipping/tax/total math.
-- Shipping rule (client + server): flat ₹50 under ₹1000, free at ₹1000+. Tax is currently 0 (hook in place for state-based GST later).
+- Shipping rule (client + server): **admin-driven** via [lib/shipping.ts](lib/shipping.ts) — `computeShipping(subtotal, config)` where the config comes from `getShippingConfig()` (Settings → Shipping). `DEFAULT_SHIPPING` (₹50 flat, free over ₹1000) applies only when no row exists. `flatRate: 0` **or** `freeAbove: 0` means free on everything. Tax is currently 0 (hook in place for state-based GST later).
+- **Never hardcode the shipping promise in storefront copy.** Use `shippingNote(config)` from the same module — it derives the customer-facing sentence ("Free shipping on all orders" / "Free shipping over ₹1,000" / "₹50 flat shipping") from the config `computeShipping` charges from. The product page originally hardcoded "Free shipping over ₹1,000" and advertised a fee the checkout didn't charge.
 - `priceFromProduct(product)` converts the legacy `price: String` to a Number; bad price strings yield `0` so a malformed row can't crash the cart.
 - [components/shop/CartSheet.tsx](components/shop/CartSheet.tsx) exports both `CartSheet` (slide-out aside, body-scroll lock + Escape close) and `CartButton` (nav badge). They are mounted in [app/page.tsx](app/page.tsx).
 - [app/(shop)/cart/page.tsx](app/%28shop%29/cart/page.tsx) — full cart with quantity controls, customization summary, clear-cart.
@@ -213,7 +214,7 @@ There is no `User` account creation flow yet, so customers are **derived from or
 
 [Settings](prisma/schema.prisma) is a key/value table; the admin UI ([/admin/settings](app/admin/settings/page.tsx)) defines 5 sections (`company`, `shipping`, `tax`, `whatsapp`, `seo`) that each map to one row with `value` as a JSON object. The settings API enforces a key regex `[a-z][a-z0-9_]*` so the path stays predictable.
 
-**Important:** these settings are **persisted but not yet read** by the checkout / cart / order routes — shipping/tax/WhatsApp number are still hardcoded in [lib/store/cart.ts](lib/store/cart.ts), [/api/orders](app/api/orders/route.ts), and the `NEXT_PUBLIC_WHATSAPP_NUMBER` env. Wire them up before relying on the admin UI to change prices in production.
+**Partially wired (see Phase 7 + Phase 9):** `payments`, `shipping`, and `social` are read by the app. **`tax` and the WhatsApp number are still not** — tax is a hardcoded `0` in [lib/store/cart.ts](lib/store/cart.ts) and the number comes from the `NEXT_PUBLIC_WHATSAPP_NUMBER` env, so editing those sections in the admin changes nothing. Wire them through `lib/settings.ts` before relying on the admin UI for them.
 
 ### Deliberately out of scope for Phase 4
 
@@ -356,7 +357,7 @@ New `OrderStatus` value for orders placed in error (test/duplicate). Like `CANCE
 
 ### Settings now partially read — [lib/settings.ts](lib/settings.ts)
 
-The Phase 4 caveat ("settings persisted but not read") is now partly resolved: `getOnlinePaymentsEnabled()` reads the `payments` Settings row to gate Razorpay. **Fails closed (off)** on any missing row / DB error, so online payments stay off until an admin explicitly enables them. Shipping/tax/WhatsApp-number are still hardcoded — wire the rest through this module.
+The Phase 4 caveat ("settings persisted but not read") is now partly resolved: `getOnlinePaymentsEnabled()` reads the `payments` Settings row to gate Razorpay. **Fails closed (off)** on any missing row / DB error, so online payments stay off until an admin explicitly enables them. Shipping is now read too (`getShippingConfig()` → [lib/shipping.ts](lib/shipping.ts)). **Tax and the WhatsApp number are still hardcoded** — wire the rest through this module.
 
 ### SEO, legal & site identity
 

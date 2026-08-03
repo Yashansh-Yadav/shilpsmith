@@ -17,6 +17,7 @@ import {
 
 import { priceFromProduct, useCartStore } from "../../lib/store/cart";
 import { parsePriceString } from "../../lib/discounts";
+import { shippingNote, type ShippingConfig } from "../../lib/shipping";
 import {
   resolveEnabledFields,
   type CustomFieldsConfig,
@@ -85,13 +86,18 @@ interface Props {
   product: ProductDetailData;
   /** Approved-review summary, rendered server-side so it's in the HTML. */
   rating: { average: number; count: number };
+  /**
+   * Live admin shipping rule. Passed in (not defaulted here) so the promise
+   * shown on the page is the one checkout will actually charge.
+   */
+  shipping: ShippingConfig;
 }
 
 function formatRupee(n: number) {
   return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
-export default function ProductDetail({ product, rating }: Props) {
+export default function ProductDetail({ product, rating, shipping }: Props) {
   const router = useRouter();
   const add = useCartStore((s) => s.add);
   const setCartOpen = useCartStore((s) => s.setOpen);
@@ -297,7 +303,7 @@ export default function ProductDetail({ product, rating }: Props) {
               )}
             </div>
             <p className="mt-1.5 text-xs text-slate-500">
-              Inclusive of all taxes · Free shipping over ₹1,000
+              Inclusive of all taxes · {shippingNote(shipping)}
               {selectedVariant && ` · Base ${formatRupee(basePrice)}`}
             </p>
           </div>

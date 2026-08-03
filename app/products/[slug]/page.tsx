@@ -14,6 +14,7 @@ import { ChevronRight } from "lucide-react";
 import { prisma } from "../../../lib/prisma";
 import { cardAutoPercent, cardDisplay } from "../../../lib/discounts";
 import { loadActiveAutomaticDiscounts } from "../../../lib/discountQuery";
+import { getShippingConfig } from "../../../lib/settings";
 import type { CustomFieldsConfig } from "../../../lib/customization";
 import { SITE_NAME, SITE_LEGAL_NAME, absoluteUrl } from "../../../lib/site";
 import { CartButton } from "../../../components/shop/CartSheet";
@@ -106,33 +107,36 @@ export default async function ProductPage({
   // of a productId we don't have yet is what keeps it to a single round.
   // Related products genuinely need the resolved categoryId, so they stream in
   // separately below rather than holding up the buy panel.
-  const [product, autoDiscounts, reviews, ratingAgg, byStar] = await Promise.all([
-    getProduct(slug),
-    loadActiveAutomaticDiscounts(prisma),
-    prisma.review.findMany({
-      where: { product: { slug }, approved: true },
-      select: {
-        id: true,
-        rating: true,
-        title: true,
-        comment: true,
-        customerName: true,
-        createdAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    }),
-    prisma.review.aggregate({
-      where: { product: { slug }, approved: true },
-      _avg: { rating: true },
-      _count: { _all: true },
-    }),
-    prisma.review.groupBy({
-      by: ["rating"],
-      where: { product: { slug }, approved: true },
-      _count: { _all: true },
-    }),
-  ]);
+  const [product, autoDiscounts, shipping, reviews, ratingAgg, byStar] =
+    await Promise.all([
+      getProduct(slug),
+      loadActiveAutomaticDiscounts(prisma),
+      // The shipping promise under the price must match what checkout charges.
+      getShippingConfig(),
+      prisma.review.findMany({
+        where: { product: { slug }, approved: true },
+        select: {
+          id: true,
+          rating: true,
+          title: true,
+          comment: true,
+          customerName: true,
+          createdAt: true,
+        },
+        orderBy: { createdAt: "desc" },
+        take: 50,
+      }),
+      prisma.review.aggregate({
+        where: { product: { slug }, approved: true },
+        _avg: { rating: true },
+        _count: { _all: true },
+      }),
+      prisma.review.groupBy({
+        by: ["rating"],
+        where: { product: { slug }, approved: true },
+        _count: { _all: true },
+      }),
+    ]);
 
   if (!product) notFound();
 
@@ -290,7 +294,7 @@ export default async function ProductPage({
           <CartButton />
         </div>
 
-        <ProductDetail product={detail} rating={rating} />
+        <ProductDetail product={detail} rating={rating} shipping={shipping} />
 
         <section id="reviews" className="mt-14 scroll-mt-24 border-t border-slate-100 pt-10">
           <ReviewSection
