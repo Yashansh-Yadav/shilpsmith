@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Box } from "lucide-react";
 
 import { cardDisplay } from "../../lib/discounts";
@@ -30,7 +31,6 @@ export interface StorefrontProduct {
 
 interface Props {
   product: StorefrontProduct;
-  onSelect: (product: StorefrontProduct) => void;
   size?: "default" | "compact";
 }
 
@@ -38,7 +38,7 @@ function formatRupee(n: number) {
   return `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
-export default function ProductCard({ product, onSelect, size = "default" }: Props) {
+export default function ProductCard({ product, size = "default" }: Props) {
   // cardDisplay combines the product's own sale price with any advertisable
   // automatic event discount — one place decides what the card shows, in step
   // with what checkout charges.
@@ -50,10 +50,11 @@ export default function ProductCard({ product, onSelect, size = "default" }: Pro
   const outOfStock =
     product.stockStatus === "out-of-stock" || product.stock === 0;
 
+  // A real link, not a button: the product page is a URL customers should be
+  // able to open in a new tab, share, and have Google index.
   return (
-    <button
-      type="button"
-      onClick={() => onSelect(product)}
+    <Link
+      href={`/products/${product.slug}`}
       className={`group flex w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:border-slate-200 hover:shadow-lift ${
         size === "compact" ? "h-full" : ""
       }`}
@@ -124,6 +125,6 @@ export default function ProductCard({ product, onSelect, size = "default" }: Pro
           )}
         </div>
       </div>
-    </button>
+    </Link>
   );
 }

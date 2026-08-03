@@ -40,6 +40,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // DB unavailable at build/runtime — still serve the static routes.
   }
 
+  // Product detail pages — the main indexable inventory. Soft-deleted rows are
+  // excluded so retired products stop being advertised to crawlers.
+  let productRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const products = await prisma.product.findMany({
+      where: { deletedAt: null },
+      select: { slug: true, updatedAt: true },
+    });
+    productRoutes = products.map((p) => ({
+      url: `${SITE_URL}/products/${p.slug}`,
+      lastModified: p.updatedAt ?? now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    }));
+  } catch {
+    // DB unavailable — still serve the rest.
+  }
+
   // Darshan pages for each active deity (Smart NFC idols).
   let deityRoutes: MetadataRoute.Sitemap = [];
   try {
@@ -57,5 +75,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // DB unavailable — still serve the rest.
   }
 
-  return [...staticRoutes, ...categoryRoutes, ...deityRoutes];
+  return [...staticRoutes, ...categoryRoutes, ...productRoutes, ...deityRoutes];
 }

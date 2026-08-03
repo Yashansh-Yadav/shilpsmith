@@ -5,12 +5,11 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Toaster } from "react-hot-toast";
 
-import { ArrowLeft, Search as SearchIcon } from "lucide-react";
+import { Home, Search as SearchIcon } from "lucide-react";
 
 import CartSheet, { CartButton } from "../../components/shop/CartSheet";
 import ProductImage from "../../components/shop/ProductImage";
 import DiscountRibbon from "../../components/shop/DiscountRibbon";
-import ProductModal from "../../components/ProductModal";
 import { cardDisplay } from "../../lib/discounts";
 
 interface Category {
@@ -67,9 +66,6 @@ function SearchInner() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [results, setResults] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(false);
-  // Clicking a card opens the product modal here — previously it navigated to
-  // /?productId=… which the homepage ignores, so every result was a dead end.
-  const [selected, setSelected] = useState<ProductRow | null>(null);
 
   useEffect(() => {
     fetch("/api/categories")
@@ -140,10 +136,11 @@ function SearchInner() {
           <div className="flex items-center gap-3">
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+              aria-label="Home"
+              title="Home"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
             >
-              <ArrowLeft className="h-4 w-4" />
-              Home
+              <Home className="h-4 w-4" strokeWidth={2.25} />
             </Link>
             <h1 className="text-2xl font-black tracking-tight sm:text-3xl">
               Browse products
@@ -256,10 +253,9 @@ function SearchInner() {
                   const outOfStock =
                     p.stockStatus === "out-of-stock" || p.stock === 0;
                   return (
-                    <button
+                    <Link
                       key={p.id}
-                      type="button"
-                      onClick={() => setSelected(p)}
+                      href={`/products/${p.slug}`}
                       className="block w-full overflow-hidden rounded-2xl border border-slate-100 bg-white text-left transition hover:shadow-2xl"
                     >
                       <div className="relative overflow-hidden">
@@ -306,7 +302,7 @@ function SearchInner() {
                           )}
                         </div>
                       </div>
-                    </button>
+                    </Link>
                   );
                 })}
               </div>
@@ -315,7 +311,6 @@ function SearchInner() {
         </div>
       </div>
 
-      <ProductModal product={selected} onClose={() => setSelected(null)} />
       <CartSheet />
     </main>
   );

@@ -32,7 +32,8 @@ import type { StorefrontProduct } from "../components/shop/ProductCard";
 import EmptyShelf from "../components/shop/EmptyShelf";
 import Reveal from "../components/shop/Reveal";
 import HowItWorks from "../components/shop/HowItWorks";
-import ProductModal from "../components/ProductModal";
+import StudioStory from "../components/shop/StudioStory";
+import FAQ from "../components/shop/FAQ";
 import SiteFooter from "../components/site/SiteFooter";
 
 interface StorefrontResponse {
@@ -58,8 +59,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [navSearch, setNavSearch] = useState("");
-  const [selectedProduct, setSelectedProduct] =
-    useState<StorefrontProduct | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -331,9 +330,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ─────────────────────── How it works ─────────────────────── */}
-      <HowItWorks />
-
       {/* ────────────────────────── Featured ────────────────────────── */}
       <Section id="featured" className="bg-white">
         <Reveal>
@@ -346,10 +342,7 @@ export default function Home() {
         {loading ? (
           <CarouselSkeleton />
         ) : data.featured.length > 0 ? (
-          <ProductCarousel
-            products={data.featured}
-            onSelect={setSelectedProduct}
-          />
+          <ProductCarousel products={data.featured} />
         ) : (
           <EmptyShelf
             icon="✨"
@@ -381,10 +374,7 @@ export default function Home() {
         {loading ? (
           <CarouselSkeleton />
         ) : data.newest.length > 0 ? (
-          <ProductCarousel
-            products={data.newest}
-            onSelect={setSelectedProduct}
-          />
+          <ProductCarousel products={data.newest} />
         ) : (
           <EmptyShelf
             icon="🖨️"
@@ -437,10 +427,7 @@ export default function Home() {
         {loading ? (
           <CarouselSkeleton />
         ) : data.trending.length > 0 ? (
-          <ProductCarousel
-            products={data.trending}
-            onSelect={setSelectedProduct}
-          />
+          <ProductCarousel products={data.trending} />
         ) : (
           <EmptyShelf
             icon="🚀"
@@ -451,6 +438,12 @@ export default function Home() {
         )}
         </Reveal>
       </Section>
+
+      {/* ─────────────────────── How it works ─────────────────────── */}
+      <HowItWorks />
+
+      {/* ─────────────────────── Our craft / studio story ─────────────────────── */}
+      <StudioStory />
 
       {/* ────────────────────────── Why us ────────────────────────── */}
       <section className="bg-white py-16 lg:py-24">
@@ -595,6 +588,9 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ────────────────────────── FAQ ────────────────────────── */}
+      <FAQ />
+
       {/* ────────────────────────── Footer ────────────────────────── */}
       <section className="bg-slate-900 py-16 text-white sm:py-20">
         <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
@@ -631,10 +627,6 @@ export default function Home() {
 
       <CartSheet />
       <Toaster />
-      <ProductModal
-        product={selectedProduct}
-        onClose={() => setSelectedProduct(null)}
-      />
     </main>
   );
 }

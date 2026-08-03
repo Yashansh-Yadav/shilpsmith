@@ -7,15 +7,14 @@ import {
   SUPPORT_EMAIL,
   BUSINESS_COUNTRY,
   FOOTER_GROUPS,
-  SOCIAL_LINKS,
   whatsappLink,
 } from "../../lib/site";
+import SocialRow from "./SocialRow";
 
 // Site-wide footer. Surfaces the legal/policy pages from every page (a Google
 // Business / trust requirement) plus contact channels.
 export default function SiteFooter() {
   const year = 2026;
-  const socials = Object.entries(SOCIAL_LINKS).filter(([, url]) => url);
   const waLink = whatsappLink("Hi! I have a question about ShilpSmith.");
 
   return (
@@ -53,21 +52,8 @@ export default function SiteFooter() {
               )}
             </div>
 
-            {socials.length > 0 && (
-              <div className="mt-5 flex gap-3 text-sm">
-                {socials.map(([name, url]) => (
-                  <a
-                    key={name}
-                    href={url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="capitalize text-slate-400 transition hover:text-white"
-                  >
-                    {name}
-                  </a>
-                ))}
-              </div>
-            )}
+            {/* Managed from admin → Settings → Social profiles. */}
+            <SocialRow className="mt-5" />
           </div>
 
           {/* Link groups */}

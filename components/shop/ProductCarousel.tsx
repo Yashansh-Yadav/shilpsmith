@@ -7,7 +7,6 @@ import ProductCard, { type StorefrontProduct } from "./ProductCard";
 
 interface Props {
   products: StorefrontProduct[];
-  onSelect: (product: StorefrontProduct) => void;
   // Width of each card on desktop. Mobile always shows ~1.7 cards so users see
   // that the row is scrollable.
   cardWidthClass?: string;
@@ -16,7 +15,6 @@ interface Props {
 
 export default function ProductCarousel({
   products,
-  onSelect,
   cardWidthClass = "w-[180px] sm:w-[200px] lg:w-[220px]",
   emptyMessage,
 }: Props) {
@@ -61,17 +59,9 @@ export default function ProductCarousel({
 
   return (
     <div className="relative">
-      {/* Edge fades for visual cue that there's more to scroll */}
-      <div
-        className={`pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-slate-50 to-transparent transition-opacity ${
-          canScrollLeft ? "opacity-100" : "opacity-0"
-        }`}
-      />
-      <div
-        className={`pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-slate-50 to-transparent transition-opacity ${
-          canScrollRight ? "opacity-100" : "opacity-0"
-        }`}
-      />
+      {/* No edge-fade overlays: they hardcoded a slate-50 stop that didn't match
+          every section background and washed out the first/last card image. The
+          arrows + partially-visible next card are the scroll cue. */}
 
       {/* Arrows — hidden on touch */}
       <button
@@ -107,7 +97,7 @@ export default function ProductCarousel({
       >
         {products.map((p) => (
           <div key={p.id} className={`flex-none snap-start ${cardWidthClass}`}>
-            <ProductCard product={p} onSelect={onSelect} />
+            <ProductCard product={p} />
           </div>
         ))}
       </div>
