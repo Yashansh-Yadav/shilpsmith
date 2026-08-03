@@ -4,22 +4,24 @@
 
 import { useEffect, useState } from "react";
 
-import ProductModal from "./ProductModal";
+import ProductCard, {
+  type StorefrontProduct,
+} from "./shop/ProductCard";
 
+// Category-landing grid. Cards are the shared ProductCard, which links straight
+// to /products/<slug> — this used to render its own markup and open a modal,
+// which meant the category pages showed a different (and stale) card design.
 export default function ProductGrid({
   category
 }: {
   category?: string;
 }) {
   const [products, setProducts] = useState<
-    any[]
+    StorefrontProduct[]
   >([]);
 
   const [loading, setLoading] =
     useState(true);
-
-  const [selectedProduct, setSelectedProduct] =
-    useState<any>(null);
 
   useEffect(() => {
     async function fetchProducts() {
@@ -59,94 +61,19 @@ export default function ProductGrid({
     );
   }
 
-  return (
-    <>
-      {/* RESPONSIVE GRID */}
-      <div
-        className="
-          grid
-          grid-cols-2
-          lg:grid-cols-4
-          gap-4
-          lg:gap-8
-        "
-      >
-        {products.map((product) => (
-          <button
-            key={product.id}
-            onClick={() =>
-              setSelectedProduct(product)
-            }
-            className="
-              bg-white
-              rounded-2xl
-              overflow-hidden
-              border
-              border-slate-100
-              hover:shadow-2xl
-              transition-all
-              text-left
-            "
-          >
-            <img
-              src={ product.images?.[0]?.url ||
-                    "/placeholder.png"}
-              alt={product.name}
-              className="
-                w-full
-                h-40
-                sm:h-52
-                lg:h-72
-                object-cover
-              "
-            />
-
-            <div className="p-3 lg:p-5">
-              <h3
-                className="
-                  font-bold
-                  text-sm
-                  lg:text-lg
-                  line-clamp-1
-                "
-              >
-                {product.name}
-              </h3>
-
-              <p
-                className="
-                  text-slate-500
-                  text-xs
-                  lg:text-sm
-                  mt-2
-                  line-clamp-2
-                "
-              >
-                {product.description}
-              </p>
-
-              <p
-                className="
-                  text-brand-600
-                  font-bold
-                  mt-3
-                  text-sm
-                  lg:text-lg
-                "
-              >
-                {product.price}
-              </p>
-            </div>
-          </button>
-        ))}
+  if (products.length === 0) {
+    return (
+      <div className="rounded-3xl bg-white p-12 text-center text-slate-500 shadow-sm">
+        Nothing in this category yet — check back soon.
       </div>
+    );
+  }
 
-      <ProductModal
-        product={selectedProduct}
-        onClose={() =>
-          setSelectedProduct(null)
-        }
-      />
-    </>
+  return (
+    <div className="grid grid-cols-2 gap-4 lg:grid-cols-4 lg:gap-8">
+      {products.map((product) => (
+        <ProductCard key={product.id} product={product} />
+      ))}
+    </div>
   );
 }

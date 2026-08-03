@@ -34,7 +34,6 @@ import Reveal from "../components/shop/Reveal";
 import HowItWorks from "../components/shop/HowItWorks";
 import StudioStory from "../components/shop/StudioStory";
 import FAQ from "../components/shop/FAQ";
-import ProductModal from "../components/ProductModal";
 import SiteFooter from "../components/site/SiteFooter";
 
 interface StorefrontResponse {
@@ -60,8 +59,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [navSearch, setNavSearch] = useState("");
-  const [selectedProduct, setSelectedProduct] =
-    useState<StorefrontProduct | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -345,10 +342,7 @@ export default function Home() {
         {loading ? (
           <CarouselSkeleton />
         ) : data.featured.length > 0 ? (
-          <ProductCarousel
-            products={data.featured}
-            onSelect={setSelectedProduct}
-          />
+          <ProductCarousel products={data.featured} />
         ) : (
           <EmptyShelf
             icon="✨"
@@ -380,10 +374,7 @@ export default function Home() {
         {loading ? (
           <CarouselSkeleton />
         ) : data.newest.length > 0 ? (
-          <ProductCarousel
-            products={data.newest}
-            onSelect={setSelectedProduct}
-          />
+          <ProductCarousel products={data.newest} />
         ) : (
           <EmptyShelf
             icon="🖨️"
@@ -436,10 +427,7 @@ export default function Home() {
         {loading ? (
           <CarouselSkeleton />
         ) : data.trending.length > 0 ? (
-          <ProductCarousel
-            products={data.trending}
-            onSelect={setSelectedProduct}
-          />
+          <ProductCarousel products={data.trending} />
         ) : (
           <EmptyShelf
             icon="🚀"
@@ -639,10 +627,6 @@ export default function Home() {
 
       <CartSheet />
       <Toaster />
-      <ProductModal
-        product={selectedProduct}
-        onClose={() => setSelectedProduct(null)}
-      />
     </main>
   );
 }

@@ -163,7 +163,7 @@ Env: `RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` (server), `NEXT_PUBLIC_RAZORPAY_K
 
 ### Public UX
 
-[components/shop/VariantSelector.tsx](components/shop/VariantSelector.tsx) renders the variants as a 2/3-column grid of toggle buttons with price modifier and per-variant stock badges (`Out of stock` / `Only N left` ≤5). [components/shop/CustomizationForm.tsx](components/shop/CustomizationForm.tsx) collects `text` (engraving), `color` (color picker + free text), and `notes`, and exposes a `customizationToRecord()` helper that strips empties before sending. [components/ProductModal.tsx](components/ProductModal.tsx) was rewritten to compose both: it shows base + modifier in the header price, blocks Add-to-Cart until a variant is selected if any exist, and falls back to lazily fetching variants if the product payload doesn't include them.
+[components/shop/VariantSelector.tsx](components/shop/VariantSelector.tsx) renders the variants as a 2/3-column grid of toggle buttons with price modifier and per-variant stock badges (`Out of stock` / `Only N left` ≤5). [components/shop/CustomizationForm.tsx](components/shop/CustomizationForm.tsx) collects `text` (engraving), `color` (color picker + free text), and `notes`, and exposes a `customizationToRecord()` helper that strips empties before sending. Both are composed by the product page's buy panel ([components/shop/ProductDetail.tsx](components/shop/ProductDetail.tsx), originally `ProductModal` — see Phase 8): it shows base + modifier in the price block and blocks Add-to-Cart until a variant is selected if any exist.
 
 ### Server pricing & stock
 
@@ -246,9 +246,9 @@ The homepage navbar also gets a small search field that pushes to `/search?q=…
 
 - New field `Product.modelUrl` (nullable). Migration in `prisma/migrations/*phase5_product_model_url`.
 - [/api/upload](app/api/upload/route.ts) now accepts a `?kind=model` flag. Models go up to 25 MB; allowed extensions are `.glb` and `.gltf` (MIME-type sniffing is loose because browsers don't always set the right one).
-- [components/shop/ThreeDViewer.tsx](components/shop/ThreeDViewer.tsx) uses `@react-three/fiber` + `@react-three/drei` (`useGLTF`, `OrbitControls`, `Stage`). It is **`dynamic()`-imported with `ssr:false` in ProductModal** so three.js (~500 kB) only loads when the user opens a product that actually has a model.
+- [components/shop/ThreeDViewer.tsx](components/shop/ThreeDViewer.tsx) uses `@react-three/fiber` + `@react-three/drei` (`useGLTF`, `OrbitControls`, `Stage`). It is **`dynamic()`-imported with `ssr:false` in `ProductDetail`** so three.js (~500 kB) only loads when the user opens a product that actually has a model.
 - Admin product form gets a "3D model" file input alongside the image input. The model URL is stored on the product via the existing product create/update routes.
-- ProductModal shows a "View in 3D" toggle on the image when `modelUrl` is set.
+- The product page shows a "View in 3D" toggle on the gallery when `modelUrl` is set.
 
 ### Reviews
 
@@ -258,7 +258,7 @@ The homepage navbar also gets a small search field that pushes to `/search?q=…
 - [GET /api/reviews?productId=N](app/api/reviews/route.ts) — public; **only approved reviews** + summary stats (avg, count).
 - [GET /api/admin/reviews](app/api/admin/reviews/route.ts) — admin moderation queue with `pending | approved | all` filter.
 - [PUT/DELETE /api/admin/reviews/[id]](app/api/admin/reviews/%5Bid%5D/route.ts) — toggle approval, edit copy, or remove entirely.
-- UI: [ReviewSection](components/shop/ReviewSection.tsx) is mounted inside ProductModal, shows avg + count + reviews list + a "Write a review" form. Admin moderation page at [/admin/reviews](app/admin/reviews/page.tsx).
+- UI: [ReviewSection](components/shop/ReviewSection.tsx) is mounted on the product page, shows avg + count + per-star bars + reviews list + a "Write a review" form. Admin moderation page at [/admin/reviews](app/admin/reviews/page.tsx).
 
 The duplicate-review case is friendlier than the default Prisma P2002 → it returns a 409 with a clear message ("You've already submitted a review for this product").
 
@@ -311,7 +311,7 @@ One endpoint feeds the entire homepage in a single roundtrip (`Promise.all`), re
 
 ### Homepage — [app/page.tsx](app/page.tsx)
 
-Client component: fetches `/api/storefront` once, renders hero + `HowItWorks` + Featured/New/Categories/Trending sections + why-us + testimonials + custom-order CTA. Each carousel/shelf has a **loading skeleton** and an `EmptyShelf` fallback so the page looks intentional on an empty catalog. Product clicks open the shared [ProductModal](components/ProductModal.tsx); `CartSheet` and `Toaster` are mounted here. The WhatsApp CTAs read `NEXT_PUBLIC_WHATSAPP_NUMBER` and pre-fill `wa.me` messages.
+Client component: fetches `/api/storefront` once, renders hero + `HowItWorks` + Featured/New/Categories/Trending sections + why-us + testimonials + custom-order CTA. Each carousel/shelf has a **loading skeleton** and an `EmptyShelf` fallback so the page looks intentional on an empty catalog. Product clicks navigate to `/products/<slug>` (Phase 8); `CartSheet` and `Toaster` are mounted here. The WhatsApp CTAs read `NEXT_PUBLIC_WHATSAPP_NUMBER` and pre-fill `wa.me` messages.
 
 ### Presentational components (`components/shop/`)
 
@@ -344,7 +344,7 @@ This phase added a multi-channel admin alerting layer, replaced the fixed custom
 Replaces the fixed `CustomizationForm` (engraving/color/notes) with an **admin-configurable** model. The admin doesn't author fields from scratch — they tick which of a fixed `CUSTOMIZATION_CATALOG` (engraving / size / color / description / image) a product uses and set a per-field placeholder + required flag. Stored on `Product.customFields` (Json) as `Record<fieldKey, { placeholder?, required? }>` (presence of a key = enabled).
 
 - `lib/customization.ts` is plain data (no React/Node deps) — shared by the admin builder, the storefront renderer, and server validation. `resolveEnabledFields(config)` returns enabled fields in catalog order with placeholders/required resolved.
-- [components/shop/DynamicCustomizationForm.tsx](components/shop/DynamicCustomizationForm.tsx) renders the resolved fields on the storefront (inside ProductModal); validated via `CustomFieldsSchema` in `lib/validators.ts` and persisted through the product create/update routes.
+- [components/shop/DynamicCustomizationForm.tsx](components/shop/DynamicCustomizationForm.tsx) renders the resolved fields on the storefront (inside `ProductDetail`); validated via `CustomFieldsSchema` in `lib/validators.ts` and persisted through the product create/update routes.
 
 ### Support / "raise a concern" — [/api/support](app/api/support/route.ts)
 
@@ -370,3 +370,60 @@ The Phase 4 caveat ("settings persisted but not read") is now partly resolved: `
 - `WHATSAPP_API_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_NOTIFY_TO` — WhatsApp Cloud API admin alerts; optional `WHATSAPP_TEMPLATE_NAME` / `WHATSAPP_TEMPLATE_LANG` (template mode for production)
 - `NEXT_PUBLIC_SITE_URL` — public origin for sitemap/robots/canonical/JSON-LD (default `https://shilpsmith.com`)
 - `NEXT_PUBLIC_SUPPORT_EMAIL` — public support address shown on the site (empty when unset; callers guard rendering)
+
+## Phase 8 — dedicated product detail page
+
+The product **modal was removed** (`components/ProductModal.tsx` is deleted) in favour of a real, indexable page at **`/products/[slug]`**. Every product click across the storefront is now a `<Link>`, so product URLs are shareable, openable in a new tab, and crawlable.
+
+### The page — [app/products/[slug]/page.tsx](app/products/%5Bslug%5D/page.tsx)
+
+Server component. Reads Prisma directly (there is still no public `GET /api/products/[id]`), `notFound()`s on an unknown/soft-deleted slug, and fans out one `Promise.all` for automatic discounts, approved reviews, the rating aggregate + per-star `groupBy`, and related products from the same category.
+
+- `getProduct` is wrapped in React `cache()` so `generateMetadata` and the body share **one** query per request.
+- `export const revalidate = 60` — same 1-minute trade-off as `/api/storefront`. Stock/price edits surface within a minute.
+- Emits **Product + BreadcrumbList JSON-LD**. `aggregateRating` is only included when `count > 0` (Google rejects a zero-review rating); `offers.price` comes from `cardDisplay()` so it matches the card and the buy panel exactly.
+- Prisma types don't cross the server→client boundary: `variants[].priceModifier` (Decimal) → `Number`, `review.createdAt` (Date) → ISO string, `customFields` (JsonValue) → `CustomFieldsConfig`. That mapping is the `ProductDetailData` shape.
+- `SiteHeader` has no cart button, so the page renders `CartButton` in the breadcrumb row. The chrome ([PageShell](components/site/PageShell.tsx) + [StorefrontChrome](components/shop/StorefrontChrome.tsx)) lives in [layout.tsx](app/products/%5Bslug%5D/layout.tsx), not the page — `StorefrontChrome` is a client wrapper around `Toaster` + `CartSheet`, needed because `react-hot-toast`'s `Toaster` isn't `"use client"` and can't be imported from a server file.
+
+### Latency: why this page is structured the way it is
+
+Neon's pooler runs ~0.5–1 s per roundtrip from a dev machine (measured: a bare `GET /api/products?limit=3` takes 1.6–3.6 s). A server-rendered page paints nothing until the DB answers, so query *shape* is the whole performance story here:
+
+- **One round for everything above the fold.** The obvious code — `await getProduct(slug)` then `Promise.all([reviews…])` — costs two serial roundtrips. Instead the reviews/aggregate/`groupBy` queries filter on the **`product: { slug }` relation** so they can run in the same `Promise.all` as the product itself. Keep it that way; don't reintroduce a `productId` dependency at the top of the page.
+- **Related products stream.** They genuinely need the resolved `categoryId`, so `RelatedShelf` is an async component behind `<Suspense>` — a second roundtrip that never delays the buy panel.
+- **[loading.tsx](app/products/%5Bslug%5D/loading.tsx) is load-bearing**, not decoration. Without a loading boundary the browser sits on the previous page for the entire query and the click reads as broken; Next also only prefetches a dynamic route *up to its nearest loading boundary*, so no `loading.tsx` meant no prefetchable shell at all.
+- `revalidate = 60` only caches in a **production** build — `npm run dev` re-renders (and re-queries) every single request, so dev timings are the worst case, not the typical one.
+- The remaining latency is the database, not the app: the Neon endpoint is `us-east-1`. Moving the Neon project (and the Vercel functions) to a region near the customers is the only fix that moves these numbers materially.
+
+### The buy panel — [components/shop/ProductDetail.tsx](components/shop/ProductDetail.tsx)
+
+Carries over the modal's pricing rules verbatim — cart stores `salePrice + variantModifier` **without** the event discount (that's order-level, applied at checkout), while the display price is `min(sale, event)`, never stacked. Adds a quantity stepper (capped at the selected variant's stock, else the product's, max 10), a **Buy now** button (add → `/checkout`), and a mobile sticky action bar. Selecting a variant resets qty to 1 because the stock ceiling changes.
+
+### Reviews with ratings — [ReviewSection](components/shop/ReviewSection.tsx)
+
+Now takes optional `initialReviews` / `initialSummary` / `initialDistribution`; when present it skips the mount fetch entirely, so ratings are in the server HTML (and in the JSON-LD). Renders a score block + per-star bars, "Verified buyer" chips, and collapses past 5 reviews. `GET /api/reviews` gained a `distribution` field (a `groupBy` on rating) for the post-submit refetch.
+
+### Navigation changes
+
+`ProductCard` renders a `<Link href="/products/<slug>">` and no longer takes `onSelect`; `ProductCarousel` dropped the prop too. [ProductGrid](components/ProductGrid.tsx) (category landings) now renders the shared `ProductCard` instead of its own bespoke markup. The search page's result cards are links. `app/sitemap.ts` emits every non-deleted product URL.
+
+**If you add a new product surface, link to `/products/<slug>` — do not reintroduce a modal.**
+
+## Phase 9 — admin-managed social profiles (brand entity signals)
+
+Business social accounts are now **admin-managed data, not constants**. The old hardcoded (and empty) `SOCIAL_LINKS` in `lib/site.ts` is gone.
+
+Motivation: with `sameAs` empty, Google and LLM answer engines had nothing tying the site to its accounts, so they guessed from name similarity and attributed unrelated profiles to the brand. `sameAs` is the fix.
+
+- [lib/social.ts](lib/social.ts) — platform catalog (`SOCIAL_PLATFORMS`: instagram, facebook, x, youtube, reddit, linkedin, pinterest, threads) + `normalizeSocialUrl()` / `resolveSocialLinks()`. Pure data, no Prisma/React, shared by the admin form, the server resolver, and the client footer. **Catalog order is display order**, both in the footer and in `sameAs`.
+- `normalizeSocialUrl()` accepts what admins actually paste — `instagram.com/handle` gets `https://` prepended — and rejects anything that isn't an absolute http(s) URL with a dotted host (bare `@handle`, `javascript:`, typos). Rejected values are **dropped**, never emitted: a dead URL in `sameAs` is worse than an absent one.
+- `getSocialLinks()` in [lib/settings.ts](lib/settings.ts) reads the `social` Settings row through **`unstable_cache`** (`revalidate: 300`, tag `settings:social`). It's called from the root layout, i.e. on every page — an uncached read would add a Neon roundtrip to every render. `PUT /api/admin/settings` calls `revalidateTag` on save.
+- Admin UI: a **Social profiles** section on [/admin/settings](app/admin/settings/page.tsx), generated from `SOCIAL_PLATFORMS`. The settings `PUT` validates + normalizes the `social` key specifically and returns field-level `details`, which the page now surfaces as per-field toasts.
+- Public read: [GET /api/settings/social](app/api/settings/social/route.ts) (unauthenticated — these URLs are published on every page anyway).
+
+### Where they render
+
+- **`sameAs` on the Organization JSON-LD** in [app/layout.tsx](app/layout.tsx) — the SEO-critical copy, server-rendered. `StructuredData` is now an **async nested server component** so the root layout itself stays synchronous. Omitted entirely when no profiles are configured (an empty `sameAs` array is worse than none).
+- **Footer icon row** — [SocialRow](components/site/SocialRow.tsx), a **client** component that fetches the public endpoint. It has to be client-side because `SiteFooter` is also mounted by the homepage, which is `"use client"` and therefore can't render an async server child. lucide only ships brand marks for Instagram/Facebook/YouTube/LinkedIn; X uses a hand-drawn cross and everything else falls back to its initial in the same circular chip rather than a fake logo.
+
+**`export const revalidate = 300` in the root layout** is required by this: without it, statically prerendered pages would bake in whatever was in the DB at build time forever. Verified in `prerender-manifest.json` — `/`, `/about`, `/search`, `/terms`, `/track` all carry `initialRevalidateSeconds: 300`. Consequence: an admin edit is live immediately on dynamic pages (tag revalidation) and within 5 minutes on prerendered ones.

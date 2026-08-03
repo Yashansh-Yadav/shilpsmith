@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 
+import { SOCIAL_PLATFORMS } from "../../../lib/social";
+
 interface SettingsRow {
   id: number;
   key: string;
@@ -74,6 +76,17 @@ const SECTIONS: Section[] = [
     fields: [
       { name: "number", label: "WhatsApp number (with country code)", placeholder: "919999999999" },
     ],
+  },
+  {
+    key: "social",
+    title: "Social profiles",
+    description:
+      "Full profile URLs for your business accounts. These appear in the site footer and are published as the Organization `sameAs` list — the signal Google and AI answer engines use to tie your brand to the right accounts. Leave a field blank to hide it.",
+    fields: SOCIAL_PLATFORMS.map((p) => ({
+      name: p.key,
+      label: p.label,
+      placeholder: p.placeholder,
+    })),
   },
   {
     key: "seo",
@@ -148,7 +161,18 @@ export default function SettingsPage() {
     const body = await res.json();
     setSavingKey(null);
     if (!res.ok || !body.success) {
-      toast.error(body?.error?.message ?? "Save failed");
+      // Field-level details matter here (e.g. which social URL is malformed) —
+      // the bare envelope message doesn't say which input to fix.
+      const details = body?.error?.details as
+        | { field?: string; message: string }[]
+        | undefined;
+      if (details?.length) {
+        details.slice(0, 3).forEach((d) =>
+          toast.error(d.field ? `${d.field}: ${d.message}` : d.message)
+        );
+      } else {
+        toast.error(body?.error?.message ?? "Save failed");
+      }
       return;
     }
     toast.success("Saved");

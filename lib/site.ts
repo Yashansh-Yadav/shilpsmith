@@ -33,13 +33,10 @@ export const BRAND_LOGO = "/brandLogo_figure.png";
 // render/build — bump it when you actually revise a policy.
 export const POLICY_LAST_UPDATED = "June 7, 2026";
 
-// Optional social profiles — fill in real URLs to strengthen the Organization
-// `sameAs` graph (helps Google associate the brand). Empty entries are skipped.
-export const SOCIAL_LINKS = {
-  instagram: "",
-  facebook: "",
-  youtube: "",
-};
+// Social profiles are NOT constants — they're admin-managed in the `social`
+// Settings row (admin → Settings → Social profiles) and read via
+// getSocialLinks() in lib/settings.ts. See lib/social.ts for the platform
+// catalog and URL normalization.
 
 // Normalize an Indian phone to WhatsApp's international form (digits only, with
 // country code). Accepts "9876543210", "+91 98765 43210", "098765 43210", etc.

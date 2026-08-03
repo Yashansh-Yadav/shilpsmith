@@ -13,7 +13,7 @@ interface Props {
   fit?: "cover" | "contain";
   className?: string;
   // Optional: pass the product name as a small footer label inside the
-  // placeholder (used by ProductModal's large hero placeholder).
+  // placeholder (used by the product page's large gallery placeholder).
   caption?: string;
 }
 
@@ -99,7 +99,7 @@ export default function ProductImage({
     );
   }
 
-  // Full variant — used by ProductCard, ProductModal, search grid.
+  // Full variant — used by ProductCard, the product page gallery, search grid.
   return (
     <div
       className={`relative overflow-hidden bg-gradient-to-br from-brand-50 via-white to-cyan-50 ${aspectClass} ${className}`}
