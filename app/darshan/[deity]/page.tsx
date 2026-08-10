@@ -48,6 +48,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   return {
     title: `${deity.nameEn} · ${deity.nameHi} — Darshan`,
     description: `Aarti, bhajans, scriptures and today's panchang for ${deity.nameEn}.`,
+    // Without its own canonical this inherited the root layout's "/", which
+    // asked Google to treat every darshan page as a copy of the homepage.
+    alternates: { canonical: `/darshan/${key}` },
   };
 }
 

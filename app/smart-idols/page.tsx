@@ -2,7 +2,6 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { prisma } from "../../lib/prisma";
-import { SITE_NAME } from "../../lib/site";
 import SectionHeader from "../../components/shop/SectionHeader";
 import Reveal from "../../components/shop/Reveal";
 import ProductImage from "../../components/shop/ProductImage";
@@ -10,9 +9,12 @@ import ProductImage from "../../components/shop/ProductImage";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: `Smart NFC Idols — ${SITE_NAME}`,
+  // Bare title on purpose — the root layout's template appends "· ShilpSmith".
+  // Hardcoding the brand here rendered as "Smart NFC Idols — ShilpSmith · ShilpSmith".
+  title: "Smart NFC Idols",
   description:
     "Tap your phone on a ShilpSmith idol to open a live darshan: aarti, bhajans, scriptures and the day's panchang — in Hindi or English.",
+  alternates: { canonical: "/smart-idols" },
 };
 
 const STEPS = [

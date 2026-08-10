@@ -384,7 +384,7 @@ The Phase 4 caveat ("settings persisted but not read") is now partly resolved: `
 
 - `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` — Telegram admin alerts (group chat id for a team)
 - `WHATSAPP_API_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` / `WHATSAPP_NOTIFY_TO` — WhatsApp Cloud API admin alerts; optional `WHATSAPP_TEMPLATE_NAME` / `WHATSAPP_TEMPLATE_LANG` (template mode for production)
-- `NEXT_PUBLIC_SITE_URL` — public origin for sitemap/robots/canonical/JSON-LD (default `https://shilpsmith.com`)
+- `NEXT_PUBLIC_SITE_URL` — public origin for sitemap/robots/canonical/JSON-LD/`llms.txt` (default `https://shilpsmith.com`). **The canonical domain is `shilpsmith.com`.** This one value drives every absolute URL the site publishes, so a wrong value is not cosmetic: production once had it pointing at a `teklect.com` test subdomain, which meant every page carried `<link rel="canonical">` to a host that returned 404 and the sitemap listed ~30 dead URLs — i.e. the site was actively telling Google to index a domain that didn't exist. If in doubt, unset it and let the code default win.
 - `NEXT_PUBLIC_SUPPORT_EMAIL` — public support address shown on the site (empty when unset; callers guard rendering)
 
 ## Phase 8 — dedicated product detail page

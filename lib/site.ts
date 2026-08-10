@@ -25,6 +25,48 @@ export const SUPPORT_EMAIL = process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "";
 export const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? "";
 export const BUSINESS_COUNTRY = "India";
 
+// The person behind the studio. A named, real human is the single strongest
+// trust signal a small store can publish — search and answer engines both weigh
+// it, and so do customers deciding whether to hand over money.
+export const FOUNDER_NAME = "Yashansh Kumar Singh";
+export const FOUNDER_ROLE = "Founder";
+
+// Publicly displayed business contact number. Kept separate from
+// NEXT_PUBLIC_WHATSAPP_NUMBER because the WhatsApp CTA number and the number a
+// customer should ring are allowed to diverge later.
+export const BUSINESS_PHONE = "+91 82799 84069";
+/** E.164, for tel: links and schema.org — digits only with country code. */
+export const BUSINESS_PHONE_E164 = `+${normalizeWhatsAppNumber(BUSINESS_PHONE)}`;
+
+// Principal place of business, shown site-wide and emitted as PostalAddress in
+// the Organization JSON-LD. India's Consumer Protection (E-Commerce) Rules 2020
+// expect a displayed geographic address, and payment gateways generally ask for
+// one too.
+//
+// PRIVACY NOTE: this is a home address. `locality` is the most identifying part
+// — clear that one line and everything (page copy, JSON-LD, llms.txt) falls back
+// to city + state, which is still a valid PostalAddress and a perfectly normal
+// thing for a home-run studio to publish. No postal code is set because we don't
+// have a verified one; an absent field beats a guessed one.
+export const BUSINESS_ADDRESS = {
+  locality: "Kila Katghar",
+  city: "Bareilly",
+  state: "Uttar Pradesh",
+  postalCode: "243003",
+  country: BUSINESS_COUNTRY,
+};
+
+/** Human-readable single line, skipping any part that isn't set. */
+export const BUSINESS_ADDRESS_LINE = [
+  BUSINESS_ADDRESS.locality,
+  BUSINESS_ADDRESS.city,
+  BUSINESS_ADDRESS.state,
+  BUSINESS_ADDRESS.postalCode,
+  BUSINESS_ADDRESS.country,
+]
+  .filter(Boolean)
+  .join(", ");
+
 // Default Open Graph / social share image (lives in /public).
 export const OG_IMAGE = "/heroImage_v1.png";
 export const BRAND_LOGO = "/brandLogo_figure.png";
