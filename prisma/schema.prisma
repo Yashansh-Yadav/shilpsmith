@@ -376,6 +376,11 @@ model Review {
 
   approved Boolean @default(false)
 
+  // True only when the reviewer supplied an order number that matched their
+  // email and this product. Anyone may leave a review (moderation is the real
+  // gate) but only a matched purchase earns the "Verified buyer" badge.
+  verified Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

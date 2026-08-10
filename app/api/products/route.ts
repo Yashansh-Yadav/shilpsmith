@@ -10,6 +10,7 @@ import {
 } from "../../../lib/validators";
 import { cardAutoPercent } from "../../../lib/discounts";
 import { loadActiveAutomaticDiscounts } from "../../../lib/discountQuery";
+import { loadRatings, NO_RATING } from "../../../lib/ratings";
 
 export const GET = handle(async (request: NextRequest) => {
   const query = parseQuery(request, ProductSearchQuerySchema);
@@ -78,12 +79,18 @@ export const GET = handle(async (request: NextRequest) => {
     products = filtered.map((x) => x.p);
   }
 
-  // Advertise any applicable automatic event discount on each product card.
-  const autoDiscounts = await loadActiveAutomaticDiscounts(prisma);
+  // Advertise any applicable automatic event discount on each product card,
+  // plus the approved-review aggregate behind the star badge. Both resolve in
+  // one roundtrip each for the whole page, never per card.
+  const [autoDiscounts, ratings] = await Promise.all([
+    loadActiveAutomaticDiscounts(prisma),
+    loadRatings(prisma, products.map((p) => p.id)),
+  ]);
   const now = new Date();
   const decorated = products.map((p) => ({
     ...p,
     eventDiscountPercent: cardAutoPercent(p, autoDiscounts, now),
+    rating: ratings.get(p.id) ?? NO_RATING,
   }));
 
   return ok(decorated);

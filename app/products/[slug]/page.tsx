@@ -14,6 +14,7 @@ import { ChevronRight } from "lucide-react";
 import { prisma } from "../../../lib/prisma";
 import { cardAutoPercent, cardDisplay } from "../../../lib/discounts";
 import { loadActiveAutomaticDiscounts } from "../../../lib/discountQuery";
+import { loadRatings, NO_RATING } from "../../../lib/ratings";
 import { getShippingConfig } from "../../../lib/settings";
 import type { CustomFieldsConfig } from "../../../lib/customization";
 import { SITE_NAME, SITE_LEGAL_NAME, absoluteUrl } from "../../../lib/site";
@@ -121,6 +122,7 @@ export default async function ProductPage({
           title: true,
           comment: true,
           customerName: true,
+          verified: true,
           createdAt: true,
         },
         orderBy: { createdAt: "desc" },
@@ -299,6 +301,7 @@ export default async function ProductPage({
         <section id="reviews" className="mt-14 scroll-mt-24 border-t border-slate-100 pt-10">
           <ReviewSection
             productId={product.id}
+            productName={product.name}
             initialReviews={reviews.map((r) => ({
               ...r,
               createdAt: r.createdAt.toISOString(),
@@ -349,11 +352,16 @@ async function RelatedShelf({
 
   if (related.length === 0) return null;
 
+  // Only reached once we know there are related products, so the extra query
+  // never runs for a category of one.
+  const ratings = await loadRatings(prisma, related.map((p) => p.id));
+
   const now = new Date();
   const products: StorefrontProduct[] = related.map((p) => ({
     ...p,
     createdAt: p.createdAt.toISOString(),
     eventDiscountPercent: cardAutoPercent(p, autoDiscounts, now),
+    rating: ratings.get(p.id) ?? NO_RATING,
   }));
 
   return (

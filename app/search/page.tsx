@@ -5,7 +5,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Toaster } from "react-hot-toast";
 
-import { Home, Search as SearchIcon } from "lucide-react";
+import { Home, Search as SearchIcon, Star } from "lucide-react";
 
 import CartSheet, { CartButton } from "../../components/shop/CartSheet";
 import ProductImage from "../../components/shop/ProductImage";
@@ -37,6 +37,7 @@ interface ProductRow {
   stockStatus?: string;
   images: ProductImage[];
   category: { slug: string; name: string };
+  rating?: { average: number; count: number } | null;
 }
 
 function formatRupee(s: string) {
@@ -298,6 +299,20 @@ function SearchInner() {
                           ) : (
                             <span className="text-sm font-bold lg:text-base">
                               {formatRupee(p.price)}
+                            </span>
+                          )}
+
+                          {/* Matches ProductCard: shares the price row so it
+                              adds no height, hidden when there are no reviews. */}
+                          {p.rating && p.rating.count > 0 && (
+                            <span
+                              title={`${p.rating.average.toFixed(1)} out of 5 · ${
+                                p.rating.count
+                              } review${p.rating.count > 1 ? "s" : ""}`}
+                              className="ml-auto inline-flex shrink-0 select-none items-center gap-0.5 self-center whitespace-nowrap rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-bold text-amber-700"
+                            >
+                              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+                              {p.rating.average.toFixed(1)}
                             </span>
                           )}
                         </div>

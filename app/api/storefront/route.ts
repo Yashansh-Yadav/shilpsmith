@@ -2,6 +2,7 @@ import { prisma } from "../../../lib/prisma";
 import { ok, handle } from "../../../lib/apiResponse";
 import { cardAutoPercent } from "../../../lib/discounts";
 import { loadActiveAutomaticDiscounts } from "../../../lib/discountQuery";
+import { loadRatings, NO_RATING } from "../../../lib/ratings";
 
 export const dynamic = "force-dynamic";
 // Cheap edge cache so the homepage doesn't re-query Postgres on every hit.
@@ -95,16 +96,24 @@ export const GET = handle(async () => {
   // Tag each product with the automatic event discount that can be advertised
   // on its card (e.g. a storewide "10% off"). Loaded once, applied to every
   // shelf so the badge is consistent across the homepage.
-  const autoDiscounts = await loadActiveAutomaticDiscounts(prisma);
-  const withEvent = <T extends { id: number; categoryId: number | null }>(p: T) => ({
+  // The three shelves overlap heavily (trending falls back to featured), so
+  // collect every id and resolve the star badges in a single grouped query
+  // rather than one per shelf.
+  const [autoDiscounts, ratings] = await Promise.all([
+    loadActiveAutomaticDiscounts(prisma),
+    loadRatings(prisma, [...featured, ...newest, ...trending].map((p) => p.id)),
+  ]);
+
+  const decorate = <T extends { id: number; categoryId: number | null }>(p: T) => ({
     ...p,
     eventDiscountPercent: cardAutoPercent(p, autoDiscounts, now),
+    rating: ratings.get(p.id) ?? NO_RATING,
   });
 
   return ok({
-    featured: featured.map(withEvent),
-    newest: newest.map(withEvent),
-    trending: trending.map(withEvent),
+    featured: featured.map(decorate),
+    newest: newest.map(decorate),
+    trending: trending.map(decorate),
     categories,
     testimonials,
   });

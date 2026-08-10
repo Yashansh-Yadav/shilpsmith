@@ -36,7 +36,11 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Reviews &amp; messages:</strong> content you submit through
-            reviews or our support form.
+            reviews or our support form. When you leave a review we also collect
+            your name, email address, and — if you choose to provide it — your
+            order number, which we use to confirm the purchase and show a
+            &ldquo;Verified buyer&rdquo; badge. Your review, name, and rating are
+            published; your email address and order number are not.
           </li>
         </ul>
         <h3>Information collected automatically</h3>
