@@ -27,7 +27,13 @@ async function resolve(params: Params["params"]) {
 export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const r = await resolve(params);
   if (!r) return { title: "Scripture" };
-  return { title: `${r.item.titleEn} — ${r.deity.nameEn}` };
+  const { deity, scripture } = await params;
+  return {
+    title: `${r.item.titleEn} — ${r.deity.nameEn}`,
+    // Same inheritance trap as the deity page: no canonical here meant the root
+    // layout's "/" applied and every scripture claimed to be the homepage.
+    alternates: { canonical: `/darshan/${deity}/${scripture}` },
+  };
 }
 
 export default async function ScripturePage({ params, searchParams }: Params) {

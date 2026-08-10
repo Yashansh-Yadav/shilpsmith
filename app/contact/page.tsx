@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Toaster } from "react-hot-toast";
-import { Mail, MessageCircle, Clock } from "lucide-react";
+import { Mail, MessageCircle, Clock, Phone, MapPin } from "lucide-react";
 
 import PageShell from "../../components/site/PageShell";
 import { PageHeader } from "../../components/site/Prose";
@@ -8,6 +8,9 @@ import SupportForm from "../../components/site/SupportForm";
 import {
   SITE_LEGAL_NAME,
   SUPPORT_EMAIL,
+  BUSINESS_PHONE,
+  BUSINESS_PHONE_E164,
+  BUSINESS_ADDRESS_LINE,
   whatsappLink,
 } from "../../lib/site";
 
@@ -72,6 +75,42 @@ export default function ContactPage() {
                 </span>
               </a>
             )}
+
+            <a
+              href={`tel:${BUSINESS_PHONE_E164}`}
+              className="flex items-start gap-3 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm transition hover:border-slate-200"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
+                <Phone className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="block text-sm font-bold text-slate-900">
+                  Call us
+                </span>
+                <span className="block text-sm text-slate-500">
+                  {BUSINESS_PHONE}
+                </span>
+              </span>
+            </a>
+
+            {/* Displayed business address — India's e-commerce rules expect a
+                geographic address on the site, and it's a trust signal for
+                customers and search engines alike. */}
+            <div className="flex items-start gap-3 rounded-3xl border border-slate-100 bg-white p-5 shadow-sm">
+              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-brand-50 text-brand-700">
+                <MapPin className="h-5 w-5" />
+              </span>
+              <span>
+                <span className="block text-sm font-bold text-slate-900">
+                  Studio address
+                </span>
+                <address className="block text-sm not-italic text-slate-500">
+                  {SITE_LEGAL_NAME}
+                  <br />
+                  {BUSINESS_ADDRESS_LINE}
+                </address>
+              </span>
+            </div>
 
             <div className="flex items-start gap-3 rounded-3xl border border-slate-100 bg-slate-50/60 p-5">
               <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-600 ring-1 ring-slate-100">
