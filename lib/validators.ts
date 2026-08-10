@@ -511,14 +511,40 @@ export const ReviewSchema = z
 
 // Guest review submission: identity is the customer email, which we check
 // against the order history server-side.
+// Messages here are surfaced verbatim next to the offending field in the review
+// modal, so they read as instructions to a shopper rather than Zod defaults.
 export const GuestReviewCreateSchema = z
   .object({
     productId: z.number().int().positive(),
-    rating: z.number().int().min(1).max(5),
+    rating: z
+      .number({ message: "Pick a star rating" })
+      .int({ message: "Pick a star rating" })
+      .min(1, "Pick a star rating")
+      .max(5, "Rating cannot be more than 5 stars"),
     customerEmail: emailSchema,
-    customerName: z.string().trim().min(1).max(80),
-    title: z.string().trim().max(200).optional(),
-    comment: z.string().trim().max(2000).optional(),
+    customerName: z
+      .string({ message: "Tell us your name" })
+      .trim()
+      .min(1, "Tell us your name")
+      .max(80, "Name cannot be longer than 80 characters"),
+    // Optional. Supplying one that matches the email + product is what earns the
+    // "Verified buyer" badge; leaving it blank still posts the review.
+    orderNumber: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .max(40, "That doesn't look like an order number")
+      .optional(),
+    title: z
+      .string()
+      .trim()
+      .max(200, "Headline cannot be longer than 200 characters")
+      .optional(),
+    comment: z
+      .string()
+      .trim()
+      .max(2000, "Review cannot be longer than 2000 characters")
+      .optional(),
   })
   .strict();
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Box } from "lucide-react";
+import { Box, Star } from "lucide-react";
 
 import { cardDisplay } from "../../lib/discounts";
 import ProductImage from "./ProductImage";
@@ -27,6 +27,8 @@ export interface StorefrontProduct {
   stockStatus?: string;
   category?: { name: string; slug: string };
   deity?: { key: string; nameEn: string; active: boolean } | null;
+  /** Approved-review aggregate, attached by the API via lib/ratings.ts. */
+  rating?: { average: number; count: number } | null;
 }
 
 interface Props {
@@ -108,7 +110,7 @@ export default function ProductCard({ product, size = "default" }: Props) {
           {product.shortDescription || product.description}
         </p>
 
-        <div className="mt-3 flex items-baseline gap-2">
+        <div className="mt-auto flex items-baseline gap-2 pt-3">
           {listPrice != null ? (
             <>
               <span className="font-spec text-sm font-bold text-brand-700 sm:text-base">
@@ -121,6 +123,23 @@ export default function ProductCard({ product, size = "default" }: Props) {
           ) : (
             <span className="font-spec text-sm font-bold text-slate-900 sm:text-base">
               {price > 0 ? formatRupee(price) : product.price}
+            </span>
+          )}
+
+          {/* Rating badge — shares the price row so it costs no card height,
+              pinned right via ml-auto. Hidden entirely when there are no
+              approved reviews: "0.0 ★" reads as a bad score, not an absent one.
+              Only the average is shown; the count would wrap the row on a
+              2-column mobile grid, so it lives in the tooltip instead. */}
+          {product.rating && product.rating.count > 0 && (
+            <span
+              title={`${product.rating.average.toFixed(1)} out of 5 · ${
+                product.rating.count
+              } review${product.rating.count > 1 ? "s" : ""}`}
+              className="ml-auto inline-flex shrink-0 select-none items-center gap-0.5 self-center whitespace-nowrap rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-bold text-amber-700"
+            >
+              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+              {product.rating.average.toFixed(1)}
             </span>
           )}
         </div>

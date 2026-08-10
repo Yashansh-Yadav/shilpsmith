@@ -15,6 +15,7 @@ interface Review {
   customerName: string | null;
   customerEmail: string | null;
   approved: boolean;
+  verified: boolean;
   createdAt: string;
   product: { id: number; name: string; slug: string };
 }
@@ -122,6 +123,22 @@ export default function AdminReviewsPage() {
                       }`}
                     >
                       {r.approved ? "Approved" : "Pending"}
+                    </span>
+                    {/* Unverified reviews aren't tied to a matched order —
+                        worth reading more carefully before approving. */}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        r.verified
+                          ? "bg-brand-100 text-brand-700"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                      title={
+                        r.verified
+                          ? "Order number matched this email and product"
+                          : "No order number supplied — could be an offline buyer, or unrelated"
+                      }
+                    >
+                      {r.verified ? "Verified buyer" : "Unverified"}
                     </span>
                   </div>
                   <p className="mt-1 text-xs text-slate-500">

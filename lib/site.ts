@@ -31,7 +31,7 @@ export const BRAND_LOGO = "/brandLogo_figure.png";
 
 // Shown on legal pages. Constant (not new Date()) so it doesn't churn on every
 // render/build — bump it when you actually revise a policy.
-export const POLICY_LAST_UPDATED = "June 7, 2026";
+export const POLICY_LAST_UPDATED = "August 10, 2026";
 
 // Social profiles are NOT constants — they're admin-managed in the `social`
 // Settings row (admin → Settings → Social profiles) and read via

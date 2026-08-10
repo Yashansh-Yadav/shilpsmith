@@ -34,6 +34,7 @@ export const GET = handle(async (request: NextRequest) => {
       title: true,
       comment: true,
       customerName: true,
+      verified: true,
       createdAt: true,
     },
     orderBy: { createdAt: "desc" },
@@ -68,7 +69,12 @@ export const GET = handle(async (request: NextRequest) => {
   });
 });
 
-const APPROVED_BUYER_STATUSES: OrderStatus[] = [
+// Statuses that count as a real purchase for the "Verified buyer" badge.
+// PENDING is included because COD orders sit there until someone advances them
+// in the admin — excluding it locked out buyers for a reason they can't see.
+// CANCELLED / REFUNDED / BY_MISTAKE are deliberately absent.
+const VERIFIED_BUYER_STATUSES: OrderStatus[] = [
+  "PENDING",
   "CONFIRMED",
   "PROCESSING",
   "SHIPPED",
@@ -76,27 +82,59 @@ const APPROVED_BUYER_STATUSES: OrderStatus[] = [
 ];
 
 export const POST = handle(async (request: NextRequest) => {
-  rateLimit(request, { windowMs: 60_000, max: 5, namespace: "reviews" });
+  // Two tiers on purpose. The outer one is the abuse guard and counts every
+  // request; the inner one caps actual writes. Running a single strict limiter
+  // up front meant a shopper who mistyped their order email a couple of times
+  // burned the whole budget on rejected requests and got locked out for a
+  // minute before they could ever submit.
+  rateLimit(request, { windowMs: 60_000, max: 20, namespace: "reviews" });
 
   const input = await parseJson(request, GuestReviewCreateSchema);
 
-  // Verified buyer: there has to be at least one non-cancelled/non-pending order
-  // from this email that includes the product. Refunded is excluded too.
-  const buyerOrder = await prisma.order.findFirst({
-    where: {
-      customerEmail: input.customerEmail,
-      deletedAt: null,
-      status: { in: APPROVED_BUYER_STATUSES },
-      items: { some: { productId: input.productId } },
-    },
-    select: { id: true },
-  });
-  if (!buyerOrder) {
-    throw new ValidationError(
-      "We could not find a confirmed order from this email for this product",
-      [{ field: "customerEmail", message: "No qualifying order found" }]
-    );
+  // Anyone may review — someone who bought at an exhibition or a fair is still a
+  // real customer, and moderation (approved: false) is what actually keeps the
+  // storefront clean. The purchase check only decides whether the review earns
+  // the "Verified buyer" badge.
+  //
+  // Order number *and* email must match: an email address alone is guessable by
+  // anyone who knows the customer, whereas the pair is something only the buyer
+  // has. That's what makes the badge worth trusting.
+  let verified = false;
+  if (input.orderNumber) {
+    const buyerOrder = await prisma.order.findFirst({
+      where: {
+        orderNumber: input.orderNumber,
+        customerEmail: input.customerEmail,
+        deletedAt: null,
+        status: { in: VERIFIED_BUYER_STATUSES },
+        items: { some: { productId: input.productId } },
+      },
+      select: { id: true },
+    });
+
+    // Reject rather than silently downgrading — a typo'd order number should be
+    // fixable, not quietly cost someone their badge. Clearing the field posts
+    // the review unverified.
+    if (!buyerOrder) {
+      throw new ValidationError(
+        "We could not match that order number to this email and product",
+        [
+          {
+            field: "orderNumber",
+            message:
+              "No matching order. Check the number, or leave it blank to post without the verified badge.",
+          },
+        ]
+      );
+    }
+    verified = true;
   }
+
+  // Only fully-validated submissions count against the write budget — checked
+  // before the create so the limit never trips post-insert. This matters more
+  // now that anyone can submit: the unique (customerEmail, productId) index no
+  // longer stops repeat posts once someone varies the email.
+  rateLimit(request, { windowMs: 60_000, max: 5, namespace: "reviews:create" });
 
   try {
     const review = await prisma.review.create({
@@ -108,6 +146,7 @@ export const POST = handle(async (request: NextRequest) => {
         title: input.title,
         comment: input.comment,
         approved: false, // admin moderation queue
+        verified,
       },
       include: { product: { select: { name: true } } },
     });
@@ -120,6 +159,13 @@ export const POST = handle(async (request: NextRequest) => {
         { label: "Product", value: review.product?.name ?? `#${input.productId}` },
         { label: "By", value: input.customerName ?? input.customerEmail },
         { label: "Rating", value: `${review.rating}/5` },
+        // Unverified reviews are the ones worth a closer read before approving.
+        {
+          label: "Buyer",
+          value: verified
+            ? `Verified (order ${input.orderNumber})`
+            : "Unverified — no order number given",
+        },
         ...(input.title ? [{ label: "Title", value: input.title }] : []),
       ],
       body: input.comment ?? undefined,

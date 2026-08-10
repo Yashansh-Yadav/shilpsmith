@@ -91,7 +91,7 @@ Soft delete: `Product.deletedAt` is set instead of dropping the row, so historic
 - `BLOB_READ_WRITE_TOKEN` — Vercel Blob token used by `/api/upload`
 - `LOG_LEVEL` — optional override for `lib/logger.ts` (default: `debug` in dev, `info` in prod)
 
-The `.env` file in the repo root is gitignored, but **the gitignore file is `.gitIgnore` with a capital I** — case-sensitive Linux filesystems will not honor it. Rename to `.gitignore` before any Linux deploy.
+The `.env` file in the repo root is gitignored. (This was previously `.gitIgnore` with a capital I, which case-sensitive Linux filesystems ignore; it has since been renamed correctly. Verified: `git check-ignore .env` → `.gitignore:24`, and `.env` is untracked.)
 
 ### Layout pointers
 
@@ -255,13 +255,28 @@ The homepage navbar also gets a small search field that pushes to `/search?q=…
 
 **Schema change:** `Review.userId` is now nullable, and `customerEmail` / `customerName` columns were added so guest reviews can be keyed by email. The old `@@unique([userId, productId])` was replaced with `@@unique([customerEmail, productId])`. Migration in `prisma/migrations/*phase5_review_guests`.
 
-- [POST /api/reviews](app/api/reviews/route.ts) — public; rate-limited to 5/min/IP. **Verified-buyer check**: the email must have at least one non-cancelled non-refunded order in `CONFIRMED / PROCESSING / SHIPPED / DELIVERED` containing the same productId. New reviews land with `approved: false`.
+- [POST /api/reviews](app/api/reviews/route.ts) — public. New reviews land with `approved: false`. **Anyone may submit** — see "Review eligibility" below for why the buyer check is a badge, not a gate.
 - [GET /api/reviews?productId=N](app/api/reviews/route.ts) — public; **only approved reviews** + summary stats (avg, count).
 - [GET /api/admin/reviews](app/api/admin/reviews/route.ts) — admin moderation queue with `pending | approved | all` filter.
 - [PUT/DELETE /api/admin/reviews/[id]](app/api/admin/reviews/%5Bid%5D/route.ts) — toggle approval, edit copy, or remove entirely.
 - UI: [ReviewSection](components/shop/ReviewSection.tsx) is mounted on the product page, shows avg + count + per-star bars + reviews list + a "Write a review" form. Admin moderation page at [/admin/reviews](app/admin/reviews/page.tsx).
 
 The duplicate-review case is friendlier than the default Prisma P2002 → it returns a 409 with a clear message ("You've already submitted a review for this product").
+
+### Review eligibility — badge, not gate (revised)
+
+Reviews were originally gated on the email matching a qualifying order. That locked out anyone who bought **offline** (exhibitions, fairs, in person) — real customers, silently rejected. It was also redundant: `approved: false` means nothing reaches the storefront without admin sign-off, so moderation was already the real filter.
+
+Now **anyone can submit**; the purchase check only decides the **`Review.verified`** flag behind the "Verified buyer" badge:
+
+- Verification requires **order number + email + product** all matching one order. Email alone is guessable by anyone who knows the customer; the pair is something only the buyer holds. **Don't weaken this back to email-only** — the badge is worthless if it can be forged.
+- `orderNumber` is optional in `GuestReviewCreateSchema` (auto-uppercased). Blank → posts unverified. Supplied but non-matching → **400 on the `orderNumber` field**, deliberately *not* a silent downgrade, so a typo is fixable rather than quietly costing someone their badge.
+- `VERIFIED_BUYER_STATUSES` **includes `PENDING`** — COD orders sit there until an admin advances them, and excluding it locked out buyers for a reason invisible to them. `CANCELLED` / `REFUNDED` / `BY_MISTAKE` stay excluded, as do soft-deleted orders.
+- The badge renders **only when `verified`** (`ReviewSection`, and the admin queue shows a Verified/Unverified chip so unverified rows get a closer read). Summary copy says "N reviews", never "N verified reviews".
+
+**Consequence worth knowing:** the `@@unique([customerEmail, productId])` index no longer bounds spam — vary the email and you can post repeatedly. The 5/min/IP write limiter (`namespace: "reviews:create"`, charged only *after* validation passes so mistyped submissions don't burn the budget) and moderation are what hold the line now. A 20/min `reviews` limiter sits in front as the abuse guard.
+
+Migration: `prisma/migrations/20260810102649_review_verified_flag`. Note this DB has **no `_prisma_migrations` table** — the CLAUDE.md step about inserting a row there fails with P1014; migration files are a record only, applied via `db execute`.
 
 ### Discounts
 
