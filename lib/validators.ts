@@ -1,14 +1,33 @@
 import { z } from "zod";
 
 import { sanitizeHtml } from "./sanitize";
-import { CUSTOM_FIELD_KEYS } from "./customization";
+import {
+  CUSTOMIZATION_CATALOG,
+  CUSTOM_FIELD_KEYS,
+  HEX_COLOR_RE,
+  MAX_COLOR_OPTIONS,
+} from "./customization";
 
 // Per-product customization config: a map of enabled catalog field key →
 // { placeholder?, required? }. Unknown keys are rejected.
+const ColorOptionSchema = z
+  .object({
+    name: z.string().trim().min(1, "Colour needs a name").max(40),
+    hex: z
+      .string()
+      .trim()
+      .regex(HEX_COLOR_RE, "Colour must be a #RRGGBB hex value")
+      .transform((v) => v.toLowerCase()),
+  })
+  .strict();
+
 const CustomFieldConfigSchema = z
   .object({
     placeholder: z.string().trim().max(120).optional(),
     required: z.boolean().optional(),
+    // Palette for the `color` field. Rejected on any other field by the
+    // cross-field refine below.
+    options: z.array(ColorOptionSchema).max(MAX_COLOR_OPTIONS).optional(),
   })
   .strict();
 
@@ -18,12 +37,24 @@ const CustomFieldConfigSchema = z
 // enum-keyed record is exhaustive (requires every key), so unchecking a field
 // would wrongly fail validation.
 const CATALOG_KEY_SET = new Set<string>(CUSTOM_FIELD_KEYS);
+const COLOR_FIELD_KEYS = new Set(
+  CUSTOMIZATION_CATALOG.filter((f) => f.type === "color").map((f) => f.key)
+);
 
 export const CustomFieldsSchema = z
   .record(z.string(), CustomFieldConfigSchema)
   .refine((obj) => Object.keys(obj).every((k) => CATALOG_KEY_SET.has(k)), {
     message: "Unknown customization field",
-  });
+  })
+  // A palette only means something on a colour field; silently storing one
+  // elsewhere would look configured in the admin and render nothing.
+  .refine(
+    (obj) =>
+      Object.entries(obj).every(
+        ([k, cfg]) => !cfg?.options?.length || COLOR_FIELD_KEYS.has(k)
+      ),
+    { message: "Colour options are only allowed on the Color field" }
+  );
 
 // ---------------------------------------------------------------------------
 // Primitives

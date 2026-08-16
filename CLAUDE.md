@@ -359,7 +359,14 @@ This phase added a multi-channel admin alerting layer, replaced the fixed custom
 
 Replaces the fixed `CustomizationForm` (engraving/color/notes) with an **admin-configurable** model. The admin doesn't author fields from scratch — they tick which of a fixed `CUSTOMIZATION_CATALOG` (engraving / size / color / description / image) a product uses and set a per-field placeholder + required flag. Stored on `Product.customFields` (Json) as `Record<fieldKey, { placeholder?, required? }>` (presence of a key = enabled).
 
-- `lib/customization.ts` is plain data (no React/Node deps) — shared by the admin builder, the storefront renderer, and server validation. `resolveEnabledFields(config)` returns enabled fields in catalog order with placeholders/required resolved.
+- `lib/customization.ts` is plain data (no React/Node deps) — shared by the admin builder, the storefront renderer, and server validation. `resolveEnabledFields(config)` returns enabled fields in catalog order with placeholders/required/colour options resolved.
+
+**Colour is a selector, never a picker.** The `color` field carries an admin-defined palette at `customFields.color.options` — `[{ name, hex }]`, capped at `MAX_COLOR_OPTIONS` (24). The storefront renders those as swatch chips and **stores the colour *name*** in the cart/order (a hex code is meaningless on a packing slip; the hex only paints the swatch). Rules worth keeping:
+
+- **There is no free `<input type="color">` anywhere customer-facing.** The only one left in the codebase is in the admin product form, where it's how the admin *defines* a swatch. A colour field with an empty palette is **dropped from the product page** by `resolveStorefrontFields()` — use that, not `resolveEnabledFields()`, on any storefront surface, or an unanswerable (possibly `required`) field will render and block Add-to-Cart. The admin panel flags the empty-palette state in amber.
+- The legacy [CustomizationForm](components/shop/CustomizationForm.tsx) (fallback for a customizable product with *no* fields configured) had its colour picker removed for the same reason — it has no product-level palette to select from, so it offers engraving + notes only.
+- `normalizeColorOptions()` (used by `resolveEnabledFields`) **filters** bad entries — invalid hex, blank name, case-insensitive duplicates — rather than throwing, so one malformed row can't blank the whole selector. `CustomFieldsSchema` is what actually *rejects* bad input at the API boundary; a second `.refine` there rejects `options` on any non-`color` field so a palette can't be stored somewhere it will never render.
+- The admin page strips blank-name rows via `cleanCustomFields()` before POST/PUT — otherwise "add a colour row, change your mind, save" would 400 on a field the admin never meant to fill.
 - [components/shop/DynamicCustomizationForm.tsx](components/shop/DynamicCustomizationForm.tsx) renders the resolved fields on the storefront (inside `ProductDetail`); validated via `CustomFieldsSchema` in `lib/validators.ts` and persisted through the product create/update routes.
 
 ### Support / "raise a concern" — [/api/support](app/api/support/route.ts)

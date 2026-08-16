@@ -76,24 +76,53 @@ export default function DynamicCustomizationForm({
         }
 
         if (field.type === "color") {
+          // Customers pick from the admin's palette — never a free picker. A
+          // field with no palette is filtered out upstream by
+          // resolveStorefrontFields, so this guard should never fire; it's here
+          // so a direct caller can't resurrect an empty swatch row.
+          if (field.options.length === 0) return null;
+
+          // The value we store is the colour *name*, which is what the cart,
+          // order page, emails and the packing slip all need to show.
           return (
             <div key={field.key}>
               {labelEl}
-              <div className="flex items-center gap-3">
-                <input
-                  type="color"
-                  value={/^#[0-9a-fA-F]{6}$/.test(v) ? v : "#10b981"}
-                  onChange={(e) => set(field.label, e.target.value)}
-                  className="h-10 w-12 cursor-pointer rounded-lg border border-slate-200"
-                />
-                <input
-                  type="text"
-                  value={v}
-                  onChange={(e) => set(field.label, e.target.value)}
-                  placeholder={field.placeholder}
-                  className="flex-1 rounded-2xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-slate-500"
-                />
+              <div
+                role="radiogroup"
+                aria-label={field.label}
+                className="flex flex-wrap gap-2"
+              >
+                {field.options.map((opt) => {
+                  const selected = v === opt.name;
+                  return (
+                    <button
+                      key={opt.name}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      title={opt.name}
+                      onClick={() =>
+                        set(field.label, selected && !field.required ? "" : opt.name)
+                      }
+                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition ${
+                        selected
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"
+                      }`}
+                    >
+                      <span
+                        aria-hidden
+                        style={{ backgroundColor: opt.hex }}
+                        className="h-4 w-4 shrink-0 rounded-full border border-black/15 shadow-inner"
+                      />
+                      {opt.name}
+                    </button>
+                  );
+                })}
               </div>
+              <p className="mt-1.5 text-xs text-slate-500">
+                {v ? `Selected: ${v}` : field.placeholder}
+              </p>
             </div>
           );
         }

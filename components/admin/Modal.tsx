@@ -10,6 +10,9 @@ interface Props {
   children: React.ReactNode;
   // "lg" by default; "xl" for the product form which is denser.
   size?: "md" | "lg" | "xl";
+  // Pinned below the scroll area so actions stay reachable on long forms. A
+  // submit button here sits outside the <form>, so it needs form="<form id>".
+  footer?: React.ReactNode;
 }
 
 const SIZE: Record<NonNullable<Props["size"]>, string> = {
@@ -25,6 +28,7 @@ export default function Modal({
   onClose,
   children,
   size = "lg",
+  footer,
 }: Props) {
   // Lock page scroll + escape to close while the modal is open.
   useEffect(() => {
@@ -46,18 +50,22 @@ export default function Modal({
   if (!open) return null;
 
   return (
+    // The panel is capped to the viewport and scrolls its *body*; the overlay
+    // itself must not scroll. Centering a taller-than-viewport child inside a
+    // scrolling flex container clips its top irrecoverably (you can't scroll
+    // up past it) — which is what hid the header on the long product form.
     <div
       role="dialog"
       aria-modal="true"
       aria-label={title}
-      className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-slate-900/50 p-4 sm:items-center"
+      className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/50 p-4"
       onClick={onClose}
     >
       <div
-        className={`relative w-full ${SIZE[size]} rounded-3xl bg-white shadow-2xl`}
+        className={`relative flex max-h-[calc(100dvh-2rem)] w-full ${SIZE[size]} flex-col overflow-hidden rounded-3xl bg-white shadow-2xl`}
         onClick={(e) => e.stopPropagation()}
       >
-        <header className="flex items-start justify-between gap-4 border-b border-slate-100 px-6 py-4">
+        <header className="flex flex-none items-start justify-between gap-4 border-b border-slate-100 px-6 py-4">
           <div>
             <h2 className="text-lg font-bold sm:text-xl">{title}</h2>
             {subtitle && (
@@ -74,7 +82,15 @@ export default function Modal({
           </button>
         </header>
 
-        <div className="px-6 py-5">{children}</div>
+        <div className="flex-1 overflow-y-auto overscroll-contain px-6 py-5">
+          {children}
+        </div>
+
+        {footer && (
+          <div className="flex-none border-t border-slate-100 bg-white px-6 py-4">
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   );
