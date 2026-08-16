@@ -19,7 +19,7 @@ import { priceFromProduct, useCartStore } from "../../lib/store/cart";
 import { parsePriceString } from "../../lib/discounts";
 import { shippingNote, type ShippingConfig } from "../../lib/shipping";
 import {
-  resolveEnabledFields,
+  resolveStorefrontFields,
   type CustomFieldsConfig,
 } from "../../lib/customization";
 import { sanitizeHtml } from "../../lib/sanitize";
@@ -145,7 +145,7 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
     listUnit != null ? Math.round(((listUnit - displayUnit) / listUnit) * 100) : 0;
 
   const enabledFields = useMemo(
-    () => resolveEnabledFields(product.customFields),
+    () => resolveStorefrontFields(product.customFields),
     [product.customFields]
   );
   const customizable = product.customizable === true;
