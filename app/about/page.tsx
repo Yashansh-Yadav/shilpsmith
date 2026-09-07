@@ -8,6 +8,13 @@ import {
   SITE_NAME,
   SITE_LEGAL_NAME,
   BUSINESS_COUNTRY,
+  FOUNDER_NAME,
+  FOUNDER_ROLE,
+  BUSINESS_ADDRESS,
+  BUSINESS_ADDRESS_LINE,
+  BUSINESS_PHONE,
+  BUSINESS_PHONE_E164,
+  SUPPORT_EMAIL,
   whatsappLink,
 } from "../../lib/site";
 
@@ -86,6 +93,78 @@ export default function AboutPage() {
             choice, finish, durability — so what arrives is something you&apos;re
             proud to own or give.
           </p>
+        </div>
+
+        {/*
+          Who's actually behind the studio. Until this existed the whole site was
+          anonymous — no name, no location — which is the weakest possible trust
+          signal for a made-to-order business asking for payment up front.
+
+          Kept strictly to verified facts: name, role, and where the studio
+          operates from. No invented founding story and no fabricated quote —
+          if a personal note is wanted here, it should be the founder's own words.
+        */}
+        <div className="mt-12 rounded-4xl border border-slate-100 bg-slate-50/60 p-6 sm:p-8">
+          <div className="flex flex-wrap items-center gap-4">
+            <span
+              aria-hidden
+              className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-100 font-spec text-lg font-black text-brand-700"
+            >
+              {FOUNDER_NAME.split(" ")
+                .slice(0, 2)
+                .map((w) => w[0])
+                .join("")}
+            </span>
+            <div>
+              <p className="text-base font-bold tracking-tight text-slate-900">
+                {FOUNDER_NAME}
+              </p>
+              <p className="text-sm text-slate-500">
+                {FOUNDER_ROLE}, {SITE_LEGAL_NAME}
+              </p>
+            </div>
+          </div>
+          <p className="mt-5 text-[15px] leading-relaxed text-slate-700">
+            {SITE_NAME} is run by {FOUNDER_NAME} from the studio in{" "}
+            {BUSINESS_ADDRESS.city}, {BUSINESS_ADDRESS.state}. Every order is
+            designed, printed, and quality-checked here before it ships — so when
+            you ask a question over WhatsApp or raise a concern, you&apos;re
+            talking to the person who made your piece, not a call centre.
+          </p>
+          <dl className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Studio
+              </dt>
+              <dd className="mt-1 text-sm text-slate-700">
+                <address className="not-italic">{BUSINESS_ADDRESS_LINE}</address>
+              </dd>
+            </div>
+            <div>
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Talk to us
+              </dt>
+              <dd className="mt-1 text-sm text-slate-700">
+                <a
+                  href={`tel:${BUSINESS_PHONE_E164}`}
+                  className="font-medium text-brand-700 hover:underline"
+                >
+                  {BUSINESS_PHONE}
+                </a>
+                {SUPPORT_EMAIL && (
+                  <>
+                    {" · "}
+                    <a
+                      href={`mailto:${SUPPORT_EMAIL}`}
+                      className="font-medium text-brand-700 hover:underline"
+                    >
+                      {SUPPORT_EMAIL}
+                    </a>
+                  </>
+                )}
+              </dd>
+            </div>
+          </dl>
         </div>
 
         {/* Values */}

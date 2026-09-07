@@ -9,6 +9,8 @@ import ProductImage from "../../components/shop/ProductImage";
 import RichTextEditor from "../../components/admin/RichTextEditor";
 import {
   CUSTOMIZATION_CATALOG,
+  MAX_COLOR_OPTIONS,
+  type ColorOption,
   type CustomFieldsConfig,
 } from "../../lib/customization";
 
@@ -72,6 +74,26 @@ const EMPTY_FORM: ProductForm = {
 };
 
 const PAGE_SIZE = 10;
+
+// The Save button is pinned in the modal footer, outside the <form>, and
+// reaches it via <button form={...}>.
+const PRODUCT_FORM_ID = "admin-product-form";
+
+// A colour row needs a name — the name is what the customer picks and what the
+// order/packing slip shows; the hex only paints the swatch. Blank-named rows
+// used to be filtered out silently here, which meant "pick a swatch, save" lost
+// the colour with no error. Now the save is blocked and the row is called out.
+function findBlankColorRow(
+  config: CustomFieldsConfig
+): { label: string; index: number } | null {
+  for (const field of CUSTOMIZATION_CATALOG) {
+    const options = config[field.key]?.options;
+    if (!options) continue;
+    const index = options.findIndex((o) => !o.name.trim());
+    if (index !== -1) return { label: field.label, index };
+  }
+  return null;
+}
 
 export default function AdminProductsPage() {
   // -------- Data --------
@@ -238,6 +260,51 @@ export default function AdminProductsPage() {
     }));
   }
 
+  // ───────────── Colour palette (color-type fields) ─────────────
+
+  // Always derive from the previous state — reading `form` from the closure
+  // drops edits when two changes land before a re-render (fast typing, or
+  // clicking "+ Add colour" twice).
+  function setColorOptions(
+    key: string,
+    update: (current: ColorOption[]) => ColorOption[]
+  ) {
+    setForm((f) => ({
+      ...f,
+      customFields: {
+        ...f.customFields,
+        [key]: {
+          ...f.customFields[key],
+          options: update(f.customFields[key]?.options ?? []),
+        },
+      },
+    }));
+  }
+
+  function addColorOption(key: string) {
+    setColorOptions(key, (current) => {
+      if (current.length >= MAX_COLOR_OPTIONS) {
+        toast.error(`Up to ${MAX_COLOR_OPTIONS} colours`);
+        return current;
+      }
+      return [...current, { name: "", hex: "#10b981" }];
+    });
+  }
+
+  function updateColorOption(
+    key: string,
+    index: number,
+    patch: Partial<ColorOption>
+  ) {
+    setColorOptions(key, (current) =>
+      current.map((o, i) => (i === index ? { ...o, ...patch } : o))
+    );
+  }
+
+  function removeColorOption(key: string, index: number) {
+    setColorOptions(key, (current) => current.filter((_, i) => i !== index));
+  }
+
   function makeCover(index: number) {
     setForm((f) => {
       if (index === 0) return f;
@@ -291,6 +358,14 @@ export default function AdminProductsPage() {
 
     if (form.images.length === 0) {
       toast.error("Add at least one product image");
+      return;
+    }
+
+    const blankColor = findBlankColorRow(form.customFields);
+    if (blankColor) {
+      toast.error(
+        `${blankColor.label}: name colour #${blankColor.index + 1} (e.g. "Matte Black") or remove the row`
+      );
       return;
     }
 
@@ -553,8 +628,37 @@ export default function AdminProductsPage() {
             : "Fill in the basics — variants can be added after creation."
         }
         size="xl"
+        footer={
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={closeModal}
+              disabled={saving}
+              className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            {/* Lives outside <form>, so it submits via the form attribute. */}
+            <button
+              type="submit"
+              form={PRODUCT_FORM_ID}
+              disabled={saving}
+              className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+            >
+              {saving
+                ? "Saving…"
+                : editingId
+                  ? "Update product"
+                  : "Create product"}
+            </button>
+          </div>
+        }
       >
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <form
+          id={PRODUCT_FORM_ID}
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 gap-4 md:grid-cols-2"
+        >
           {/* Category + inline create */}
           <div className="md:col-span-2 flex flex-col gap-2">
             <div className="flex items-center justify-between">
@@ -853,6 +957,68 @@ export default function AdminProductsPage() {
                           className="mt-2 w-full rounded-lg border border-slate-200 px-3 py-1.5 text-sm"
                         />
                       )}
+
+                      {enabled && field.type === "color" && (
+                        <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50/70 p-3">
+                          <p className="mb-2 text-xs font-semibold text-slate-600">
+                            Available colours
+                          </p>
+                          <div className="space-y-2">
+                            {(cfg?.options ?? []).map((opt, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={opt.hex}
+                                  aria-label={`Colour ${i + 1} swatch`}
+                                  onChange={(e) =>
+                                    updateColorOption(field.key, i, {
+                                      hex: e.target.value,
+                                    })
+                                  }
+                                  className="h-9 w-11 shrink-0 cursor-pointer rounded-lg border border-slate-200"
+                                />
+                                <input
+                                  type="text"
+                                  value={opt.name}
+                                  maxLength={40}
+                                  required
+                                  onChange={(e) =>
+                                    updateColorOption(field.key, i, {
+                                      name: e.target.value,
+                                    })
+                                  }
+                                  placeholder="Colour name (e.g. Matte Black) — required"
+                                  className={`flex-1 rounded-lg border px-3 py-1.5 text-sm ${
+                                    opt.name.trim()
+                                      ? "border-slate-200"
+                                      : "border-red-300 bg-red-50/50"
+                                  }`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeColorOption(field.key, i)}
+                                  className="rounded-lg border border-slate-200 px-2.5 py-1.5 text-xs text-slate-500 hover:border-red-300 hover:text-red-600"
+                                >
+                                  Remove
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => addColorOption(field.key)}
+                            className="mt-2 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-slate-500"
+                          >
+                            + Add colour
+                          </button>
+                          {!(cfg?.options ?? []).length && (
+                            <p className="mt-2 text-xs text-amber-700">
+                              No colours added — this field stays hidden on the
+                              product page until you add at least one.
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -869,27 +1035,6 @@ export default function AdminProductsPage() {
             <span className="text-sm">Featured (shows in the editor&apos;s-pick carousel)</span>
           </label>
 
-          <div className="md:col-span-2 mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-slate-100 pt-4">
-            <button
-              type="button"
-              onClick={closeModal}
-              disabled={saving}
-              className="rounded-xl border border-slate-200 px-5 py-2.5 text-sm font-medium hover:bg-slate-50 disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="rounded-xl bg-slate-900 px-6 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-            >
-              {saving
-                ? "Saving…"
-                : editingId
-                  ? "Update product"
-                  : "Create product"}
-            </button>
-          </div>
         </form>
 
         {/* Variants live in the same modal when editing — keeps everything

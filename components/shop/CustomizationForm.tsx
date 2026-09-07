@@ -1,8 +1,11 @@
 "use client";
 
+// Fallback form for products marked customizable with no fields configured in
+// the admin. Deliberately has NO colour input: colour is only ever offered as a
+// selector over the admin's palette (see DynamicCustomizationForm), and this
+// form has no product-level palette to select from.
 export interface CustomizationValues {
   text?: string;
-  color?: string;
   notes?: string;
 }
 
@@ -47,35 +50,6 @@ export default function CustomizationForm({ value, onChange }: Props) {
       </div>
 
       <div>
-        <label className="text-sm font-semibold block mb-2">Color (optional)</label>
-        <div className="flex items-center gap-3">
-          <input
-            type="color"
-            value={value.color ?? "#000000"}
-            onChange={(e) => set("color", e.target.value)}
-            className="h-10 w-14 cursor-pointer rounded-xl border border-slate-200"
-            aria-label="Pick a color"
-          />
-          <input
-            type="text"
-            value={value.color ?? ""}
-            onChange={(e) => set("color", e.target.value)}
-            placeholder="#RRGGBB or 'Matte Black'"
-            className="flex-1 border border-slate-200 rounded-2xl px-4 py-2 outline-none focus:border-slate-500"
-          />
-          {value.color && (
-            <button
-              type="button"
-              onClick={() => set("color", undefined)}
-              className="text-xs text-slate-500 hover:text-red-600"
-            >
-              Clear
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div>
         <label className="text-sm font-semibold block mb-2">
           Special instructions
           <span className="ml-1 text-xs font-normal text-slate-500">
@@ -103,7 +77,6 @@ export function customizationToRecord(
 ): Record<string, string> | undefined {
   const out: Record<string, string> = {};
   if (v.text && v.text.trim()) out.text = v.text.trim();
-  if (v.color && v.color.trim()) out.color = v.color.trim();
   if (v.notes && v.notes.trim()) out.notes = v.notes.trim();
   return Object.keys(out).length ? out : undefined;
 }

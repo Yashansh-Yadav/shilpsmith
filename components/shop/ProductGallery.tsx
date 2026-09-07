@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 import ProductImage from "./ProductImage";
@@ -25,6 +26,9 @@ export default function ProductGallery({
 }: Props) {
   const [active, setActive] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  // document.body isn't available during SSR, so the portal waits for mount.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   // Reset to the cover image whenever a different product is shown.
   useEffect(() => {
@@ -109,31 +113,41 @@ export default function ProductGallery({
         </div>
       )}
 
-      {/* Full-size lightbox */}
-      {lightboxOpen && mainUrl && (
-        <div
-          className="fixed inset-0 z-[110] flex items-center justify-center bg-slate-950/90 p-4 backdrop-blur-sm sm:p-8"
-          onClick={() => setLightboxOpen(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-label={`${productName} full size image`}
-        >
-          <button
-            type="button"
+      {/* Full-size lightbox.
+          Portalled to <body> on purpose: the gallery column is `lg:sticky`, and
+          a sticky element creates a stacking context, which traps a descendant
+          overlay no matter how high its z-index is — the sticky column paints at
+          its own (auto) level, so the site header's z-40 was covering both the
+          image and the close button. Rendering outside that subtree is the only
+          fix that survives future ancestor changes (transform, filter, etc.). */}
+      {mounted &&
+        lightboxOpen &&
+        mainUrl &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/90 p-4 backdrop-blur-sm sm:p-8"
             onClick={() => setLightboxOpen(false)}
-            aria-label="Close full size image"
-            className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-slate-800 shadow-lg transition hover:bg-white"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${productName} full size image`}
           >
-            <X className="h-5 w-5" />
-          </button>
-          <img
-            src={mainUrl}
-            alt={productName}
-            onClick={(e) => e.stopPropagation()}
-            className="max-h-full max-w-full cursor-default rounded-2xl object-contain shadow-2xl"
-          />
-        </div>
-      )}
+            <button
+              type="button"
+              onClick={() => setLightboxOpen(false)}
+              aria-label="Close full size image"
+              className="absolute right-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-white/95 text-slate-800 shadow-lg transition hover:bg-white sm:right-6 sm:top-6"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <img
+              src={mainUrl}
+              alt={productName}
+              onClick={(e) => e.stopPropagation()}
+              className="max-h-full max-w-full cursor-default rounded-2xl object-contain shadow-2xl"
+            />
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

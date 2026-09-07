@@ -12,6 +12,9 @@ import {
   WHATSAPP_NUMBER,
   OG_IMAGE,
   BRAND_LOGO,
+  FOUNDER_NAME,
+  BUSINESS_ADDRESS,
+  BUSINESS_PHONE_E164,
 } from "../lib/site";
 import { getSocialLinks } from "../lib/settings";
 
@@ -48,7 +51,12 @@ export const metadata: Metadata = {
   authors: [{ name: SITE_LEGAL_NAME }],
   creator: SITE_LEGAL_NAME,
   publisher: SITE_LEGAL_NAME,
-  alternates: { canonical: "/" },
+  // NO `alternates.canonical` here on purpose. Next merges metadata down the
+  // tree, so a canonical set on the root layout is inherited by every page that
+  // doesn't override it — which had /smart-idols and /track both declaring
+  // themselves duplicates of the homepage, i.e. asking Google to drop them from
+  // the index. Each page sets its own; a page that forgets one now emits none
+  // (Google self-canonicalizes) rather than a wrong one.
   openGraph: {
     type: "website",
     locale: "en_IN",
@@ -109,15 +117,42 @@ async function StructuredData() {
         logo: `${SITE_URL}${BRAND_LOGO}`,
         description: SITE_DESCRIPTION,
         ...(sameAs.length ? { sameAs } : {}),
+        // A named person and a real address are what let Google treat this as a
+        // genuine business rather than an anonymous storefront.
+        founder: { "@type": "Person", name: FOUNDER_NAME },
+        address: {
+          "@type": "PostalAddress",
+          ...(BUSINESS_ADDRESS.locality
+            ? { streetAddress: BUSINESS_ADDRESS.locality }
+            : {}),
+          addressLocality: BUSINESS_ADDRESS.city,
+          addressRegion: BUSINESS_ADDRESS.state,
+          ...(BUSINESS_ADDRESS.postalCode
+            ? { postalCode: BUSINESS_ADDRESS.postalCode }
+            : {}),
+          addressCountry: "IN",
+        },
+        telephone: BUSINESS_PHONE_E164,
         contactPoint: [
           {
             "@type": "ContactPoint",
             contactType: "customer support",
             ...(SUPPORT_EMAIL ? { email: SUPPORT_EMAIL } : {}),
-            ...(WHATSAPP_NUMBER ? { telephone: `+${WHATSAPP_NUMBER}` } : {}),
+            telephone: BUSINESS_PHONE_E164,
             areaServed: "IN",
             availableLanguage: ["en", "hi"],
           },
+          ...(WHATSAPP_NUMBER
+            ? [
+                {
+                  "@type": "ContactPoint",
+                  contactType: "sales",
+                  telephone: `+${WHATSAPP_NUMBER}`,
+                  areaServed: "IN",
+                  availableLanguage: ["en", "hi"],
+                },
+              ]
+            : []),
         ],
       },
       {

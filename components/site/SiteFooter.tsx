@@ -1,11 +1,14 @@
 import Link from "next/link";
-import { Mail, MessageCircle } from "lucide-react";
+import { Mail, MessageCircle, Phone, MapPin } from "lucide-react";
 
 import {
   SITE_NAME,
   SITE_LEGAL_NAME,
   SUPPORT_EMAIL,
   BUSINESS_COUNTRY,
+  BUSINESS_PHONE,
+  BUSINESS_PHONE_E164,
+  BUSINESS_ADDRESS_LINE,
   FOOTER_GROUPS,
   whatsappLink,
 } from "../../lib/site";
@@ -50,6 +53,21 @@ export default function SiteFooter() {
                   Chat on WhatsApp
                 </a>
               )}
+              <a
+                href={`tel:${BUSINESS_PHONE_E164}`}
+                className="flex items-center gap-2 text-slate-300 transition hover:text-white"
+              >
+                <Phone className="h-4 w-4" />
+                {BUSINESS_PHONE}
+              </a>
+              {/* Business address on every page — the e-commerce rules ask for
+                  it, and it's the kind of detail customers check before paying. */}
+              <address className="flex items-start gap-2 not-italic text-slate-400">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  {SITE_LEGAL_NAME}, {BUSINESS_ADDRESS_LINE}
+                </span>
+              </address>
             </div>
 
             {/* Managed from admin → Settings → Social profiles. */}

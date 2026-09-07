@@ -15,6 +15,13 @@
 // claimed track record, no fabricated reviews. Edit copy here (not in the
 // component) and the JSON-LD updates with it. Answers are plain text (no HTML)
 // because they're emitted verbatim into JSON-LD.
+//
+// AND KEEP THEM CONSISTENT: dispatch/delivery windows and material claims are
+// stated in three places — here, the homepage value cards, and
+// /shipping-returns. The policy page is the operative one; the other two must
+// not promise anything faster or stronger than it does. Answer engines quote
+// these verbatim, so a mismatch becomes a promise we're publicly making and
+// privately contradicting.
 
 export interface FaqItem {
   q: string;
@@ -40,11 +47,11 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "What materials do you print with?",
-    a: "ShilpSmith prints with sturdy, premium materials chosen to last, including biodegradable, food-safe filaments where a product calls for them. The right material is selected for each piece based on how it will be used.",
+    a: "ShilpSmith prints mainly with PLA and PETG. PLA is a plant-based filament with an excellent finish, and PETG is chosen where a piece needs extra strength or heat resistance — which matters for Indian summers. The material is picked per product based on how it will be used, and you can ask us on WhatsApp which one a specific item uses.",
   },
   {
     q: "How long does delivery take, and where do you ship?",
-    a: "ShilpSmith ships across India. Most standard pieces are printed and dispatched within 24–72 hours of order confirmation. Fully custom commissions can take a little longer depending on design complexity, and we confirm the timeline with you before printing.",
+    a: "ShilpSmith ships across India. Most standard pieces are printed and dispatched within 1–3 business days of order confirmation, and delivery usually takes another 3–7 business days depending on your location. Fully custom commissions can take a little longer depending on design complexity, and we confirm the timeline with you before printing.",
   },
   {
     q: "Can I personalize a product with names, colors, or sizes?",

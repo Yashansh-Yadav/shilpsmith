@@ -14,5 +14,7 @@ export default function robots(): MetadataRoute.Robots {
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,
     host: SITE_URL,
+    // /llms.txt isn't part of the robots spec, but pointing at it costs nothing
+    // and some agents look here first for a site map of any kind.
   };
 }

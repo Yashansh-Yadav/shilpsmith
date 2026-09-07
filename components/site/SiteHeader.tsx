@@ -23,7 +23,7 @@ export default function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <Link href="/" className="flex shrink-0 items-center gap-1">
-          <Image src={BrandLogoFigure} alt="ShilpSmith" width={34} priority />
+          <Image src={BrandLogoFigure} alt="" width={34} priority />
           <Image
             src={BrandLogoText}
             alt="ShilpSmith"
