@@ -2,6 +2,7 @@ import "./globals.css";
 
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 
 import {
   SITE_URL,
@@ -180,6 +181,30 @@ async function StructuredData() {
   );
 }
 
+// Google Analytics 4. Production-only so local dev traffic doesn't pollute the
+// property. `afterInteractive` keeps gtag.js off the critical rendering path.
+const GA_MEASUREMENT_ID = "G-SZKJF7L95J";
+
+function GoogleAnalytics() {
+  if (process.env.NODE_ENV !== "production") return null;
+  return (
+    <>
+      <Script
+        src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+        strategy="afterInteractive"
+      />
+      <Script id="google-analytics" strategy="afterInteractive">
+        {`
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${GA_MEASUREMENT_ID}');
+        `}
+      </Script>
+    </>
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -190,6 +215,7 @@ export default function RootLayout({
       <body className="font-sans antialiased">
         <StructuredData />
         {children}
+        <GoogleAnalytics />
       </body>
     </html>
   );
