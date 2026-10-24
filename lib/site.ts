@@ -37,7 +37,13 @@ export const FOUNDER_ROLE = "Founder";
 // (e.g. "/founder.jpg", portrait 4:5 works best). The story should be the
 // founder's own words — why ShilpSmith started, when, the first print.
 export const FOUNDER_PHOTO: string | null = "/myPhoto.webp";
-export const FOUNDER_STORY: string[] | null = null;
+// Drawn only from facts stated on /about — no invented dates or milestones.
+// Replace with the founder's own words whenever they're ready.
+export const FOUNDER_STORY: string[] | null = [
+  "I started ShilpSmith with a simple belief: the things you keep and gift should feel personal. 3D printing lets me make exactly that — pieces designed around a name, a moment or a need, printed one at a time instead of stamped out by the thousand.",
+  "Every order is designed, printed, finished and quality-checked by hand in my studio in Bareilly before it ships. I sweat the details — material, finish, durability — so what arrives is something you're proud to own or give.",
+  "When you message on WhatsApp, you're talking to the person who makes your piece, not a call centre. Got an idea, a sketch or just a question? Talk to me directly.",
+];
 
 // Publicly displayed business contact number. Kept separate from
 // NEXT_PUBLIC_WHATSAPP_NUMBER because the WhatsApp CTA number and the number a
