@@ -236,3 +236,94 @@ body {
 /* Hide scrollbar on the mobile panchang rail while keeping it scrollable. */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * Homepage — "the page prints itself"
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/* Dark "build chamber": dot-grid build plate + emerald heat from below. */
+.plate-grid {
+  background-image: radial-gradient(rgba(148, 163, 184, 0.16) 1px, transparent 1px);
+  background-size: 26px 26px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 75%);
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 75%);
+}
+.heated-bed {
+  background:
+    radial-gradient(ellipse 60% 55% at 50% 100%, rgba(16, 185, 129, 0.28), transparent 70%),
+    radial-gradient(ellipse 35% 30% at 85% 20%, rgba(99, 102, 241, 0.16), transparent 70%);
+}
+
+/* Hero stage: dark top → emerald glow behind the floating print → light floor
+ * that flows straight into the next (slate-50) section. */
+.hero-stage {
+  background:
+    radial-gradient(55% 50% at 70% 46%, rgba(16, 185, 129, 0.42), transparent 70%),
+    radial-gradient(35% 28% at 88% 12%, rgba(99, 102, 241, 0.22), transparent 70%),
+    linear-gradient(180deg, #020617 0%, #031b17 34%, #0a3a31 60%, #5fae93 80%, #dcefe7 92%, #f8fafc 100%);
+}
+
+/* Headline print-in: each character is laid down bottom-up in 7 layer steps
+ * while two emerald slices sweep across it (adapted from 21st.dev's Hero
+ * Shutter Text). Pure CSS — the text is in the server HTML either way. */
+.pword { display: inline-block; white-space: nowrap; }
+.pchar {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: top;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+.pchar > .pm {
+  display: inline-block;
+  clip-path: inset(100% -0.1em -0.3em -0.1em);
+  animation: pPrintUp 0.62s steps(7, end) forwards;
+  animation-delay: var(--d);
+}
+.pchar > .ps {
+  position: absolute;
+  inset: 0;
+  color: #34d399;
+  pointer-events: none;
+  opacity: 0;
+  animation: pSweep 0.55s ease-in-out forwards;
+  animation-delay: var(--d);
+}
+.pchar > .ps.pb { animation-name: pSweepB; }
+@keyframes pPrintUp { to { clip-path: inset(-0.2em -0.1em -0.3em -0.1em); } }
+@keyframes pSweep { 0% { transform: translateX(-110%); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateX(110%); opacity: 0; } }
+@keyframes pSweepB { 0% { transform: translateX(110%); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateX(-110%); opacity: 0; } }
+
+/* Spec ticker. */
+.marquee { animation: marquee 38s linear infinite; }
+@keyframes marquee { to { transform: translateX(-50%); } }
+
+/* Product card: quick bar slides up on hover / keyboard focus. */
+.card-quick { transform: translateY(calc(100% + 16px)); transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+.group:hover .card-quick, .group:focus-visible .card-quick { transform: none; }
+
+/* NFC tap ripple. */
+.ripple { animation: ripple 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite; }
+.ripple-2 { animation-delay: 0.8s; }
+.ripple-3 { animation-delay: 1.6s; }
+@keyframes ripple { 0% { transform: scale(0.4); opacity: 0.9; } 100% { transform: scale(2.4); opacity: 0; } }
+
+/* Category row: emerald "extrusion" fills from the left on hover. */
+.cat-fill { transform: scaleX(0); transform-origin: left; transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1); }
+.group:hover .cat-fill, .group:focus-visible .cat-fill { transform: scaleX(1); }
+
+/* Sketch → print (custom order band). Starts once Reveal adds .is-visible. */
+.sketch-path { stroke-dasharray: 900; stroke-dashoffset: 900; }
+.is-visible .sketch-path { animation: sketchDraw 2.4s ease forwards; }
+@keyframes sketchDraw { to { stroke-dashoffset: 0; } }
+.printed-shape { clip-path: inset(100% 0 0 0); }
+.is-visible .printed-shape { animation: printShape 2.6s steps(30, end) 1.2s forwards; }
+@keyframes printShape { to { clip-path: inset(0 0 0 0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .pchar > .pm, .printed-shape { animation: none !important; clip-path: none !important; }
+  .pchar > .ps { display: none !important; }
+  .marquee, .ripple { animation: none !important; }
+  .sketch-path { stroke-dashoffset: 0; animation: none !important; }
+}

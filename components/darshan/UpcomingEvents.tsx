@@ -46,10 +46,10 @@ export default function UpcomingEvents({
                 }`}
               >
                 <div className="w-11 flex-none rounded-xl bg-rose-50 py-1 text-center">
-                  <div className="text-base font-bold leading-none text-rose-600">
+                  <div className="font-display text-base font-bold leading-none text-rose-600">
                     {e.day}
                   </div>
-                  <div className="text-[10px] uppercase text-rose-400">
+                  <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-rose-400">
                     {e.month}
                   </div>
                 </div>

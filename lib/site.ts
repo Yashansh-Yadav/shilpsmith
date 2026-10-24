@@ -31,6 +31,14 @@ export const BUSINESS_COUNTRY = "India";
 export const FOUNDER_NAME = "Yashansh Kumar Singh";
 export const FOUNDER_ROLE = "Founder";
 
+// "Meet the maker" on the homepage. Both are optional: with no photo the
+// section shows a monogram, and with no story it falls back to a short,
+// factual studio description. Put the photo in /public and set the path
+// (e.g. "/founder.jpg", portrait 4:5 works best). The story should be the
+// founder's own words — why ShilpSmith started, when, the first print.
+export const FOUNDER_PHOTO: string | null = "/myPhoto.webp";
+export const FOUNDER_STORY: string[] | null = null;
+
 // Publicly displayed business contact number. Kept separate from
 // NEXT_PUBLIC_WHATSAPP_NUMBER because the WhatsApp CTA number and the number a
 // customer should ring are allowed to diverge later.

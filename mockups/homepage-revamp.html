@@ -1,0 +1,944 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ShilpSmith — Homepage Revamp Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script>
+  // Palette unchanged from the live site: emerald brand scale + slate neutrals
+  // + the indigo accent. Only the type changes (Space Grotesk for display).
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: {
+          display: ['"Space Grotesk"', 'Inter', 'sans-serif'],
+          sans: ['Inter', 'system-ui', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        },
+        colors: {
+          brand: { 50:'#ecfdf5',100:'#d1fae5',200:'#a7f3d0',300:'#6ee7b7',400:'#34d399',500:'#10b981',600:'#059669',700:'#047857',800:'#065f46',900:'#064e3b' },
+          accent: { 400:'#818cf8',500:'#6366f1',600:'#4f46e5' },
+        },
+      },
+    },
+  };
+</script>
+<style>
+  html { scroll-behavior: smooth; }
+  body { -webkit-font-smoothing: antialiased; }
+  ::selection { background: #10b981; color: #022c22; }
+
+  /* ── Build-plate textures ─────────────────────────────────────────── */
+  .plate-grid {
+    background-image: radial-gradient(rgba(148,163,184,.16) 1px, transparent 1px);
+    background-size: 26px 26px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 75%);
+            mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 75%);
+  }
+  .heated-bed {
+    background: radial-gradient(ellipse 60% 55% at 50% 100%, rgba(16,185,129,.28), transparent 70%),
+                radial-gradient(ellipse 35% 30% at 85% 20%, rgba(99,102,241,.16), transparent 70%);
+  }
+  .layer-lines {
+    background-image: repeating-linear-gradient(to bottom, transparent 0 4px, rgba(255,255,255,.06) 4px 5px);
+  }
+  .layer-lines-light {
+    background-image: repeating-linear-gradient(to bottom, transparent 0 4px, rgba(15,23,42,.045) 4px 5px);
+  }
+
+  /* ── Headline "print-in" (adapted from 21st.dev Hero Shutter Text) ───
+     Each character is printed bottom-up in 7 layer steps, while two emerald
+     slices sweep across it like the extruder passing over. */
+  .pchar { position: relative; display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: .14em; margin-bottom: -.14em; }
+  .pword { display: inline-block; white-space: nowrap; }
+  .pchar > .m {
+    display: inline-block;
+    clip-path: inset(100% -.1em -.3em -.1em);
+    animation: printUp .62s steps(7, end) forwards;
+    animation-delay: var(--d);
+  }
+  .pchar > .s {
+    position: absolute; inset: 0; color: #34d399; pointer-events: none; opacity: 0;
+    animation: sweep .55s ease-in-out forwards; animation-delay: var(--d);
+  }
+  .pchar > .s.b { animation-direction: reverse; animation-name: sweepB; }
+  @keyframes printUp { to { clip-path: inset(-.2em -.1em -.3em -.1em); } }
+  @keyframes sweep  { 0%{transform:translateX(-110%);opacity:0} 40%{opacity:1} 100%{transform:translateX(110%);opacity:0} }
+  @keyframes sweepB { 0%{transform:translateX(110%);opacity:0} 40%{opacity:1} 100%{transform:translateX(-110%);opacity:0} }
+
+  /* ── Hero image printed layer by layer, with the nozzle riding up ──── */
+  .print-reveal { clip-path: inset(100% 0 0 0); animation: printImg 3.2s steps(48, end) .9s forwards; }
+  @keyframes printImg { to { clip-path: inset(0 0 0 0); } }
+  .nozzle { bottom: 0; animation: nozzleUp 3.2s steps(48, end) .9s forwards, nozzleOut .5s ease 4.15s forwards; }
+  @keyframes nozzleUp { to { bottom: 100%; } }
+  @keyframes nozzleOut { to { opacity: 0; } }
+  .nozzle-x { animation: nozzleX .22s ease-in-out infinite alternate; }
+  @keyframes nozzleX { from { left: 6%; } to { left: 86%; } }
+  .layers-fade { animation: fadeOut 1.2s ease 4.3s forwards; }
+  @keyframes fadeOut { to { opacity: 0; } }
+
+  /* ── Marquee ──────────────────────────────────────────────────────── */
+  .marquee { animation: marquee 38s linear infinite; }
+  @keyframes marquee { to { transform: translateX(-50%); } }
+
+  /* ── Section entrance: rise in layers ─────────────────────────────── */
+  .rise { opacity: 0; transform: translateY(28px); transition: opacity .8s cubic-bezier(.22,1,.36,1), transform .8s cubic-bezier(.22,1,.36,1); transition-delay: var(--rd, 0ms); }
+  .rise.in { opacity: 1; transform: none; }
+
+  /* ── Product card tilt ────────────────────────────────────────────── */
+  .tilt { transform-style: preserve-3d; transition: transform .35s cubic-bezier(.22,1,.36,1); will-change: transform; }
+  .tilt .quick { transform: translateY(calc(100% + 16px)); transition: transform .35s cubic-bezier(.22,1,.36,1); }
+  .tilt:hover .quick, .tilt:focus-within .quick { transform: none; }
+  .tilt .glare { background: radial-gradient(circle at var(--gx,50%) var(--gy,50%), rgba(255,255,255,.35), transparent 45%); opacity: 0; transition: opacity .3s; }
+  .tilt:hover .glare { opacity: 1; }
+
+  /* ── NFC ripple ───────────────────────────────────────────────────── */
+  .ripple { animation: ripple 2.4s cubic-bezier(.22,1,.36,1) infinite; }
+  .ripple.r2 { animation-delay: .8s; } .ripple.r3 { animation-delay: 1.6s; }
+  @keyframes ripple { 0%{transform:scale(.4);opacity:.9} 100%{transform:scale(2.4);opacity:0} }
+
+  /* ── Category row: extrusion fill sweeps in from the left ─────────── */
+  .cat-row .fill { transform: scaleX(0); transform-origin: left; transition: transform .55s cubic-bezier(.22,1,.36,1); }
+  .cat-row:hover .fill, .cat-row:focus-visible .fill { transform: scaleX(1); }
+
+  /* ── Sketch → print (custom order band) ───────────────────────────── */
+  .sketch path { stroke-dasharray: 900; stroke-dashoffset: 900; }
+  .in .sketch path { animation: draw 2.4s ease forwards; }
+  @keyframes draw { to { stroke-dashoffset: 0; } }
+  .printed-vase { clip-path: inset(100% 0 0 0); }
+  .in .printed-vase { animation: printImg 2.6s steps(30, end) 1.2s forwards; }
+
+  details summary::-webkit-details-marker { display: none; }
+  details[open] .plus { transform: rotate(45deg); }
+
+  .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .pchar > .m, .print-reveal, .printed-vase { animation: none !important; clip-path: none !important; }
+    .pchar > .s, .nozzle, .layers-fade { display: none !important; }
+    .marquee, .ripple, .nozzle-x { animation: none !important; }
+    .rise { opacity: 1; transform: none; transition: none; }
+    .sketch path { stroke-dashoffset: 0; animation: none !important; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body class="bg-slate-50 font-sans text-slate-900">
+
+<!-- ════════════════════════════ MOCKUP RIBBON ════════════════════════════ -->
+<div class="fixed bottom-4 left-4 z-[80] rounded-full bg-accent-600 px-4 py-2 font-mono text-xs font-medium text-white shadow-lg">
+  Mockup · not the live site
+</div>
+
+<!-- ════════════════════════════════ HEADER ═══════════════════════════════
+     Transparent over the dark hero, turns solid white once you scroll. -->
+<header id="hdr" class="fixed inset-x-0 top-0 z-50 transition-colors duration-300">
+  <div class="mx-auto flex h-[72px] max-w-7xl items-center justify-between gap-6 px-5 sm:px-8">
+    <a href="#" class="flex items-center gap-2.5">
+      <img src="../public/brandLogo_figure.png" alt="" class="h-9 w-9 rounded-lg" />
+      <span data-hdr-text class="font-display text-[1.35rem] font-bold tracking-tight text-white">ShilpSmith</span>
+    </a>
+    <nav class="hidden lg:block">
+      <ul data-hdr-links class="flex items-center gap-8 text-[15px] font-medium text-slate-300">
+        <li><a href="#shop" class="transition hover:text-brand-400">Shop</a></li>
+        <li><a href="#idols" class="transition hover:text-brand-400">Smart Idols</a></li>
+        <li><a href="#custom" class="transition hover:text-brand-400">Custom Orders</a></li>
+        <li><a href="#maker" class="transition hover:text-brand-400">About</a></li>
+        <li><a href="#" class="transition hover:text-brand-400">Track Order</a></li>
+      </ul>
+    </nav>
+    <div class="flex items-center gap-2">
+      <button data-hdr-icon aria-label="Search" class="grid h-11 w-11 place-items-center rounded-full text-white transition hover:bg-white/10">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      </button>
+      <button data-hdr-icon aria-label="Cart" class="relative grid h-11 w-11 place-items-center rounded-full text-white transition hover:bg-white/10">
+        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 7h12l-1 13H7L6 7Z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+        <span id="cartCount" class="absolute right-1 top-1 hidden h-[18px] min-w-[18px] place-items-center rounded-full bg-brand-500 px-1 font-mono text-[10px] font-bold text-slate-950">0</span>
+      </button>
+      <a href="#custom" class="ml-1 hidden rounded-full bg-brand-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-brand-400 sm:inline-flex">Order Now</a>
+    </div>
+  </div>
+</header>
+
+<!-- ════════════════════════════════ HERO ═════════════════════════════════
+     The build chamber: dark, a dot-grid build plate, emerald heat from below.
+     Headline prints itself char by char; the photo prints layer by layer. -->
+<section class="relative isolate min-h-[100svh] overflow-hidden bg-slate-950 text-white">
+  <div class="plate-grid absolute inset-0 -z-10"></div>
+  <div class="heated-bed absolute inset-0 -z-10"></div>
+
+  <div class="mx-auto grid min-h-[100svh] max-w-7xl items-center gap-12 px-5 pb-28 pt-28 sm:px-8 lg:grid-cols-[1.1fr_1fr] lg:gap-10 lg:pt-20">
+    <div>
+      <p class="mb-7 inline-flex items-center gap-2.5 font-mono text-[13px] font-medium text-brand-300">
+        <span class="relative flex h-2 w-2"><span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75"></span><span class="relative h-2 w-2 rounded-full bg-brand-400"></span></span>
+        Crafted on demand · Made in India
+      </p>
+
+      <h1 class="font-display font-semibold leading-[0.95] tracking-[-0.04em]" style="font-size: clamp(2.75rem, 5.4vw, 5.25rem)">
+        <span class="block" data-print="Bring your ideas"></span>
+        <span class="block" data-print="to life with"></span>
+        <span class="block text-brand-400" data-print="premium 3D prints"></span>
+      </h1>
+
+      <p class="rise mt-8 max-w-xl text-lg leading-relaxed text-slate-300" style="--rd:1400ms">
+        Personalized gifts, aesthetic decor, functional accessories, educational models, and one-of-a-kind custom creations.
+      </p>
+
+      <div class="rise mt-10 flex flex-wrap gap-3" style="--rd:1550ms">
+        <a href="#shop" class="group inline-flex items-center gap-2 rounded-full bg-brand-500 px-7 py-4 font-semibold text-slate-950 transition hover:bg-brand-400 active:scale-[.97]">
+          Shop the catalog
+          <svg class="h-4 w-4 transition group-hover:translate-x-1" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+        <a href="#custom" class="inline-flex items-center gap-2 rounded-full bg-white/10 px-7 py-4 font-semibold text-white ring-1 ring-white/15 transition hover:bg-white/15 active:scale-[.97]">
+          Get a custom quote
+        </a>
+      </div>
+
+      <dl class="rise mt-12 grid max-w-lg grid-cols-3 gap-4 sm:gap-6" style="--rd:1700ms">
+        <div><dt class="text-sm text-slate-400">Customizable</dt><dd class="mt-1 whitespace-nowrap font-display text-2xl font-semibold sm:text-3xl">100%</dd></div>
+        <div><dt class="text-sm text-slate-400">Dispatch time</dt><dd class="mt-1 whitespace-nowrap font-display text-2xl font-semibold sm:text-3xl">1–3 days</dd></div>
+        <div><dt class="text-sm text-slate-400">Print quality</dt><dd class="mt-1 whitespace-nowrap font-display text-2xl font-semibold sm:text-3xl">Premium</dd></div>
+      </dl>
+    </div>
+
+    <!-- Live 3D printer (three.js): a twisted vase printed layer by layer.
+         Drag to orbit. Renders a finished vase, static, under reduced motion. -->
+    <div class="relative -mx-5 sm:mx-0 lg:-mr-16">
+      <div id="stage" class="relative aspect-square w-full cursor-grab active:cursor-grabbing lg:aspect-[5/6]" role="img" aria-label="Animated 3D printer printing a twisted vase layer by layer"></div>
+
+      <p id="filamentChip" class="pointer-events-none absolute left-6 top-4 rounded-full bg-white/5 px-3 py-1.5 font-mono text-xs text-slate-300 ring-1 ring-white/10 sm:left-2">PLA · Emerald</p>
+      <p class="pointer-events-none absolute right-6 top-4 hidden items-center gap-2 font-mono text-xs text-slate-500 sm:flex">
+        <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 15-6.7L21 8M21 3v5h-5M21 12a9 9 0 0 1-15 6.7L3 16M3 21v-5h5"/></svg>
+        Drag to rotate
+      </p>
+
+      <!-- live print readout, driven by the 3D scene -->
+      <div class="relative mx-5 -mt-4 flex items-center justify-between gap-4 rounded-2xl bg-slate-900/90 px-5 py-4 ring-1 ring-white/10 sm:absolute sm:bottom-2 sm:left-2 sm:mx-0 sm:mt-0 sm:min-w-[320px]">
+        <div>
+          <p id="printState" class="whitespace-nowrap font-mono text-xs text-brand-300">● PRINTING</p>
+          <p class="mt-1 whitespace-nowrap font-mono text-sm text-slate-200">Layer <span id="layerNow" class="tabular-nums">0000</span>/1200 · 0.2 mm</p>
+        </div>
+        <div class="hidden h-1.5 w-24 overflow-hidden rounded-full bg-white/10 sm:block"><div id="layerBar" class="h-full w-0 rounded-full bg-brand-400"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- spec ticker -->
+  <div class="absolute inset-x-0 bottom-0 overflow-hidden bg-white/[.03] py-4 ring-1 ring-white/5">
+    <div class="marquee flex w-max gap-10 whitespace-nowrap font-mono text-[13px] text-slate-400">
+      <!-- duplicated once for a seamless loop -->
+      <span>PLA &amp; PETG</span><span class="text-brand-400">◆</span><span>0.2 mm layer height</span><span class="text-brand-400">◆</span><span>Dispatch in 1–3 days</span><span class="text-brand-400">◆</span><span>Free design consultation</span><span class="text-brand-400">◆</span><span>Preview before printing</span><span class="text-brand-400">◆</span><span>Delivery across India</span><span class="text-brand-400">◆</span><span>No deposit required</span><span class="text-brand-400">◆</span>
+      <span>PLA &amp; PETG</span><span class="text-brand-400">◆</span><span>0.2 mm layer height</span><span class="text-brand-400">◆</span><span>Dispatch in 1–3 days</span><span class="text-brand-400">◆</span><span>Free design consultation</span><span class="text-brand-400">◆</span><span>Preview before printing</span><span class="text-brand-400">◆</span><span>Delivery across India</span><span class="text-brand-400">◆</span><span>No deposit required</span><span class="text-brand-400">◆</span>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════════════ SHOP ═════════════════════════════════
+     One section instead of three identical shelves. Category filter on top,
+     a bento grid below: the featured piece large, the rest as tall 2:3 cards
+     so the product posters show uncropped. -->
+<section id="shop" class="py-24 lg:py-32">
+  <div class="mx-auto max-w-7xl px-5 sm:px-8">
+    <div class="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+      <div class="rise">
+        <h2 class="font-display text-5xl font-semibold tracking-[-0.035em] sm:text-6xl lg:text-7xl">The collection</h2>
+        <p class="mt-4 max-w-md text-lg text-slate-600">Hand-picked best sellers, printed to order. Pick a shelf or browse it all.</p>
+      </div>
+      <div class="rise flex flex-wrap gap-2" style="--rd:120ms" role="tablist" aria-label="Filter products">
+        <button data-filter="all" class="chip rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition">All <span class="ml-1 font-mono opacity-60">5</span></button>
+        <button data-filter="personalized-gifts" class="chip rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:ring-slate-400">Personalized Gifts <span class="ml-1 font-mono opacity-60">2</span></button>
+        <button data-filter="spiritual-artistic" class="chip rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:ring-slate-400">Spiritual &amp; Artistic <span class="ml-1 font-mono opacity-60">2</span></button>
+        <button data-filter="functional-products" class="chip rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 transition hover:ring-slate-400">Functional <span class="ml-1 font-mono opacity-60">1</span></button>
+      </div>
+    </div>
+
+    <div id="grid" class="mt-14 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4"></div>
+
+    <div class="mt-14 flex justify-center">
+      <a href="#" class="inline-flex items-center gap-2 rounded-full bg-white px-7 py-4 font-semibold text-slate-900 ring-1 ring-slate-200 transition hover:ring-slate-400">See all products →</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════════ SMART IDOLS ═════════════════════════════
+     Their unique product gets its own dark band with the tap-to-darshan idea. -->
+<section id="idols" class="relative isolate overflow-hidden bg-slate-950 py-24 text-white lg:py-32">
+  <div class="heated-bed absolute inset-0 -z-10 opacity-70"></div>
+  <div class="mx-auto grid max-w-7xl items-center gap-16 px-5 sm:px-8 lg:grid-cols-2">
+    <div class="rise">
+      <p class="font-mono text-sm text-brand-300">Smart NFC idols</p>
+      <h2 class="mt-4 font-display text-5xl font-semibold leading-[0.95] tracking-[-0.035em] sm:text-6xl">Tap the chakra.<br />Open darshan.</h2>
+      <p class="mt-6 max-w-lg text-lg leading-relaxed text-slate-300">Every ShilpSmith Smart idol carries a built-in NFC tag. One tap opens its darshan page — no app, no scanning.</p>
+      <ul class="mt-10 grid max-w-lg grid-cols-2 gap-x-6 gap-y-5">
+        <li><p class="font-semibold">Chalisa &amp; scriptures</p><p class="mt-1 text-sm text-slate-400">Read sacred texts anywhere</p></li>
+        <li><p class="font-semibold">Aarti &amp; bhajans</p><p class="mt-1 text-sm text-slate-400">Listen in one tap</p></li>
+        <li><p class="font-semibold">Live Panchang</p><p class="mt-1 text-sm text-slate-400">Tithi, Nakshatra, Muhurat</p></li>
+        <li><p class="font-semibold">Festivals &amp; special days</p><p class="mt-1 text-sm text-slate-400">Never miss a Tuesday</p></li>
+      </ul>
+      <div class="mt-12 flex flex-wrap items-center gap-6">
+        <a href="#" class="inline-flex items-center gap-2 rounded-full bg-brand-500 px-7 py-4 font-semibold text-slate-950 transition hover:bg-brand-400">Explore Smart Idols</a>
+        <p class="text-slate-300">From <span class="font-mono text-xl font-bold text-white">₹539</span> <span class="font-mono text-sm text-slate-500 line-through">₹599</span></p>
+      </div>
+    </div>
+
+    <div class="rise relative mx-auto h-[540px] w-full max-w-[520px]" style="--rd:150ms">
+      <img src="https://ypluxspirgkc6otu.public.blob.vercel-storage.com/SmartNFCMahadevIdol-7RzSfIKWxyg4uaECsWWB5sC2MoLn7N.png" alt="Smart NFC Mahadev Idol" class="absolute left-0 top-10 w-[58%] -rotate-6 rounded-3xl ring-1 ring-white/10" loading="lazy" />
+      <img src="https://ypluxspirgkc6otu.public.blob.vercel-storage.com/1000184413-L9MkRiMm0Skb3mtIrBZ23gtDQT2YAb.png" alt="Smart NFC Lord Hanuman Idol" class="absolute right-0 top-0 w-[58%] rotate-3 rounded-3xl ring-1 ring-white/10" loading="lazy" />
+      <!-- tap ripple -->
+      <div class="absolute bottom-6 left-1/2 grid h-28 w-28 -translate-x-1/2 place-items-center">
+        <span class="ripple absolute h-full w-full rounded-full ring-2 ring-brand-400"></span>
+        <span class="ripple r2 absolute h-full w-full rounded-full ring-2 ring-brand-400"></span>
+        <span class="ripple r3 absolute h-full w-full rounded-full ring-2 ring-brand-400"></span>
+        <span class="relative grid h-16 w-16 place-items-center rounded-full bg-brand-500 font-mono text-sm font-bold text-slate-950">NFC</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════ HOW IT'S PRINTED ══════════════════════════
+     Sticky build readout on the left: the part grows a layer band per step
+     and the layer counter climbs as you scroll through the four steps. -->
+<section id="process" class="bg-white py-24 lg:py-32">
+  <div class="mx-auto max-w-7xl px-5 sm:px-8">
+    <div class="grid gap-16 lg:grid-cols-2">
+      <div class="lg:sticky lg:top-28 lg:h-fit">
+        <h2 class="rise font-display text-5xl font-semibold tracking-[-0.035em] sm:text-6xl">From idea<br />to your door</h2>
+        <p class="rise mt-5 max-w-md text-lg text-slate-600" style="--rd:100ms">Four steps. You see a preview before a single layer is printed.</p>
+
+        <div class="mt-12 rounded-[2rem] bg-slate-950 p-8 text-white">
+          <div class="flex items-center justify-between font-mono text-sm">
+            <span class="text-brand-300">● BUILD</span>
+            <span>Layer <span id="procLayer" class="tabular-nums">0001</span> / 1200</span>
+          </div>
+          <!-- the part being printed -->
+          <div class="mt-8 flex h-56 flex-col-reverse items-center gap-[3px]" id="partStack"></div>
+          <div class="mt-6 h-1.5 overflow-hidden rounded-full bg-white/10"><div id="procBar" class="h-full w-[2%] rounded-full bg-brand-400 transition-all duration-500"></div></div>
+        </div>
+      </div>
+
+      <ol class="space-y-6" id="steps">
+        <li data-step="0" class="step rounded-[2rem] bg-slate-50 p-8 transition duration-500 sm:p-10">
+          <p class="font-mono text-sm text-brand-700">01</p>
+          <h3 class="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">Share your idea</h3>
+          <p class="mt-3 max-w-md text-lg text-slate-600">Reference photo, sketch, or rough description. WhatsApp or browse the catalog.</p>
+        </li>
+        <li data-step="1" class="step rounded-[2rem] bg-slate-50 p-8 transition duration-500 sm:p-10">
+          <p class="font-mono text-sm text-brand-700">02</p>
+          <h3 class="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">We model it</h3>
+          <p class="mt-3 max-w-md text-lg text-slate-600">Our team turns it into a CAD-ready file, with a preview before you confirm.</p>
+        </li>
+        <li data-step="2" class="step rounded-[2rem] bg-slate-50 p-8 transition duration-500 sm:p-10">
+          <p class="font-mono text-sm text-brand-700">03</p>
+          <h3 class="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">We print</h3>
+          <p class="mt-3 max-w-md text-lg text-slate-600">Crafted on studio-grade printers and finished by hand — every piece checked before shipping.</p>
+        </li>
+        <li data-step="3" class="step rounded-[2rem] bg-slate-50 p-8 transition duration-500 sm:p-10">
+          <p class="font-mono text-sm text-brand-700">04</p>
+          <h3 class="mt-3 font-display text-3xl font-semibold tracking-tight sm:text-4xl">Door delivery</h3>
+          <p class="mt-3 max-w-md text-lg text-slate-600">Polished, packed, and shipped across India — most orders within 24–72 hours.</p>
+        </li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════ CATEGORIES ═════════════════════════════
+     Big typographic rows; an emerald "extrusion" fills each row on hover. -->
+<section class="py-24 lg:py-32">
+  <div class="mx-auto max-w-7xl px-5 sm:px-8">
+    <div class="rise flex items-end justify-between gap-6">
+      <h2 class="font-display text-5xl font-semibold tracking-[-0.035em] sm:text-6xl">Browse what fits your vibe</h2>
+    </div>
+    <ul class="mt-12 divide-y divide-slate-200 border-y border-slate-200" id="cats"></ul>
+  </div>
+</section>
+
+<!-- ════════════════════════════ MEET THE MAKER ═══════════════════════════
+     NEW. Owner photo + story + direct contact. Photo and story are
+     placeholders — to be supplied by the owner. -->
+<section id="maker" class="bg-white py-24 lg:py-32">
+  <div class="mx-auto grid max-w-7xl items-center gap-14 px-5 sm:px-8 lg:grid-cols-[5fr_7fr] lg:gap-20">
+    <div class="rise relative">
+      <div class="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-slate-100">
+        <!-- PLACEHOLDER: owner photo goes here -->
+        <div class="layer-lines-light absolute inset-0"></div>
+        <div class="absolute inset-0 grid place-items-center p-10 text-center">
+          <div>
+            <svg class="mx-auto h-16 w-16 text-slate-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>
+            <p class="mt-4 font-mono text-sm text-slate-500">[ Owner photo — portrait 4:5 ]</p>
+          </div>
+        </div>
+      </div>
+      <div class="absolute -bottom-6 -right-3 rounded-2xl bg-slate-950 px-5 py-4 text-white sm:-right-6">
+        <p class="font-mono text-xs text-brand-300">STUDIO</p>
+        <p class="mt-1 font-semibold">Bareilly, Uttar Pradesh</p>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="rise font-display text-5xl font-semibold tracking-[-0.035em] sm:text-6xl">Meet the maker</h2>
+      <p class="rise mt-3 text-lg text-slate-600" style="--rd:80ms"><span class="font-semibold text-slate-900">Yashansh Kumar Singh</span> · Founder, ShilpSmith 3D Studio</p>
+
+      <div class="rise mt-8 space-y-5 text-lg leading-relaxed text-slate-700" style="--rd:160ms">
+        <p class="rounded-2xl bg-amber-50 p-5 text-base text-amber-900 ring-1 ring-amber-200">
+          <strong>Placeholder — your story goes here.</strong> 3–5 sentences in your own words: why you started ShilpSmith, when, and the first thing you printed. Example shape: “It started with one printer on my desk in 20XX… The first thing I made was… Today every piece still leaves my studio in Bareilly checked by hand.”
+        </p>
+      </div>
+
+      <div class="rise mt-10 grid gap-3 sm:grid-cols-2" style="--rd:240ms">
+        <a href="#" class="group rounded-2xl bg-slate-50 p-5 transition hover:bg-brand-50">
+          <p class="text-sm text-slate-500">WhatsApp</p>
+          <p class="mt-1 font-mono text-lg font-semibold text-slate-900 group-hover:text-brand-800">+91 82797 31481</p>
+        </a>
+        <a href="#" class="group rounded-2xl bg-slate-50 p-5 transition hover:bg-brand-50">
+          <p class="text-sm text-slate-500">Call</p>
+          <p class="mt-1 font-mono text-lg font-semibold text-slate-900 group-hover:text-brand-800">+91 82799 84069</p>
+        </a>
+        <a href="#" class="group rounded-2xl bg-slate-50 p-5 transition hover:bg-brand-50">
+          <p class="text-sm text-slate-500">Email</p>
+          <p class="mt-1 text-lg font-semibold text-slate-400">[ support email — not set yet ]</p>
+        </a>
+        <div class="rounded-2xl bg-slate-50 p-5">
+          <p class="text-sm text-slate-500">Studio</p>
+          <p class="mt-1 text-lg font-semibold text-slate-900">Kila Katghar, Bareilly, UP 243003</p>
+        </div>
+      </div>
+
+      <a href="#" class="rise mt-8 inline-flex items-center gap-2 rounded-full bg-slate-900 px-7 py-4 font-semibold text-white transition hover:bg-slate-800" style="--rd:300ms">Talk to me directly</a>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════════ CUSTOM ORDER ════════════════════════════
+     Sketch draws itself, then the same shape prints beside it. -->
+<section id="custom" class="py-24 lg:py-32">
+  <div class="mx-auto max-w-7xl px-5 sm:px-8">
+    <div class="rise relative isolate overflow-hidden rounded-[2.5rem] bg-slate-950 p-8 text-white sm:p-12 lg:p-16">
+      <div class="plate-grid absolute inset-0 -z-10 opacity-60"></div>
+      <div class="grid items-center gap-12 lg:grid-cols-2">
+        <div>
+          <h2 class="font-display text-5xl font-semibold leading-[0.95] tracking-[-0.035em] sm:text-6xl">Have an idea?<br /><span class="text-brand-400">We'll print it.</span></h2>
+          <p class="mt-6 max-w-md text-lg leading-relaxed text-slate-300">Share a sketch, Pinterest mood-board, image, or rough concept — we turn it into a premium-quality 3D printed product.</p>
+          <ul class="mt-8 space-y-3 text-slate-200">
+            <li class="flex items-center gap-3"><span class="h-2 w-2 rounded-full bg-brand-400"></span>Personalized product design</li>
+            <li class="flex items-center gap-3"><span class="h-2 w-2 rounded-full bg-brand-400"></span>Preview before printing</li>
+            <li class="flex items-center gap-3"><span class="h-2 w-2 rounded-full bg-brand-400"></span>Delivery across India</li>
+          </ul>
+          <div class="mt-10 flex flex-wrap items-center gap-5">
+            <a href="#" class="inline-flex items-center gap-2 rounded-full bg-brand-500 px-7 py-4 font-semibold text-slate-950 transition hover:bg-brand-400">Chat on WhatsApp</a>
+            <p class="text-sm text-slate-400">Free design consultation. No deposit required.</p>
+          </div>
+        </div>
+
+        <!-- sketch → print -->
+        <div class="grid grid-cols-2 items-end gap-6">
+          <figure>
+            <svg class="sketch mx-auto h-64 w-full" viewBox="0 0 160 240" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 0">
+              <path d="M58 20 h44 M62 20 c0 22 -38 38 -38 92 c0 52 22 108 56 108 c34 0 56 -56 56 -108 c0 -54 -38 -70 -38 -92" />
+              <path d="M40 120 c26 10 54 10 80 0 M34 160 c30 12 62 12 92 0" stroke-dasharray="3 6" />
+            </svg>
+            <figcaption class="mt-3 text-center font-mono text-xs text-slate-500">Your sketch</figcaption>
+          </figure>
+          <figure>
+            <div class="relative mx-auto h-64 w-full">
+              <svg class="printed-vase absolute inset-0 h-full w-full" viewBox="0 0 160 240">
+                <defs><pattern id="ll" width="4" height="4" patternUnits="userSpaceOnUse"><rect width="4" height="3" fill="#10b981"/><rect y="3" width="4" height="1" fill="#047857"/></pattern></defs>
+                <path d="M62 20 c0 22 -38 38 -38 92 c0 52 22 108 56 108 c34 0 56 -56 56 -108 c0 -54 -38 -70 -38 -92 Z" fill="url(#ll)"/>
+              </svg>
+            </div>
+            <figcaption class="mt-3 text-center font-mono text-xs text-brand-300">Printed in PLA</figcaption>
+          </figure>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ REVIEWS ═══════════════════════════════ -->
+<section class="pb-24 lg:pb-32">
+  <div class="mx-auto max-w-7xl px-5 sm:px-8">
+    <div class="rise grid items-center gap-10 rounded-[2rem] bg-white p-8 sm:p-12 lg:grid-cols-[1fr_2fr]">
+      <h2 class="font-display text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">What our community is saying</h2>
+      <figure>
+        <div class="flex gap-1 text-amber-400" aria-label="4 out of 5 stars">★★★★<span class="text-slate-200">★</span></div>
+        <blockquote class="mt-4 font-display text-3xl font-medium tracking-tight">“best product”</blockquote>
+        <figcaption class="mt-4 text-slate-600">Yashansh · on Smart NFC Lord Hanuman Idol</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════════════ FAQ ═════════════════════════════════ -->
+<section class="bg-white py-24 lg:py-32">
+  <div class="mx-auto grid max-w-7xl gap-12 px-5 sm:px-8 lg:grid-cols-[2fr_3fr]">
+    <div class="rise">
+      <h2 class="font-display text-5xl font-semibold tracking-[-0.035em] sm:text-6xl">Questions, answered</h2>
+      <p class="mt-5 max-w-sm text-lg text-slate-600">Everything about custom orders, materials, delivery, and how ShilpSmith works.</p>
+    </div>
+    <div class="rise divide-y divide-slate-200" style="--rd:100ms" id="faq"></div>
+  </div>
+</section>
+
+<!-- ═════════════════════════════ FINAL CTA ═══════════════════════════════ -->
+<section class="relative isolate overflow-hidden bg-slate-950 py-28 text-center text-white">
+  <div class="heated-bed absolute inset-0 -z-10"></div>
+  <div class="mx-auto max-w-4xl px-5">
+    <h2 class="rise font-display text-5xl font-semibold leading-[0.95] tracking-[-0.04em] sm:text-7xl">Ready to create something unique?</h2>
+    <p class="rise mx-auto mt-6 max-w-2xl text-lg text-slate-300" style="--rd:100ms">Browse inspiration, customize your design, and place your order directly through WhatsApp.</p>
+    <a href="#" class="rise mt-10 inline-flex rounded-full bg-white px-8 py-4 font-semibold text-slate-950 transition hover:bg-brand-100" style="--rd:200ms">Order via WhatsApp</a>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════ FOOTER ════════════════════════════════ -->
+<footer class="bg-slate-950 text-slate-300">
+  <div class="mx-auto max-w-7xl px-5 pb-10 pt-4 sm:px-8">
+    <div class="grid gap-12 border-t border-white/10 pt-16 md:grid-cols-2 lg:grid-cols-5">
+      <div class="lg:col-span-2">
+        <p class="font-display text-2xl font-bold text-white">ShilpSmith</p>
+        <p class="mt-3 max-w-sm text-sm leading-relaxed text-slate-400">Premium 3D-printed gifts, decor, and custom commissions — designed and crafted on demand in India.</p>
+        <p class="mt-5 text-sm text-slate-400">ShilpSmith 3D Studio, Kila Katghar, Bareilly, Uttar Pradesh, 243003, India</p>
+      </div>
+      <div><p class="text-sm font-semibold text-white">Shop</p><ul class="mt-4 space-y-2.5 text-sm"><li>All products</li><li>Smart NFC idols</li><li>Custom orders</li><li>Featured</li></ul></div>
+      <div><p class="text-sm font-semibold text-white">Company</p><ul class="mt-4 space-y-2.5 text-sm"><li>About us</li><li>Support / Contact</li><li>Track order</li></ul></div>
+      <div><p class="text-sm font-semibold text-white">Legal</p><ul class="mt-4 space-y-2.5 text-sm"><li>Terms &amp; Conditions</li><li>Privacy Policy</li><li>Shipping &amp; Returns</li></ul></div>
+    </div>
+    <p aria-hidden="true" class="mt-20 select-none whitespace-nowrap text-center font-display font-bold leading-[0.8] tracking-[-0.06em] text-white/[.06]" style="font-size: clamp(3.5rem, 16vw, 15rem)">ShilpSmith</p>
+    <p class="mt-8 text-xs text-slate-500">© 2026 ShilpSmith 3D Studio. All rights reserved.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* ── Header: transparent over hero → solid after ─────────────────── */
+  const hdr = document.getElementById('hdr');
+  const onScroll = () => {
+    // over the hero: dark bar as soon as anything scrolls under it; past it: white
+    const solid = scrollY > innerHeight * 0.85;
+    hdr.classList.toggle('bg-slate-950', !solid && scrollY > 24);
+    hdr.classList.toggle('bg-white', solid);
+    hdr.classList.toggle('shadow-[0_1px_0_rgba(15,23,42,.08)]', solid);
+    document.querySelector('[data-hdr-text]').classList.toggle('text-white', !solid);
+    document.querySelector('[data-hdr-text]').classList.toggle('text-slate-900', solid);
+    document.querySelector('[data-hdr-links]').classList.toggle('text-slate-300', !solid);
+    document.querySelector('[data-hdr-links]').classList.toggle('text-slate-600', solid);
+    document.querySelectorAll('[data-hdr-icon]').forEach(b => {
+      b.classList.toggle('text-white', !solid); b.classList.toggle('text-slate-900', solid);
+      b.classList.toggle('hover:bg-white/10', !solid); b.classList.toggle('hover:bg-slate-100', solid);
+    });
+  };
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  /* ── Headline print-in ───────────────────────────────────────────── */
+  let i = 0;
+  document.querySelectorAll('[data-print]').forEach(line => {
+    const text = line.dataset.print;
+    line.setAttribute('aria-label', text);
+    // Words stay unbreakable; each character inside prints on its own delay.
+    line.innerHTML = text.split(' ').map(word => '<span class="pword" aria-hidden="true">' + [...word].map(c => {
+      const d = (0.15 + i++ * 0.035).toFixed(3) + 's';
+      return `<span class="pchar" style="--d:${d}"><span class="m">${c}</span><span class="s" style="clip-path:inset(0 0 62% 0)">${c}</span><span class="s b" style="clip-path:inset(62% 0 0 0)">${c}</span></span>`;
+    }).join('') + '</span>').join(' ');
+  });
+
+  /* ── Tilt (product cards) ────────────────────────────────────────── */
+  function tilt(el, max = 7) {
+    if (reduce || matchMedia('(hover: none)').matches) return;
+    el.addEventListener('pointermove', e => {
+      const r = el.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      el.style.transform = `rotateY(${(x - .5) * max * 2}deg) rotateX(${(.5 - y) * max * 2}deg)`;
+      el.style.setProperty('--gx', x * 100 + '%'); el.style.setProperty('--gy', y * 100 + '%');
+    });
+    el.addEventListener('pointerleave', () => { el.style.transform = ''; });
+  }
+
+  /* ── Products (real catalogue data) ──────────────────────────────── */
+  const P = [
+    { name: 'Mini Me', cat: 'Personalized Gifts', slug: 'personalized-gifts', price: 449, list: 499, custom: true,
+      blurb: 'A personalized mini figure crafted from your photo — your loved one, as a collectible you can keep forever.',
+      img: 'https://ypluxspirgkc6otu.public.blob.vercel-storage.com/miniMe-lH3FAObcSVrDZnYvZ8VYi3DjwwCCst.png', big: true },
+    { name: 'Personalized Nameplate', cat: 'Personalized Gifts', slug: 'personalized-gifts', price: 269, list: 299, custom: true,
+      img: 'https://ypluxspirgkc6otu.public.blob.vercel-storage.com/Personalized%20Nameplate-ru9Qyod0Laohkb28K9AwsVTtFqZEm6.png' },
+    { name: 'Smart NFC Lord Hanuman Idol', cat: 'Spiritual & Artistic', slug: 'spiritual-artistic', price: 539, list: 599, rating: 4.0,
+      img: 'https://ypluxspirgkc6otu.public.blob.vercel-storage.com/1000184413-L9MkRiMm0Skb3mtIrBZ23gtDQT2YAb.png' },
+    { name: 'Smart NFC Mahadev Idol', cat: 'Spiritual & Artistic', slug: 'spiritual-artistic', price: 539, list: 599,
+      img: 'https://ypluxspirgkc6otu.public.blob.vercel-storage.com/SmartNFCMahadevIdol-7RzSfIKWxyg4uaECsWWB5sC2MoLn7N.png' },
+    { name: 'Egyptian Style Phone Stand', cat: 'Functional Products', slug: 'functional-products', price: 719, list: 799,
+      img: 'https://ypluxspirgkc6otu.public.blob.vercel-storage.com/Egyptian%20Style%20Phone%20Stand-LEIKDxkQZMugg8yMBQThkYmA6Y2Pa8.png' },
+  ];
+  const rupee = n => '₹' + n.toLocaleString('en-IN');
+  const pct = p => Math.round((1 - p.price / p.list) * 100);
+
+  const bigCard = p => `
+    <article data-cat="${p.slug}" class="rise sm:col-span-2 lg:col-span-4" style="perspective:1600px">
+      <div class="tilt group relative grid h-full overflow-hidden rounded-[2rem] bg-slate-950 text-white md:grid-cols-[minmax(0,440px)_1fr]">
+        <div class="relative overflow-hidden">
+          <!-- the poster is 2:3 with text baked in: show it whole over a blurred copy of itself -->
+          <img src="${p.img}" alt="" aria-hidden="true" class="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-2xl" />
+          <img src="${p.img}" alt="${p.name}" class="relative mx-auto aspect-[2/3] w-full object-contain p-6 transition duration-700 group-hover:scale-[1.03]" loading="lazy" />
+          <span class="absolute left-4 top-4 rounded-full bg-brand-500 px-3 py-1 font-mono text-xs font-bold text-slate-950">−${pct(p)}%</span>
+          <div class="glare pointer-events-none absolute inset-0"></div>
+        </div>
+        <div class="flex flex-col justify-center p-7 sm:p-10 lg:p-16">
+          <p class="font-mono text-xs text-brand-300">Editor's pick · ${p.cat}</p>
+          <h3 class="mt-4 font-display text-5xl font-semibold leading-none tracking-[-0.035em] lg:text-7xl">${p.name}</h3>
+          <p class="mt-6 max-w-lg text-lg text-slate-300">${p.blurb}</p>
+          <ul class="mt-6 space-y-2 text-sm text-slate-300">
+            <li>◆ Custom made from your photo</li><li>◆ Hand-finished, checked before shipping</li><li>◆ Perfect for birthdays &amp; anniversaries</li>
+          </ul>
+          <div class="pt-10">
+            <p class="flex items-baseline gap-3"><span class="font-mono text-3xl font-bold">${rupee(p.price)}</span><span class="font-mono text-slate-500 line-through">${rupee(p.list)}</span></p>
+            <div class="mt-5 flex flex-wrap gap-2">
+              <button data-add class="rounded-full bg-brand-500 px-6 py-3.5 font-semibold text-slate-950 transition hover:bg-brand-400 active:scale-[.97]">Customise &amp; buy</button>
+              <button data-add class="rounded-full bg-white/10 px-6 py-3.5 font-semibold ring-1 ring-white/15 transition hover:bg-white/15 active:scale-[.97]">Add to bag</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>`;
+
+  const card = (p, k) => `
+    <article data-cat="${p.slug}" class="rise" style="--rd:${k * 70}ms; perspective:1200px">
+      <a href="#" class="tilt group block">
+        <div class="relative overflow-hidden rounded-[1.75rem] bg-slate-200">
+          <img src="${p.img}" alt="${p.name}" class="aspect-[2/3] w-full object-cover transition duration-700 group-hover:scale-[1.04]" loading="lazy" />
+          <span class="absolute left-3 top-3 rounded-full bg-brand-500 px-2.5 py-1 font-mono text-[11px] font-bold text-slate-950">−${pct(p)}%</span>
+          ${p.custom ? '<span class="absolute right-3 top-3 rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-900">Customisable</span>' : ''}
+          <div class="glare pointer-events-none absolute inset-0"></div>
+          <div class="quick absolute inset-x-3 bottom-3 flex gap-2">
+            <button data-add class="flex-1 rounded-full bg-slate-950 py-3 text-sm font-semibold text-white transition hover:bg-slate-800">Add to bag</button>
+            <span class="grid w-12 place-items-center rounded-full bg-white text-slate-900">→</span>
+          </div>
+        </div>
+        <div class="mt-4 flex items-start justify-between gap-3 px-1">
+          <div>
+            <p class="text-sm text-slate-500">${p.cat}</p>
+            <h3 class="mt-1 font-display text-xl font-semibold leading-tight tracking-tight">${p.name}</h3>
+          </div>
+          ${p.rating ? `<span class="mt-1 shrink-0 rounded-md bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">★ ${p.rating.toFixed(1)}</span>` : ''}
+        </div>
+        <p class="mt-2 flex items-baseline gap-2 px-1"><span class="font-mono text-lg font-bold">${rupee(p.price)}</span><span class="font-mono text-sm text-slate-400 line-through">${rupee(p.list)}</span></p>
+      </a>
+    </article>`;
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = P.map((p, k) => p.big ? bigCard(p) : card(p, k)).join('');
+  grid.querySelectorAll('.tilt').forEach(el => tilt(el, 6));
+
+  // filters
+  document.querySelectorAll('.chip').forEach(chip => chip.addEventListener('click', () => {
+    const f = chip.dataset.filter;
+    document.querySelectorAll('.chip').forEach(c => {
+      const on = c === chip;
+      c.className = 'chip rounded-full px-5 py-2.5 text-sm font-semibold transition ' + (on ? 'bg-slate-900 text-white' : 'bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-slate-400');
+    });
+    grid.querySelectorAll('article').forEach(a => { a.style.display = (f === 'all' || a.dataset.cat === f) ? '' : 'none'; });
+  }));
+
+  // fake bag counter so "Add to bag" feels alive
+  let bag = 0; const cc = document.getElementById('cartCount');
+  document.addEventListener('click', e => {
+    if (!e.target.closest('[data-add]')) return;
+    e.preventDefault(); bag++; cc.textContent = bag; cc.classList.remove('hidden'); cc.classList.add('grid');
+  });
+
+  /* ── Categories ──────────────────────────────────────────────────── */
+  const C = [['Personalized Gifts', 2], ['Spiritual & Artistic', 2], ['Functional Products', 1], ['Home & Decor', 0], ['Educational & Student', 0], ['Jewelry & Fashion', 0]];
+  document.getElementById('cats').innerHTML = C.map(([n, c], k) => `
+    <li class="rise" style="--rd:${k * 60}ms">
+      <a href="#" class="cat-row group relative flex items-center justify-between gap-6 overflow-hidden px-2 py-7 sm:px-4">
+        <span class="fill absolute inset-0 -z-0 bg-brand-500"></span>
+        <span class="relative font-display text-3xl font-semibold tracking-[-0.03em] transition group-hover:text-slate-950 sm:text-5xl">${n}</span>
+        <span class="relative flex items-center gap-5">
+          <span class="font-mono text-sm ${c ? 'text-slate-500' : 'text-slate-400'} group-hover:text-slate-950">${c ? c + (c > 1 ? ' products' : ' product') : 'Coming soon'}</span>
+          <span class="grid h-12 w-12 place-items-center rounded-full bg-white text-xl ring-1 ring-slate-200 transition group-hover:-rotate-45">→</span>
+        </span>
+      </a>
+    </li>`).join('');
+
+  /* ── FAQ (real copy from lib/faq.ts) ─────────────────────────────── */
+  const F = [
+    ['What is ShilpSmith?', 'ShilpSmith is a 3D printing studio in India that creates personalized gifts, aesthetic home decor, functional accessories, educational models, and one-of-a-kind custom pieces. Every product is designed digitally and 3D-printed on demand, so you get made-to-order items rather than mass-produced stock.'],
+    ['Do you make custom 3D printed products, and how does it work?', 'Yes — custom work is at the core of what ShilpSmith does. You share a reference photo, a sketch, or a rough idea over WhatsApp; our team turns it into a 3D model and shows you a preview before printing; then we print it and deliver it once you approve. The design consultation is free and no deposit is required to start.'],
+    ['What materials do you print with?', 'ShilpSmith prints mainly with PLA and PETG. PLA is a plant-based filament with an excellent finish, and PETG is chosen where a piece needs extra strength or heat resistance — which matters for Indian summers.'],
+    ['How long does delivery take, and where do you ship?', 'ShilpSmith ships across India. Most standard pieces are printed and dispatched within 1–3 business days of order confirmation, and delivery usually takes another 3–7 business days depending on your location.'],
+    ['Can I personalize a product with names, colors, or sizes?', 'Yes. ShilpSmith products can be personalized — you can add names or engraving, choose colors, and adjust measurements on customizable items.'],
+    ['Do you take bulk or corporate gifting orders?', "Since every ShilpSmith piece is made to order, we can take on bulk and corporate gifting requests. Message us on WhatsApp with your quantity and timeline and we'll help you plan it."],
+  ];
+  document.getElementById('faq').innerHTML = F.map(([q, a], k) => `
+    <details class="group py-6" ${k === 0 ? 'open' : ''}>
+      <summary class="flex cursor-pointer list-none items-center justify-between gap-6">
+        <span class="font-display text-xl font-semibold tracking-tight sm:text-2xl">${q}</span>
+        <span class="plus grid h-10 w-10 shrink-0 place-items-center rounded-full bg-slate-100 text-xl transition">+</span>
+      </summary>
+      <p class="mt-4 max-w-2xl text-lg leading-relaxed text-slate-600">${a}</p>
+    </details>`).join('');
+
+  /* ── Process: part grows a band per step, counter climbs ─────────── */
+  const stack = document.getElementById('partStack');
+  const widths = [];
+  for (let k = 0; k < 40; k++) { const t = k / 39; widths.push(30 + Math.sin(t * Math.PI) * 55 + (t < .15 ? 10 : 0)); }
+  stack.innerHTML = widths.map(w => `<div class="h-[3px] rounded-full bg-white/10 transition-colors duration-500" style="width:${w}%"></div>`).join('');
+  const bands = [...stack.children];
+  const procLayer = document.getElementById('procLayer'), procBar = document.getElementById('procBar');
+  const setStep = s => {
+    const upto = Math.round(((s + 1) / 4) * bands.length);
+    bands.forEach((b, k) => { b.className = 'h-[3px] rounded-full transition-colors duration-500 ' + (k < upto ? 'bg-brand-400' : 'bg-white/10'); });
+    procLayer.textContent = String(Math.round(((s + 1) / 4) * 1200)).padStart(4, '0');
+    procBar.style.width = ((s + 1) / 4 * 100) + '%';
+    document.querySelectorAll('.step').forEach(el => {
+      const on = +el.dataset.step === s;
+      el.classList.toggle('bg-slate-950', on); el.classList.toggle('text-white', on); el.classList.toggle('bg-slate-50', !on);
+      el.querySelectorAll('p:last-child').forEach(p => { p.classList.toggle('text-slate-300', on); p.classList.toggle('text-slate-600', !on); });
+      el.querySelector('p').classList.toggle('text-brand-300', on); el.querySelector('p').classList.toggle('text-brand-700', !on);
+    });
+  };
+  const stepIO = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && setStep(+e.target.dataset.step)), { rootMargin: '-45% 0px -45% 0px' });
+  document.querySelectorAll('.step').forEach(el => stepIO.observe(el));
+
+  /* ── Entrances ───────────────────────────────────────────────────── */
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .12 });
+  document.querySelectorAll('.rise').forEach(el => io.observe(el));
+})();
+</script>
+
+<!-- ═══════════════════════ HERO: LIVE 3D PRINTER ═════════════════════════ -->
+<script type="importmap">
+  { "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const stage = document.getElementById('stage');
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const ui = {
+  layer: document.getElementById('layerNow'), bar: document.getElementById('layerBar'),
+  state: document.getElementById('printState'), chip: document.getElementById('filamentChip'),
+};
+
+/* ── Renderer / scene / camera ──────────────────────────────────────── */
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+} catch (e) {
+  stage.innerHTML = '<p class="grid h-full place-items-center font-mono text-sm text-slate-500">3D preview unavailable on this device</p>';
+  throw e;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.localClippingEnabled = true;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+stage.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 1, 0.1, 200);
+camera.position.set(15, 11, 17);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 4.6, 0);
+controls.enableZoom = false;
+controls.enablePan = false;
+controls.enableDamping = true;
+controls.minPolarAngle = 0.55;
+controls.maxPolarAngle = 1.45;
+controls.autoRotate = !reduce;
+controls.autoRotateSpeed = 0.7;
+
+/* ── Light: cool key, emerald heat from the bed, indigo rim ─────────── */
+scene.add(new THREE.HemisphereLight(0xcbd5e1, 0x020617, 0.9));
+const key = new THREE.DirectionalLight(0xffffff, 2.2);
+key.position.set(8, 16, 10);
+key.castShadow = true;
+key.shadow.mapSize.set(1024, 1024);
+key.shadow.camera.left = -8; key.shadow.camera.right = 8; key.shadow.camera.top = 8; key.shadow.camera.bottom = -8;
+key.shadow.radius = 6;
+scene.add(key);
+const rim = new THREE.DirectionalLight(0x818cf8, 1.4);
+rim.position.set(-10, 6, -8);
+scene.add(rim);
+const bedGlow = new THREE.PointLight(0x10b981, 30, 14, 2);
+bedGlow.position.set(0, 0.8, 0);
+scene.add(bedGlow);
+
+/* ── Printer frame ──────────────────────────────────────────────────── */
+const metal = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.6, roughness: 0.35 });
+const dark = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.3, roughness: 0.6 });
+
+const bed = new THREE.Mesh(new THREE.BoxGeometry(10, 0.35, 10), dark);
+bed.position.y = -0.175; bed.receiveShadow = true; scene.add(bed);
+const plate = new THREE.Mesh(new THREE.PlaneGeometry(9.4, 9.4), new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.8, metalness: 0.1 }));
+plate.rotation.x = -Math.PI / 2; plate.position.y = 0.002; plate.receiveShadow = true; scene.add(plate);
+const grid = new THREE.GridHelper(9.4, 18, 0x10b981, 0x1e293b);
+grid.position.y = 0.006; grid.material.transparent = true; grid.material.opacity = 0.55; scene.add(grid);
+
+const H = 11.5, S = 5.4;
+for (const [x, z] of [[-S, -S], [S, -S], [-S, S], [S, S]]) {
+  const post = new THREE.Mesh(new THREE.BoxGeometry(0.35, H, 0.35), metal);
+  post.position.set(x, H / 2 - 0.35, z); post.castShadow = true; scene.add(post);
+}
+for (const z of [-S, S]) { const b = new THREE.Mesh(new THREE.BoxGeometry(2 * S + 0.35, 0.35, 0.35), metal); b.position.set(0, H - 0.35, z); scene.add(b); }
+for (const x of [-S, S]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 2 * S + 0.35), metal); b.position.set(x, H - 0.35, 0); scene.add(b); }
+
+// Z-carriage: two side rails (along Z) that rise with the print, and the
+// X-gantry bar that rides them following the head.
+const zCarriage = new THREE.Group(); scene.add(zCarriage);
+for (const x of [-S, S]) { const r = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 2 * S), metal); r.position.x = x; zCarriage.add(r); }
+const gantry = new THREE.Mesh(new THREE.BoxGeometry(2 * S, 0.3, 0.45), metal); zCarriage.add(gantry);
+
+// Hotend: body, fan, heater block, brass nozzle, glowing molten tip.
+const head = new THREE.Group(); scene.add(head);
+const body = new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 1.0), new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.4, metalness: 0.2 }));
+body.position.y = 1.45; body.castShadow = true; head.add(body);
+const fan = new THREE.Mesh(new THREE.CylinderGeometry(0.38, 0.38, 0.06, 24), new THREE.MeshStandardMaterial({ color: 0x10b981, emissive: 0x065f46, emissiveIntensity: 0.6 }));
+fan.rotation.z = Math.PI / 2; fan.position.set(0.58, 1.45, 0); head.add(fan);
+const block = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.32, 0.55), metal); block.position.y = 0.7; head.add(block);
+const nozzle = new THREE.Mesh(new THREE.ConeGeometry(0.17, 0.42, 20), new THREE.MeshStandardMaterial({ color: 0xc9a227, metalness: 0.9, roughness: 0.25 }));
+nozzle.rotation.x = Math.PI; nozzle.position.y = 0.33; head.add(nozzle);
+const tip = new THREE.Mesh(new THREE.SphereGeometry(0.08, 12, 12), new THREE.MeshBasicMaterial({ color: 0x6ee7b7 }));
+tip.position.y = 0.1; head.add(tip);
+const tipLight = new THREE.PointLight(0x34d399, 6, 3, 2); tipLight.position.y = 0.1; head.add(tipLight);
+
+/* ── The part: a twisted, lobed vase (a classic showcase print) ─────── */
+const VH = 7.2;                      // printed height
+const LOBES = 7, TWIST = 2.6;
+const radiusAt = (theta, t) => {
+  const profile = 1.25 + 0.95 * Math.sin(Math.PI * (t * 0.92 + 0.08)) - 0.35 * Math.max(0, t - 0.82) * 4;
+  return profile * (1 + 0.075 * Math.cos(LOBES * theta + TWIST * t * Math.PI));
+};
+
+function vaseGeometry() {
+  const SEG = 168, ROWS = 220;
+  const pos = [], uv = [], idx = [];
+  for (let j = 0; j <= ROWS; j++) {
+    const t = j / ROWS;
+    for (let i = 0; i <= SEG; i++) {
+      const th = (i / SEG) * Math.PI * 2, r = radiusAt(th, t);
+      pos.push(Math.cos(th) * r, t * VH, Math.sin(th) * r);
+      uv.push(i / SEG, t);
+    }
+  }
+  for (let j = 0; j < ROWS; j++) for (let i = 0; i < SEG; i++) {
+    const a = j * (SEG + 1) + i, b = a + SEG + 1;
+    idx.push(a, b, a + 1, b, b + 1, a + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx); g.computeVertexNormals();
+  return g;
+}
+
+// Layer lines: a striped bump map repeated up the part's height.
+const stripes = document.createElement('canvas'); stripes.width = 4; stripes.height = 8;
+const sx = stripes.getContext('2d');
+sx.fillStyle = '#fff'; sx.fillRect(0, 0, 4, 8); sx.fillStyle = '#555'; sx.fillRect(0, 6, 4, 2);
+const bump = new THREE.CanvasTexture(stripes);
+bump.wrapS = bump.wrapT = THREE.RepeatWrapping; bump.repeat.set(1, 150);
+
+const clip = new THREE.Plane(new THREE.Vector3(0, -1, 0), 0);  // keeps y <= constant
+const FILAMENTS = [
+  { name: 'PLA · Emerald', color: 0x10b981 },
+  { name: 'PLA · Marble white', color: 0xe2e8f0 },
+  { name: 'PETG · Indigo', color: 0x6366f1 },
+];
+const partMat = new THREE.MeshStandardMaterial({
+  color: FILAMENTS[0].color, roughness: 0.42, metalness: 0.05,
+  bumpMap: bump, bumpScale: 0.6, side: THREE.DoubleSide, clippingPlanes: [clip],
+});
+const part = new THREE.Mesh(vaseGeometry(), partMat);
+part.castShadow = true; scene.add(part);
+
+// The layer being laid right now: a glowing loop at the cut height.
+const LOOP = 168;
+const loopGeo = new THREE.BufferGeometry();
+loopGeo.setAttribute('position', new THREE.Float32BufferAttribute(new Float32Array((LOOP + 1) * 3), 3));
+const loop = new THREE.Line(loopGeo, new THREE.LineBasicMaterial({ color: 0x6ee7b7 }));
+scene.add(loop);
+function setLoop(h) {
+  const t = h / VH, p = loopGeo.attributes.position;
+  for (let i = 0; i <= LOOP; i++) {
+    const th = (i / LOOP) * Math.PI * 2, r = radiusAt(th, t) + 0.01;
+    p.setXYZ(i, Math.cos(th) * r, h + 0.01, Math.sin(th) * r);
+  }
+  p.needsUpdate = true;
+}
+
+/* ── Print cycle ────────────────────────────────────────────────────── */
+const PRINT = 14, HOLD = 4.5;      // seconds
+let tPrint = reduce ? PRINT : 0, filament = 0, running = true;
+const ease = x => x;               // constant layer rate, like a real print
+
+function placeHead(h, angle, park) {
+  const t = Math.min(h / VH, 1);
+  const r = radiusAt(angle, t);
+  const x = park ? 0 : Math.cos(angle) * r, z = park ? -3.8 : Math.sin(angle) * r;
+  head.position.set(x, h, z);
+  zCarriage.position.y = h + 1.45;
+  gantry.position.z = z;
+}
+
+function update(dt, elapsed) {
+  if (!reduce) tPrint += dt;
+  const cycle = PRINT + HOLD;
+  if (tPrint >= cycle) {             // next print, next filament
+    tPrint = 0; filament = (filament + 1) % FILAMENTS.length;
+    partMat.color.setHex(FILAMENTS[filament].color);
+    ui.chip.textContent = FILAMENTS[filament].name;
+  }
+  const p = Math.min(tPrint / PRINT, 1), printing = p < 1;
+  const h = ease(p) * VH;
+  clip.constant = printing ? h : VH + 1;
+  loop.visible = printing;
+  tip.visible = printing; tipLight.visible = printing;
+  if (printing) {
+    setLoop(h);
+    placeHead(h, elapsed * 9, false);            // head traces the perimeter
+  } else {
+    const lift = Math.min((tPrint - PRINT) / 1.2, 1);
+    placeHead(VH + 0.4 + lift * 1.6, 0, true);   // park above the finished part
+  }
+  ui.layer.textContent = String(Math.round(p * 1200)).padStart(4, '0');
+  ui.bar.style.width = (p * 100) + '%';
+  ui.state.textContent = printing ? '● PRINTING' : '✓ PRINT COMPLETE';
+}
+
+/* ── Size, visibility, loop ─────────────────────────────────────────── */
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  renderer.domElement.style.width = '100%'; renderer.domElement.style.height = '100%';
+  camera.aspect = w / h;
+  // pull back on narrow (portrait) stages so the whole printer fits
+  // keep the target fixed and scale the offset so the whole printer frame fits
+  const off = camera.position.clone().sub(controls.target).setLength(w / h < 0.95 ? 40 : 34);
+  camera.position.copy(controls.target).add(off);
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage); resize();
+
+new IntersectionObserver(([e]) => { running = e.isIntersecting; }).observe(stage);
+document.addEventListener('visibilitychange', () => { running = !document.hidden; });
+
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (!running) return;
+  update(dt, clock.elapsedTime);
+  controls.update();
+  renderer.render(scene, camera);
+});
+</script>
+</body>
+</html>

@@ -28,7 +28,7 @@ export default function CustomizationForm({ value, onChange }: Props) {
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-sm font-semibold block mb-2">
+        <label className="mb-2 block text-sm font-semibold text-slate-900">
           Engraving / Name
           <span className="ml-1 text-xs font-normal text-slate-500">
             (max {MAX_TEXT})
@@ -40,7 +40,7 @@ export default function CustomizationForm({ value, onChange }: Props) {
           value={value.text ?? ""}
           onChange={(e) => set("text", e.target.value)}
           placeholder="e.g. Priya & Arjun"
-          className="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:border-slate-500"
+          className="w-full rounded-2xl bg-slate-50 px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-brand-500"
         />
         {value.text && (
           <p className="mt-1 text-xs text-slate-500">
@@ -50,7 +50,7 @@ export default function CustomizationForm({ value, onChange }: Props) {
       </div>
 
       <div>
-        <label className="text-sm font-semibold block mb-2">
+        <label className="mb-2 block text-sm font-semibold text-slate-900">
           Special instructions
           <span className="ml-1 text-xs font-normal text-slate-500">
             (max {MAX_NOTES})
@@ -62,7 +62,7 @@ export default function CustomizationForm({ value, onChange }: Props) {
           value={value.notes ?? ""}
           onChange={(e) => set("notes", e.target.value)}
           placeholder="Anything we should know — font, finish, measurements…"
-          className="w-full border border-slate-200 rounded-2xl px-4 py-3 outline-none focus:border-slate-500"
+          className="w-full rounded-2xl bg-slate-50 px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-brand-500"
         />
       </div>
     </div>

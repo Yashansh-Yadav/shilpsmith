@@ -196,43 +196,43 @@ export default function ReviewModal({
     >
       <div
         onClick={onClose}
-        className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
         aria-hidden
       />
 
       <div
         ref={panelRef}
-        className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-4xl bg-white shadow-2xl animate-fade-in-up sm:max-h-[90vh] sm:max-w-lg sm:rounded-4xl"
+        className="relative max-h-[92vh] w-full overflow-y-auto rounded-t-[2rem] bg-white shadow-2xl animate-fade-in-up sm:max-h-[90vh] sm:max-w-lg sm:rounded-[2rem]"
       >
         {/* Header */}
-        <div className="relative overflow-hidden rounded-t-4xl bg-gradient-to-br from-brand-600 via-brand-700 to-emerald-900 px-6 pb-8 pt-6 text-white">
-          <div className="pointer-events-none absolute -right-8 -top-10 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
-          <button
+        <div className="relative isolate overflow-hidden rounded-t-[2rem] bg-slate-950 px-6 pb-8 pt-6 text-white">
+          <div aria-hidden="true" className="heated-bed absolute inset-0 -z-10" />
+                    <button
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="absolute right-4 top-4 rounded-full bg-white/15 p-1.5 text-white transition hover:bg-white/25"
+            className="absolute right-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
           >
             <X className="h-4 w-4" />
           </button>
-          <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-brand-100">
+          <p className="flex items-center gap-1.5 font-mono text-xs uppercase tracking-[0.18em] text-brand-300">
             <Star className="h-3.5 w-3.5 fill-current" />
             Share your experience
           </p>
-          <h2 id="review-modal-title" className="mt-2 text-2xl font-black leading-tight">
+          <h2 id="review-modal-title" className="mt-3 font-display text-3xl font-semibold leading-tight tracking-[-0.03em]">
             {done ? "Thank you!" : "Write a review"}
           </h2>
           {productName && !done && (
-            <p className="mt-1 truncate text-sm text-brand-100">{productName}</p>
+            <p className="mt-1 truncate text-sm text-slate-300">{productName}</p>
           )}
         </div>
 
         {done ? (
           <div className="px-6 py-10 text-center">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-50">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-brand-100">
               <CheckCircle2 className="h-9 w-9 text-brand-600" />
             </div>
-            <p className="mt-5 text-lg font-bold text-slate-900">
+            <p className="mt-5 font-display text-2xl font-semibold tracking-tight text-slate-900">
               Your review has been submitted
             </p>
             {earnedBadge && (
@@ -248,7 +248,7 @@ export default function ReviewModal({
             <button
               type="button"
               onClick={onClose}
-              className="mt-6 rounded-full bg-slate-900 px-7 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+              className="mt-6 rounded-full bg-slate-900 px-7 py-3.5 font-semibold text-white transition hover:bg-slate-800"
             >
               Done
             </button>
@@ -268,7 +268,7 @@ export default function ReviewModal({
               <label className="mb-2 block text-sm font-semibold text-slate-900">
                 Your rating
               </label>
-              <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
                 <StarRating
                   value={form.rating}
                   onChange={(r) => set("rating", r)}
@@ -320,7 +320,7 @@ export default function ReviewModal({
             {/* Optional proof of purchase. Order number + email together are
                 something only the buyer has, which is what makes the badge
                 worth trusting. */}
-            <div className="rounded-2xl border border-dashed border-brand-200 bg-brand-50/40 p-4">
+            <div className="rounded-2xl bg-brand-50 p-4 ring-1 ring-brand-200">
               <label htmlFor="rv-order" className="flex items-center gap-1.5 text-sm font-semibold text-slate-900">
                 <BadgeCheck className="h-4 w-4 text-brand-600" />
                 Order number
@@ -390,14 +390,14 @@ export default function ReviewModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="rounded-full border border-slate-200 px-6 py-3 text-sm font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900"
+                className="rounded-full bg-white px-6 py-3.5 font-semibold text-slate-900 ring-1 ring-slate-200 transition hover:ring-slate-400"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-600 px-7 py-3 text-sm font-bold text-white shadow-cta transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-400 to-brand-600 px-7 py-3.5 font-semibold text-slate-950 transition hover:brightness-110 active:scale-[.97] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
                 {submitting ? "Submitting…" : "Submit review"}
@@ -411,10 +411,10 @@ export default function ReviewModal({
 }
 
 function inputClass(hasError: boolean) {
-  return `w-full rounded-2xl border px-4 py-2.5 text-sm outline-none transition placeholder:text-slate-400 focus:ring-2 ${
+  return `w-full rounded-2xl px-4 py-3 text-[15px] text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-2 ${
     hasError
-      ? "border-rose-300 bg-rose-50/40 focus:border-rose-400 focus:ring-rose-100"
-      : "border-slate-200 focus:border-brand-500 focus:ring-brand-100"
+      ? "bg-rose-50 ring-1 ring-rose-300 focus:ring-rose-400"
+      : "bg-slate-50 ring-1 ring-slate-200 focus:ring-brand-500"
   }`;
 }
 

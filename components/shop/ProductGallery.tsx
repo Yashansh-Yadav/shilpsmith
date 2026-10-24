@@ -56,30 +56,44 @@ export default function ProductGallery({
   }, [lightboxOpen]);
 
   return (
-    <div className="flex flex-col gap-3 p-3 sm:p-4">
+    <div className="flex flex-col gap-3">
       {/* Main image */}
       {mainUrl ? (
         <button
           type="button"
           onClick={() => setLightboxOpen(true)}
           aria-label={`View ${productName} full size`}
-          className="group block cursor-zoom-in overflow-hidden rounded-3xl bg-slate-50 ring-1 ring-slate-100 transition hover:ring-slate-200"
+          className="group relative block w-full cursor-zoom-in overflow-hidden rounded-[2rem] bg-slate-950"
         >
-          <ProductImage
+          {/* Posters are 2:3 with text baked in: show the whole image over a
+              blurred copy of itself so the frame never looks empty. */}
+          <img
             src={mainUrl}
-            alt={productName}
-            productId={productId}
-            aspectClass="aspect-square"
-            fit="contain"
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full scale-125 object-cover opacity-50 blur-2xl"
           />
+          <div className="relative p-4 sm:p-6">
+            <ProductImage
+              src={mainUrl}
+              alt={productName}
+              productId={productId}
+              aspectClass="aspect-[2/3] max-h-[78vh] mx-auto"
+              fit="contain"
+              className="!bg-transparent transition duration-700 group-hover:scale-[1.02]"
+            />
+          </div>
+          <span className="pointer-events-none absolute bottom-4 right-4 rounded-full bg-slate-950/70 px-3 py-1.5 font-mono text-[11px] text-white opacity-0 transition group-hover:opacity-100">
+            Click to zoom
+          </span>
         </button>
       ) : (
-        <div className="overflow-hidden rounded-3xl bg-slate-50 ring-1 ring-slate-100">
+        <div className="overflow-hidden rounded-[2rem] bg-white">
           <ProductImage
             src={mainUrl}
             alt={productName}
             productId={productId}
-            aspectClass="aspect-square"
+            aspectClass="aspect-[2/3]"
             fit="contain"
             caption={productName}
           />
@@ -96,9 +110,9 @@ export default function ProductGallery({
               onClick={() => setActive(i)}
               aria-label={`View image ${i + 1}`}
               aria-current={i === safeActive}
-              className={`h-16 w-16 flex-none overflow-hidden rounded-xl bg-slate-50 ring-2 transition ${
+              className={`h-24 w-16 flex-none overflow-hidden rounded-2xl bg-slate-100 ring-2 ring-offset-2 ring-offset-slate-50 transition ${
                 i === safeActive
-                  ? "ring-brand-600"
+                  ? "ring-brand-500"
                   : "ring-transparent hover:ring-slate-300"
               }`}
             >

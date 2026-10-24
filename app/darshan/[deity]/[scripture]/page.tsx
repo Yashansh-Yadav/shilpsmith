@@ -61,14 +61,14 @@ export default async function ScripturePage({ params, searchParams }: Params) {
             {lang === "hi" ? deity.nameHi : deity.nameEn}
           </span>
         </Link>
-        <h1 className="min-w-0 flex-1 truncate text-center text-sm font-semibold">
+        <h1 className="min-w-0 flex-1 truncate text-center font-display text-base font-semibold tracking-tight">
           {title}
         </h1>
         <a
           href={item.pdfUrl}
           target="_blank"
           rel="noreferrer noopener"
-          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-brand-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-brand-700 active:scale-95"
+          className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-brand-500 px-3.5 py-1.5 text-xs font-semibold text-slate-950 transition hover:bg-brand-400 active:scale-95"
         >
           {t(lang, "readScripture")}
           <ExternalLink className="h-3.5 w-3.5" />

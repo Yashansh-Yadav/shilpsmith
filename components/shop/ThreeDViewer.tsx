@@ -17,7 +17,7 @@ interface Props {
 export default function ThreeDViewer({ url, height = 360 }: Props) {
   return (
     <div
-      className="overflow-hidden rounded-2xl border border-slate-100 bg-gradient-to-br from-slate-100 to-slate-200"
+      className="overflow-hidden rounded-[1.5rem] bg-slate-950"
       style={{ height }}
     >
       <Canvas

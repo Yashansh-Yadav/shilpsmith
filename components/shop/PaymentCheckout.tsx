@@ -138,7 +138,7 @@ export default function PaymentCheckout({
       type="button"
       onClick={handlePay}
       disabled={loading}
-      className="w-full rounded-xl bg-emerald-600 py-3 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+      className="w-full rounded-full bg-gradient-to-r from-brand-400 to-brand-600 py-4 font-semibold text-slate-950 transition hover:brightness-110 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-50"
     >
       {loading ? "Processing…" : "Pay with Razorpay"}
     </button>

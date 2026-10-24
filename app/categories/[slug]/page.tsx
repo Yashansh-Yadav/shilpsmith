@@ -21,7 +21,7 @@ import { ChevronRight } from "lucide-react";
 
 import { prisma } from "../../../lib/prisma";
 import ProductGrid from "../../../components/ProductGrid";
-import { CartButton } from "../../../components/shop/CartSheet";
+import { PageHeader } from "../../../components/site/Prose";
 import type { StorefrontProduct } from "../../../components/shop/ProductCard";
 import { cardAutoPercent } from "../../../lib/discounts";
 import { loadActiveAutomaticDiscounts } from "../../../lib/discountQuery";
@@ -109,43 +109,36 @@ export default async function CategoryPage({
   }));
 
   return (
-    <main className="min-h-screen bg-slate-50 py-10 sm:py-14">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-8 flex items-center justify-between gap-4">
+    <>
+      {/* The real category name from the database — the old title was
+          title-cased from the URL slug, so "Home & Decor" rendered as
+          "Home Decor". */}
+      <PageHeader
+        eyebrow="Category"
+        title={category.name}
+        intro={
+          category.description?.trim() ||
+          "Explore premium 3D printed products, made to order."
+        }
+      />
+
+      <div className="mx-auto max-w-7xl px-5 py-10 sm:px-8 lg:py-14">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <nav
             aria-label="Breadcrumb"
-            className="flex min-w-0 items-center gap-1.5 text-xs text-slate-500"
+            className="flex min-w-0 items-center gap-1.5 text-sm text-slate-500"
           >
             <Link href="/" className="shrink-0 transition hover:text-slate-900">
               Home
             </Link>
             <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-300" />
-            <Link
-              href="/search"
-              className="shrink-0 transition hover:text-slate-900"
-            >
+            <Link href="/search" className="shrink-0 transition hover:text-slate-900">
               Shop
             </Link>
             <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-300" />
-            <span className="truncate font-medium text-slate-900">
-              {category.name}
-            </span>
+            <span className="truncate font-medium text-slate-900">{category.name}</span>
           </nav>
-          <CartButton />
-        </div>
-
-        <div className="mb-10">
-          {/* The real category name from the database — the old title was
-              title-cased from the URL slug, so "Home & Decor" rendered as
-              "Home Decor". */}
-          <h1 className="text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
-            {category.name}
-          </h1>
-          <p className="mt-3 max-w-2xl text-lg leading-relaxed text-slate-600">
-            {category.description?.trim() ||
-              "Explore premium 3D printed products, made to order."}
-          </p>
-          <p className="mt-2 text-sm text-slate-400">
+          <p className="font-mono text-sm text-slate-500">
             {products.length === 0
               ? "No products yet"
               : `${products.length} product${products.length > 1 ? "s" : ""}`}
@@ -157,6 +150,6 @@ export default async function CategoryPage({
           emptyMessage={`We're still building out ${category.name.toLowerCase()}. Browse the full catalog in the meantime.`}
         />
       </div>
-    </main>
+    </>
   );
 }

@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 
 import Reveal from "./Reveal";
-import SectionHeader from "./SectionHeader";
 import { FAQ_ITEMS } from "../../lib/faq";
 
 // Storefront FAQ.
@@ -38,24 +37,26 @@ export default function FAQ() {
   };
 
   return (
-    <section id="faq" className="bg-slate-50 py-16 lg:py-24">
+    <section id="faq" className="scroll-mt-20 bg-white py-24 lg:py-32">
       {/* Structured data for answer engines / search rich results */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
 
-      <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto grid max-w-7xl gap-12 px-5 sm:px-8 lg:grid-cols-[2fr_3fr]">
         <Reveal>
-          <SectionHeader
-            eyebrow="Good to know"
-            title="Frequently asked questions"
-            subtitle="Everything about custom orders, materials, delivery, and how ShilpSmith works."
-          />
+          <h2 className="font-display text-5xl font-semibold tracking-[-0.035em] text-slate-900 sm:text-6xl">
+            Questions, answered
+          </h2>
+          <p className="mt-5 max-w-sm text-lg text-slate-600">
+            Everything about custom orders, materials, delivery, and how
+            ShilpSmith works.
+          </p>
         </Reveal>
 
         <Reveal delay={80}>
-          <dl className="divide-y divide-slate-200 overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+          <dl className="divide-y divide-slate-200 border-y border-slate-200">
             {FAQ_ITEMS.map((item, idx) => {
               const isOpen = open === idx;
               return (
@@ -65,17 +66,18 @@ export default function FAQ() {
                       type="button"
                       onClick={() => setOpen(isOpen ? null : idx)}
                       aria-expanded={isOpen}
-                      className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left transition hover:bg-slate-50 sm:px-6"
+                      className="flex w-full items-center justify-between gap-6 py-6 text-left"
                     >
-                      <span className="text-base font-semibold tracking-tight text-slate-900">
+                      <span className="font-display text-xl font-semibold tracking-tight text-slate-900 sm:text-2xl">
                         {item.q}
                       </span>
-                      <Plus
-                        className={`h-5 w-5 flex-none text-brand-600 transition-transform duration-300 ${
-                          isOpen ? "rotate-45" : "rotate-0"
+                      <span
+                        className={`grid h-10 w-10 flex-none place-items-center rounded-full transition duration-300 ${
+                          isOpen ? "rotate-45 bg-brand-500 text-slate-950" : "bg-slate-100 text-slate-700"
                         }`}
-                        strokeWidth={2}
-                      />
+                      >
+                        <Plus className="h-5 w-5" strokeWidth={2} />
+                      </span>
                     </button>
                   </dt>
                   {/*
@@ -91,7 +93,7 @@ export default function FAQ() {
                     }`}
                   >
                     <div className="overflow-hidden">
-                      <p className="px-5 pb-5 text-sm leading-relaxed text-slate-600 sm:px-6">
+                      <p className="max-w-2xl pb-6 text-lg leading-relaxed text-slate-600">
                         {item.a}
                       </p>
                     </div>
