@@ -340,7 +340,7 @@ export default function CheckoutPage() {
         })}
       </ol>
 
-      <div className={`grid gap-8 ${step === "review" ? "" : "lg:grid-cols-[1fr_380px]"}`}>
+      <div className={`grid grid-cols-1 gap-8 ${step === "review" ? "" : "lg:grid-cols-[minmax(0,1fr)_380px]"}`}>
         <div
           className={`rounded-[2rem] bg-white p-6 ring-1 ring-slate-200/70 sm:p-8 lg:p-10 ${
             step === "review" ? "mx-auto w-full max-w-3xl" : ""

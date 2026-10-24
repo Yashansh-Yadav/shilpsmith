@@ -94,7 +94,7 @@ export default async function OrderConfirmationPage({
                       {reached && !current ? "✓" : idx + 1}
                     </span>
                     <span
-                      className={`mt-2 text-[11px] font-semibold sm:text-xs ${reached ? "text-slate-900" : "text-slate-400"}`}
+                      className={`mt-2 text-center text-[11px] font-semibold leading-tight sm:block sm:text-xs ${current ? "block" : "hidden"} ${reached ? "text-slate-900" : "text-slate-400"}`}
                     >
                       {s.label}
                     </span>

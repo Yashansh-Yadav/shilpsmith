@@ -63,7 +63,8 @@ export default function ProductCarousel({
           every section background and washed out the first/last card image. The
           arrows + partially-visible next card are the scroll cue. */}
 
-      {/* Arrows — hidden on touch */}
+      {/* Arrows — hidden on touch, and entirely when nothing overflows. */}
+      {(canScrollLeft || canScrollRight) && (<>
       <button
         type="button"
         aria-label="Scroll left"
@@ -90,6 +91,7 @@ export default function ProductCarousel({
       >
         <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
       </button>
+      </>)}
 
       <div
         ref={scrollerRef}

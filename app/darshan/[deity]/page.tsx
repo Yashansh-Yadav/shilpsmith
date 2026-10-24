@@ -228,7 +228,7 @@ export default async function DarshanPage({ params }: Params) {
 
           {/* Live badge */}
           <div className="relative z-10 mt-8 flex justify-center lg:mt-10">
-            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-amber-200 backdrop-blur-md">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-amber-200 backdrop-blur-md">
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-300 opacity-75" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-300" />
@@ -245,13 +245,17 @@ export default async function DarshanPage({ params }: Params) {
                 className="mx-auto mb-3 h-8 w-8 text-amber-300 lg:h-10 lg:w-10"
                 strokeWidth={1.75}
               />
-              <h1 className="font-display text-5xl font-bold leading-[1.05] tracking-[-0.035em] drop-shadow-sm sm:text-6xl lg:text-7xl">
+              <h1 className="font-display text-5xl font-bold leading-[1.1] drop-shadow-sm sm:text-6xl lg:text-7xl">
                 {name}
               </h1>
               {sub && <p className="mt-1.5 text-sm text-white/70 lg:text-base">{sub}</p>}
             </div>
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-base font-medium backdrop-blur-md lg:text-lg">
-              🕉️ <span>{deity.mantra}</span>
+            {/* Own line, centred: the name block above is inline-block, so an
+                inline chip would otherwise sit beside it on wide screens. */}
+            <div className="mt-4 flex justify-center">
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-base font-medium backdrop-blur-md lg:text-lg">
+                🕉️ <span>{deity.mantra}</span>
+              </div>
             </div>
 
             {/* Audio panchang announcer — premium, lives in the hero */}
@@ -267,7 +271,7 @@ export default async function DarshanPage({ params }: Params) {
 
         <div className="space-y-6 px-4 pb-12 sm:px-6 lg:px-8">
           {/* ─── Panchang card (floats over hero) ─── */}
-          <section className="-mt-16 rounded-[1.75rem] border border-slate-100 bg-white p-5 shadow-xl shadow-slate-900/5 lg:-mt-20 lg:p-7">
+          <section className="relative z-10 -mt-16 rounded-[1.75rem] border border-slate-100 bg-white p-5 shadow-xl shadow-slate-900/5 lg:-mt-20 lg:p-7">
             <div className="mb-4 flex items-center gap-2">
               <CalendarDays className="h-4 w-4 text-brand-600" />
               <h2 className="font-display text-xl font-semibold tracking-tight text-slate-900 lg:text-2xl">
@@ -286,7 +290,7 @@ export default async function DarshanPage({ params }: Params) {
                     <s.icon className="h-5 w-5" strokeWidth={2} />
                   </span>
                   <div className="min-w-0">
-                    <div className="font-mono text-[10px] uppercase tracking-[0.18em] text-slate-500">
+                    <div className="text-[10px] uppercase tracking-wide text-slate-500">
                       {s.label}
                     </div>
                     <div className="truncate font-display text-base font-semibold text-slate-900">
@@ -301,7 +305,7 @@ export default async function DarshanPage({ params }: Params) {
           {/* ─── Weekly dedication ─── */}
           {dedicationItems.length > 0 && (
             <section className="rounded-[1.75rem] border border-indigo-100 bg-white p-5 shadow-sm lg:p-6">
-              <h2 className="mb-3 flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-[0.18em] text-indigo-700">
+              <h2 className="mb-3 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-indigo-700">
                 <CalendarHeart className="h-4 w-4" />
                 {t(lang, "dedicatedDay")}
               </h2>
@@ -345,7 +349,7 @@ export default async function DarshanPage({ params }: Params) {
           {/* ─── Observance ─── */}
           {observances.length > 0 && (
             <section className="overflow-hidden rounded-[1.75rem] border border-amber-200/70 bg-gradient-to-br from-amber-50 to-orange-50 p-5 shadow-sm lg:p-6">
-              <h2 className="mb-2 flex items-center gap-2 font-mono text-xs font-medium uppercase tracking-[0.18em] text-amber-700">
+              <h2 className="mb-2 flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-amber-700">
                 <Sparkles className="h-4 w-4" />
                 {t(lang, "auspiciousToday")}
               </h2>
@@ -491,7 +495,7 @@ export default async function DarshanPage({ params }: Params) {
                               <span className="truncate font-display font-semibold text-slate-900">
                                 {lang === "hi" ? s.titleHi : s.titleEn}
                               </span>
-                              <span className="flex-none rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.12em] text-slate-500">
+                              <span className="flex-none rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-slate-500">
                                 {s.lang}
                               </span>
                             </div>

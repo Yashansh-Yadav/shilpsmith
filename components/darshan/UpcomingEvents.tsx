@@ -49,7 +49,7 @@ export default function UpcomingEvents({
                   <div className="font-display text-base font-bold leading-none text-rose-600">
                     {e.day}
                   </div>
-                  <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-rose-400">
+                  <div className="text-[10px] uppercase tracking-wide text-rose-400">
                     {e.month}
                   </div>
                 </div>
