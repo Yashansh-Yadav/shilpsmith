@@ -61,3 +61,6 @@ temp/
 # stylelint cache
 .stylelintcache
 /lib/generated/prisma
+
+# design-tool output (taste-skill screenshots/reports)
+/.taste-skill/

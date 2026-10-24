@@ -5,7 +5,6 @@ import { Box, Star } from "lucide-react";
 
 import { cardDisplay } from "../../lib/discounts";
 import ProductImage from "./ProductImage";
-import DiscountRibbon from "./DiscountRibbon";
 
 export interface StorefrontProduct {
   id: number;
@@ -54,96 +53,98 @@ export default function ProductCard({ product, size = "default" }: Props) {
 
   // A real link, not a button: the product page is a URL customers should be
   // able to open in a new tab, share, and have Google index.
+  //
+  // Same look as the homepage cards (components/home/HomeProductCard): images
+  // are 2:3 posters with text baked in, so the frame is 2:3 and nothing crops.
   return (
     <Link
       href={`/products/${product.slug}`}
-      className={`group flex w-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white text-left shadow-sm transition duration-300 hover:-translate-y-1 hover:border-slate-200 hover:shadow-lift ${
+      className={`group block rounded-[1.75rem] text-left outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-4 ${
         size === "compact" ? "h-full" : ""
       }`}
     >
-      <div className="relative overflow-hidden">
-        {/* Image OR branded "dropping soon" placeholder when missing */}
+      <div className="relative overflow-hidden rounded-[1.75rem] bg-slate-200">
         <ProductImage
           src={product.images?.[0]?.url}
           alt={product.name}
           productId={product.id}
-          aspectClass={size === "compact" ? "aspect-square" : "aspect-[4/5]"}
-          className={`transition duration-500 group-hover:scale-[1.04] ${
+          aspectClass={size === "compact" ? "aspect-square" : "aspect-[2/3]"}
+          className={`transition duration-700 group-hover:scale-[1.04] ${
             outOfStock ? "opacity-60 grayscale" : ""
           }`}
         />
 
-        {/* Out-of-stock overlay — a soft veil + centred pill so it reads as
-            deliberate rather than broken. Suppresses the sale ribbon below. */}
-        {outOfStock && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white/10">
-            <span className="rounded-full bg-slate-900/85 px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm backdrop-blur">
+        {/* Tags stack in one corner so they never collide on narrow 2-column
+            phone grids. */}
+        <div className="absolute left-2.5 top-2.5 flex flex-col items-start gap-1.5 sm:left-3 sm:top-3">
+          {outOfStock ? (
+            <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[11px] font-semibold text-white">
               Out of stock
             </span>
-          </div>
-        )}
-
-        {/* Discount ribbon — top-right, only when in stock and genuinely on sale. */}
-        {!outOfStock && listPrice != null && pct > 0 && (
-          <DiscountRibbon percent={pct} />
-        )}
-
-        {/* 3D indicator — top-left, so it never collides with the ribbon. */}
-        {product.modelUrl && (
-          <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-900 shadow-sm backdrop-blur">
-            <Box className="h-3 w-3" strokeWidth={2.5} />
-            3D
-          </span>
-        )}
-      </div>
-
-      <div className="flex flex-1 flex-col p-3">
-        {product.category?.name && (
-          <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-slate-400">
-            {product.category.name}
-          </p>
-        )}
-        <h3 className="line-clamp-1 text-sm font-bold text-slate-900">
-          {product.name}
-        </h3>
-        <p className="mt-1 line-clamp-2 text-xs text-slate-500">
-          {product.shortDescription || product.description}
-        </p>
-
-        <div className="mt-auto flex items-baseline gap-2 pt-3">
-          {listPrice != null ? (
-            <>
-              <span className="font-spec text-sm font-bold text-brand-700 sm:text-base">
-                {formatRupee(price)}
-              </span>
-              <span className="font-spec text-[11px] text-slate-400 line-through">
-                {formatRupee(listPrice)}
-              </span>
-            </>
           ) : (
-            <span className="font-spec text-sm font-bold text-slate-900 sm:text-base">
-              {price > 0 ? formatRupee(price) : product.price}
+            listPrice != null &&
+            pct > 0 && (
+              <span className="rounded-full bg-brand-500 px-2.5 py-1 font-mono text-[11px] font-bold text-slate-950">
+                −{pct}%
+              </span>
+            )
+          )}
+          {product.customizable && (
+            <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-900">
+              Customisable
             </span>
           )}
-
-          {/* Rating badge — shares the price row so it costs no card height,
-              pinned right via ml-auto. Hidden entirely when there are no
-              approved reviews: "0.0 ★" reads as a bad score, not an absent one.
-              Only the average is shown; the count would wrap the row on a
-              2-column mobile grid, so it lives in the tooltip instead. */}
-          {product.rating && product.rating.count > 0 && (
-            <span
-              title={`${product.rating.average.toFixed(1)} out of 5 · ${
-                product.rating.count
-              } review${product.rating.count > 1 ? "s" : ""}`}
-              className="ml-auto inline-flex shrink-0 select-none items-center gap-0.5 self-center whitespace-nowrap rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-bold text-amber-700"
-            >
-              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              {product.rating.average.toFixed(1)}
+          {product.modelUrl && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-950/85 px-2.5 py-1 text-[11px] font-semibold text-white">
+              <Box className="h-3 w-3" strokeWidth={2.5} />
+              3D
             </span>
           )}
         </div>
+
+        <div className="card-quick absolute inset-x-3 bottom-3 flex gap-2">
+          <span className="flex-1 rounded-full bg-slate-950 py-3 text-center text-sm font-semibold text-white">
+            View product
+          </span>
+          <span aria-hidden="true" className="grid w-12 place-items-center rounded-full bg-white text-slate-900">
+            →
+          </span>
+        </div>
       </div>
+
+      <div className="mt-4 flex items-start justify-between gap-3 px-1">
+        <div className="min-w-0">
+          {product.category?.name && (
+            <p className="text-sm text-slate-500">{product.category.name}</p>
+          )}
+          <h3 className="mt-1 line-clamp-2 font-display text-lg font-semibold leading-tight tracking-tight text-slate-900 sm:text-xl">
+            {product.name}
+          </h3>
+        </div>
+        {/* Hidden entirely when there are no approved reviews: "0.0 ★" reads
+            as a bad score, not an absent one. */}
+        {product.rating && product.rating.count > 0 && (
+          <span
+            title={`${product.rating.average.toFixed(1)} out of 5 · ${
+              product.rating.count
+            } review${product.rating.count > 1 ? "s" : ""}`}
+            className="mt-1 inline-flex shrink-0 select-none items-center gap-0.5 rounded-md bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700"
+          >
+            <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
+            {product.rating.average.toFixed(1)}
+          </span>
+        )}
+      </div>
+      <p className="mt-2 flex items-baseline gap-2 px-1">
+        <span className="font-mono text-lg font-bold text-slate-900">
+          {price > 0 ? formatRupee(price) : product.price}
+        </span>
+        {listPrice != null && (
+          <span className="font-mono text-sm text-slate-400 line-through">
+            {formatRupee(listPrice)}
+          </span>
+        )}
+      </p>
     </Link>
   );
 }

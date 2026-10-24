@@ -13,33 +13,33 @@
 // Mirrors the real layout closely enough that content doesn't jump on swap.
 
 function Block({ className = "" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-xl bg-slate-100 ${className}`} />;
+  return <div className={`animate-pulse rounded-2xl bg-slate-200/70 ${className}`} />;
 }
 
 export default function ProductLoading() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-      <Block className="mb-8 h-5 w-64" />
+    <div className="mx-auto max-w-7xl px-5 pb-24 pt-8 sm:px-8 lg:pt-10">
+      <Block className="mb-8 h-4 w-64 rounded-full" />
 
-      <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
-        <Block className="aspect-square w-full rounded-4xl" />
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
+        <Block className="aspect-[2/3] max-h-[78vh] w-full rounded-[2rem]" />
 
         <div className="flex flex-col gap-6">
-          <div className="space-y-3">
-            <Block className="h-3 w-28" />
-            <Block className="h-10 w-4/5" />
-            <Block className="h-4 w-40" />
+          <div className="space-y-4">
+            <Block className="h-3 w-32 rounded-full" />
+            <Block className="h-14 w-4/5" />
+            <Block className="h-4 w-40 rounded-full" />
           </div>
-          <Block className="h-9 w-48" />
-          <Block className="h-8 w-44 rounded-full" />
+          <Block className="h-10 w-48" />
           <div className="space-y-2">
-            <Block className="h-4 w-full" />
-            <Block className="h-4 w-11/12" />
-            <Block className="h-4 w-2/3" />
+            <Block className="h-4 w-full rounded-full" />
+            <Block className="h-4 w-11/12 rounded-full" />
+            <Block className="h-4 w-2/3 rounded-full" />
           </div>
+          <Block className="h-40 w-full rounded-[1.75rem]" />
           <div className="flex gap-3">
-            <Block className="h-14 flex-1 rounded-2xl" />
-            <Block className="h-14 flex-1 rounded-2xl" />
+            <Block className="h-14 flex-1 rounded-full" />
+            <Block className="h-14 flex-1 rounded-full" />
           </div>
         </div>
       </div>

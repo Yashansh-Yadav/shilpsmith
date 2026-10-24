@@ -69,7 +69,14 @@ export interface StorefrontData {
   featured: StorefrontCard[];
   newest: StorefrontCard[];
   trending: StorefrontCard[];
-  categories: { id: number; name: string; slug: string; image: string | null }[];
+  /** productCount = live (non-deleted) products, so empty shelves can say so. */
+  categories: {
+    id: number;
+    name: string;
+    slug: string;
+    image: string | null;
+    productCount: number;
+  }[];
   testimonials: (Omit<TestimonialRow, "createdAt"> & { createdAt: string })[];
 }
 
@@ -114,7 +121,13 @@ export async function getStorefrontData(): Promise<StorefrontData> {
         take: 12,
       }),
       prisma.category.findMany({
-        select: { id: true, name: true, slug: true, image: true },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          image: true,
+          _count: { select: { products: { where: { deletedAt: null } } } },
+        },
         orderBy: { name: "asc" },
       }),
       prisma.review.findMany({
@@ -161,7 +174,10 @@ export async function getStorefrontData(): Promise<StorefrontData> {
     featured: featured.map(decorate),
     newest: newest.map(decorate),
     trending: trending.map(decorate),
-    categories,
+    categories: categories.map(({ _count, ...c }) => ({
+      ...c,
+      productCount: _count.products,
+    })),
     testimonials: testimonials.map((t) => ({
       ...t,
       createdAt: t.createdAt.toISOString(),

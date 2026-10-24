@@ -44,13 +44,13 @@ export default function AddressForm({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
       <Field label="Full name" error={errors?.fullName} className="sm:col-span-2">
         <input
           required
           value={value.fullName}
           onChange={(e) => set("fullName", e.target.value)}
-          className="w-full rounded-xl border border-slate-200 px-4 py-3"
+          className="w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 transition placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 group-data-[error=true]/field:ring-2 group-data-[error=true]/field:ring-red-500"
           autoComplete="name"
         />
       </Field>
@@ -61,7 +61,7 @@ export default function AddressForm({
           inputMode="numeric"
           value={value.phone}
           onChange={(e) => set("phone", e.target.value)}
-          className="w-full rounded-xl border border-slate-200 px-4 py-3"
+          className="w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 transition placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 group-data-[error=true]/field:ring-2 group-data-[error=true]/field:ring-red-500"
           autoComplete="tel"
         />
       </Field>
@@ -73,7 +73,7 @@ export default function AddressForm({
             required
             value={value.email}
             onChange={(e) => set("email", e.target.value)}
-            className="w-full rounded-xl border border-slate-200 px-4 py-3"
+            className="w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 transition placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 group-data-[error=true]/field:ring-2 group-data-[error=true]/field:ring-red-500"
             autoComplete="email"
           />
         </Field>
@@ -84,7 +84,7 @@ export default function AddressForm({
           required
           value={value.street}
           onChange={(e) => set("street", e.target.value)}
-          className="w-full rounded-xl border border-slate-200 px-4 py-3"
+          className="w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 transition placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 group-data-[error=true]/field:ring-2 group-data-[error=true]/field:ring-red-500"
           autoComplete="street-address"
         />
       </Field>
@@ -94,7 +94,7 @@ export default function AddressForm({
           required
           value={value.city}
           onChange={(e) => set("city", e.target.value)}
-          className="w-full rounded-xl border border-slate-200 px-4 py-3"
+          className="w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 transition placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 group-data-[error=true]/field:ring-2 group-data-[error=true]/field:ring-red-500"
           autoComplete="address-level2"
         />
       </Field>
@@ -104,7 +104,7 @@ export default function AddressForm({
           required
           value={value.state}
           onChange={(e) => set("state", e.target.value)}
-          className="w-full rounded-xl border border-slate-200 px-4 py-3"
+          className="w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 transition placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 group-data-[error=true]/field:ring-2 group-data-[error=true]/field:ring-red-500"
           autoComplete="address-level1"
         />
       </Field>
@@ -116,7 +116,7 @@ export default function AddressForm({
           maxLength={6}
           value={value.postalCode}
           onChange={(e) => set("postalCode", e.target.value)}
-          className="w-full rounded-xl border border-slate-200 px-4 py-3"
+          className="w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 transition placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 group-data-[error=true]/field:ring-2 group-data-[error=true]/field:ring-red-500"
           autoComplete="postal-code"
         />
       </Field>
@@ -125,7 +125,7 @@ export default function AddressForm({
         <select
           value={value.country}
           onChange={(e) => set("country", e.target.value)}
-          className="w-full rounded-xl border border-slate-200 px-4 py-3"
+          className="w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 transition placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500 group-data-[error=true]/field:ring-2 group-data-[error=true]/field:ring-red-500"
         >
           <option value="IN">India</option>
         </select>
@@ -146,10 +146,13 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className={`flex flex-col gap-1 ${className ?? ""}`}>
-      <span className="text-sm font-medium">{label}</span>
+    <label
+      data-error={error ? "true" : undefined}
+      className={`group/field flex flex-col gap-2 ${className ?? ""}`}
+    >
+      <span className="text-sm font-semibold text-slate-700">{label}</span>
       {children}
-      {error && <span className="text-xs text-red-600">{error}</span>}
+      {error && <span className="text-sm font-medium text-red-600">{error}</span>}
     </label>
   );
 }

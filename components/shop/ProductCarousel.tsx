@@ -51,7 +51,7 @@ export default function ProductCarousel({
 
   if (products.length === 0) {
     return emptyMessage ? (
-      <div className="rounded-3xl bg-white p-10 text-center text-sm text-slate-500 shadow-sm">
+      <div className="rounded-[2rem] bg-white p-10 text-center text-slate-600">
         {emptyMessage}
       </div>
     ) : null;
@@ -63,15 +63,16 @@ export default function ProductCarousel({
           every section background and washed out the first/last card image. The
           arrows + partially-visible next card are the scroll cue. */}
 
-      {/* Arrows — hidden on touch */}
+      {/* Arrows — hidden on touch, and entirely when nothing overflows. */}
+      {(canScrollLeft || canScrollRight) && (<>
       <button
         type="button"
         aria-label="Scroll left"
         disabled={!canScrollLeft}
         onClick={() => scrollBy(-1)}
-        className={`absolute left-2 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-slate-700 shadow-lift ring-1 ring-slate-200 transition lg:flex ${
+        className={`absolute left-2 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-slate-950 text-white shadow-lg transition lg:flex ${
           canScrollLeft
-            ? "hover:-translate-y-1/2 hover:scale-105 hover:text-slate-900"
+            ? "hover:-translate-y-1/2 hover:scale-105 hover:bg-slate-800"
             : "cursor-not-allowed opacity-40"
         }`}
       >
@@ -82,18 +83,19 @@ export default function ProductCarousel({
         aria-label="Scroll right"
         disabled={!canScrollRight}
         onClick={() => scrollBy(1)}
-        className={`absolute right-2 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-slate-700 shadow-lift ring-1 ring-slate-200 transition lg:flex ${
+        className={`absolute right-2 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-slate-950 text-white shadow-lg transition lg:flex ${
           canScrollRight
-            ? "hover:-translate-y-1/2 hover:scale-105 hover:text-slate-900"
+            ? "hover:-translate-y-1/2 hover:scale-105 hover:bg-slate-800"
             : "cursor-not-allowed opacity-40"
         }`}
       >
         <ChevronRight className="h-5 w-5" strokeWidth={2.5} />
       </button>
+      </>)}
 
       <div
         ref={scrollerRef}
-        className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:gap-5 lg:gap-6"
+        className="-mx-5 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-smooth px-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:-mx-8 sm:px-8"
       >
         {products.map((p) => (
           <div key={p.id} className={`flex-none snap-start ${cardWidthClass}`}>

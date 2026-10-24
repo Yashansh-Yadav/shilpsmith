@@ -226,12 +226,12 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
 
   return (
     <>
-      <div className="grid gap-8 lg:grid-cols-2 lg:gap-12">
+      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
         {/* ─────────────── Gallery / 3D ─────────────── */}
-        <div className="lg:sticky lg:top-24 lg:self-start">
-          <div className="relative overflow-hidden rounded-4xl border border-slate-100 bg-white shadow-sm">
+        <div className="lg:sticky lg:top-[5.5rem] lg:self-start">
+          <div className="relative overflow-hidden rounded-[2rem]">
             {show3D && product.modelUrl ? (
-              <div className="p-3 sm:p-4">
+              <div className="rounded-[2rem] bg-white p-3 sm:p-4">
                 <ThreeDViewer url={product.modelUrl} height={460} />
               </div>
             ) : (
@@ -246,7 +246,7 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
               <button
                 type="button"
                 onClick={() => setShow3D((v) => !v)}
-                className="absolute left-5 top-5 z-10 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3.5 py-2 text-xs font-semibold text-slate-900 shadow-lg backdrop-blur transition hover:bg-white"
+                className="absolute left-4 top-4 z-10 inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-lg transition hover:bg-slate-100 active:scale-[.97]"
               >
                 <Box className="h-3.5 w-3.5" strokeWidth={2.5} />
                 {show3D ? "Show photos" : "View in 3D"}
@@ -256,21 +256,21 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
         </div>
 
         {/* ─────────────── Buy panel ─────────────── */}
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-7 lg:pt-2">
           <header>
             {product.category && (
-              <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-brand-700">
+              <p className="mb-4 font-mono text-xs font-medium uppercase tracking-[0.18em] text-brand-700">
                 {product.category.name}
               </p>
             )}
-            <h1 className="text-3xl font-black leading-tight tracking-tight sm:text-4xl">
+            <h1 className="font-display text-4xl font-semibold leading-[0.98] tracking-[-0.035em] text-slate-900 sm:text-5xl lg:text-6xl">
               {product.name}
             </h1>
 
             {/* Rating jumps to the reviews block rather than repeating it here. */}
             <a
               href="#reviews"
-              className="mt-3 inline-flex items-center gap-2 text-sm text-slate-500 transition hover:text-slate-800"
+              className="mt-5 inline-flex items-center gap-2 text-sm text-slate-600 transition hover:text-slate-900"
             >
               <StarRating value={rating.average} readOnly size="sm" />
               {rating.count > 0 ? (
@@ -288,21 +288,21 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
 
           <div>
             <div className="flex flex-wrap items-baseline gap-3">
-              <span className="font-spec text-3xl font-black tracking-tight text-slate-900">
+              <span className="font-mono text-4xl font-bold tracking-tight text-slate-900">
                 {formatRupee(displayUnit)}
               </span>
               {listUnit != null && (
-                <span className="font-spec text-base text-slate-400 line-through">
+                <span className="font-mono text-lg text-slate-400 line-through">
                   {formatRupee(listUnit)}
                 </span>
               )}
               {percentOff > 0 && (
-                <span className="rounded-full bg-brand-600 px-2.5 py-1 text-[11px] font-black uppercase tracking-wide text-white">
+                <span className="rounded-full bg-brand-500 px-3 py-1 font-mono text-xs font-bold text-slate-950">
                   {percentOff}% off
                 </span>
               )}
             </div>
-            <p className="mt-1.5 text-xs text-slate-500">
+            <p className="mt-2 text-sm text-slate-500">
               Inclusive of all taxes · {shippingNote(shipping)}
               {selectedVariant && ` · Base ${formatRupee(basePrice)}`}
             </p>
@@ -311,22 +311,22 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
           {/* Stock line — one clear statement, no contradictory badges. */}
           <div className="text-sm font-semibold">
             {outOfStock ? (
-              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-slate-600">
+              <span className="inline-flex items-center gap-2 rounded-full bg-slate-200/70 px-3.5 py-2 text-slate-700">
                 <Package className="h-4 w-4" /> Out of stock
               </span>
             ) : lowStock ? (
-              <span className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-amber-700">
+              <span className="inline-flex items-center gap-2 rounded-full bg-amber-100 px-3.5 py-2 text-amber-800">
                 <Package className="h-4 w-4" /> Only {availableStock} left
               </span>
             ) : (
-              <span className="inline-flex items-center gap-2 rounded-full bg-brand-50 px-3 py-1.5 text-brand-700">
+              <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-3.5 py-2 text-brand-800">
                 <Package className="h-4 w-4" /> In stock · made to order
               </span>
             )}
           </div>
 
           {product.shortDescription && (
-            <p className="text-base leading-relaxed text-slate-600">
+            <p className="text-lg leading-relaxed text-slate-600">
               {product.shortDescription}
             </p>
           )}
@@ -344,8 +344,8 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
           )}
 
           {customizable && (
-            <section>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+            <section className="rounded-[1.75rem] bg-white p-5 ring-1 ring-slate-200/70 sm:p-6">
+              <h2 className="mb-4 font-display text-xl font-semibold tracking-tight text-slate-900">
                 Make it yours
               </h2>
               {useDynamicCustomization ? (
@@ -364,10 +364,10 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
           )}
 
           {/* Quantity + CTAs */}
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-4">
             <div className="flex items-center gap-4">
-              <span className="text-sm font-semibold text-slate-700">Quantity</span>
-              <div className="inline-flex items-center rounded-2xl border border-slate-200">
+              <span className="font-mono text-xs uppercase tracking-[0.18em] text-slate-500">Quantity</span>
+              <div className="inline-flex items-center rounded-full bg-white p-1 ring-1 ring-slate-200">
                 <button
                   type="button"
                   onClick={() => setQty((q) => Math.max(1, q - 1))}
@@ -377,7 +377,7 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
                 >
                   <Minus className="h-4 w-4" />
                 </button>
-                <span className="w-10 text-center font-spec text-base font-bold">
+                <span className="w-10 text-center font-mono text-base font-bold">
                   {qty}
                 </span>
                 <button
@@ -397,7 +397,7 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
                 type="button"
                 onClick={handleAddToCart}
                 disabled={ctaDisabled}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border-2 border-slate-900 px-6 py-3.5 font-semibold text-slate-900 transition hover:bg-slate-900 hover:text-white disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 disabled:hover:bg-transparent disabled:hover:text-slate-400"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-slate-900 px-6 py-4 font-semibold text-white transition hover:bg-slate-800 active:scale-[.98] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:active:scale-100"
               >
                 <ShoppingBag className="h-4 w-4" strokeWidth={2.25} />
                 {ctaLabel}
@@ -406,7 +406,7 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
                 type="button"
                 onClick={handleBuyNow}
                 disabled={ctaDisabled}
-                className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-brand-600 px-6 py-3.5 font-semibold text-white shadow-cta transition hover:-translate-y-0.5 hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none disabled:hover:translate-y-0"
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-400 to-brand-600 px-6 py-4 font-semibold text-slate-950 shadow-[0_12px_32px_-10px_rgba(16,185,129,.7)] transition hover:brightness-110 active:scale-[.98] disabled:cursor-not-allowed disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none disabled:active:scale-100"
               >
                 Buy now
               </button>
@@ -414,27 +414,28 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
           </div>
 
           {/* Trust row */}
-          <ul className="grid grid-cols-1 gap-3 border-t border-slate-100 pt-5 text-sm text-slate-600 sm:grid-cols-3">
-            <li className="flex items-center gap-2">
+          <ul className="grid grid-cols-1 gap-2 text-sm text-slate-700 sm:grid-cols-3">
+            <li className="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200/70">
               <Truck className="h-4 w-4 shrink-0 text-brand-600" />
               Ships in 3–7 days
             </li>
-            <li className="flex items-center gap-2">
+            <li className="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200/70">
               <ShieldCheck className="h-4 w-4 shrink-0 text-brand-600" />
               Quality checked
             </li>
-            <li className="flex items-center gap-2">
+            <li className="flex items-center gap-2 rounded-2xl bg-white px-4 py-3 ring-1 ring-slate-200/70">
               <RefreshCw className="h-4 w-4 shrink-0 text-brand-600" />
               Easy support
             </li>
           </ul>
 
           {product.deity?.active && (
-            <section className="rounded-3xl border border-brand-200 bg-brand-50 p-5">
-              <h2 className="mb-1 flex items-center gap-2 text-sm font-semibold text-brand-800">
+            <section className="relative isolate overflow-hidden rounded-[1.75rem] bg-slate-950 p-6 text-white">
+              <div aria-hidden="true" className="heated-bed absolute inset-0 -z-10" />
+              <h2 className="mb-2 flex items-center gap-2 font-display text-lg font-semibold tracking-tight">
                 <span aria-hidden>📲</span> Smart NFC idol
               </h2>
-              <p className="mb-3 text-sm text-brand-900/80">
+              <p className="mb-4 text-sm leading-relaxed text-slate-300">
                 Tap your phone on this idol to open a live darshan — aarti,
                 bhajans, scriptures and today&apos;s panchang, in Hindi or English.
               </p>
@@ -442,7 +443,7 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
                 href={`/darshan/${product.deity.key}`}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-1 rounded-full bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-cta transition hover:bg-brand-700"
+                className="inline-flex items-center gap-1 rounded-full bg-brand-500 px-5 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-brand-400"
               >
                 View live darshan →
               </a>
@@ -453,19 +454,19 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
 
       {/* ─────────────── Full description ─────────────── */}
       {product.description && (
-        <section className="mt-14 border-t border-slate-100 pt-10">
-          <h2 className="mb-5 text-xl font-black tracking-tight">
+        <section className="mt-24 grid gap-8 rounded-[2rem] bg-white p-7 sm:p-10 lg:mt-32 lg:grid-cols-[1fr_2fr] lg:gap-16 lg:p-14">
+          <h2 className="font-display text-4xl font-semibold leading-none tracking-[-0.035em] text-slate-900 sm:text-5xl">
             Product details
           </h2>
           {HTML_RE.test(product.description) ? (
             <div
-              className="max-w-3xl text-base leading-relaxed text-slate-600 [&_a]:text-brand-700 [&_a]:underline [&_blockquote]:mt-3 [&_blockquote]:border-l-2 [&_blockquote]:border-slate-200 [&_blockquote]:pl-4 [&_blockquote]:text-slate-500 [&_h2]:mt-6 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-slate-900 [&_h3]:mt-5 [&_h3]:font-semibold [&_h3]:text-slate-900 [&_li]:mt-1 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_p:first-child]:mt-0 [&_strong]:font-semibold [&_strong]:text-slate-900 [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
+              className="max-w-3xl text-[17px] leading-relaxed text-slate-700 [&_a]:text-brand-700 [&_a]:underline [&_blockquote]:mt-3 [&_blockquote]:border-l-2 [&_blockquote]:border-slate-200 [&_blockquote]:pl-4 [&_blockquote]:text-slate-500 [&_h2]:mt-8 [&_h2]:font-display [&_h2]:text-2xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_h2]:text-slate-900 [&_h3]:mt-5 [&_h3]:font-semibold [&_h3]:text-slate-900 [&_li]:mt-1 [&_ol]:mt-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mt-3 [&_p:first-child]:mt-0 [&_strong]:font-semibold [&_strong]:text-slate-900 [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-5"
               dangerouslySetInnerHTML={{
                 __html: sanitizeHtml(product.description),
               }}
             />
           ) : (
-            <p className="max-w-3xl whitespace-pre-line text-base leading-relaxed text-slate-600">
+            <p className="max-w-3xl whitespace-pre-line text-[17px] leading-relaxed text-slate-700">
               {product.description}
             </p>
           )}
@@ -474,13 +475,13 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
 
       {/* Mobile action bar — the CTAs scroll away on a long page, and a PDP
           without a persistent buy button is where mobile conversions die. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 border-t border-slate-200 bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-30 flex items-center gap-3 bg-white/95 px-5 py-3 shadow-[0_-1px_0_rgba(15,23,42,.08)] backdrop-blur lg:hidden">
         <div className="min-w-0">
-          <p className="font-spec text-lg font-black leading-none">
+          <p className="font-mono text-lg font-bold leading-none">
             {formatRupee(displayUnit)}
           </p>
           {listUnit != null && (
-            <p className="font-spec text-xs text-slate-400 line-through">
+            <p className="font-mono text-xs text-slate-400 line-through">
               {formatRupee(listUnit)}
             </p>
           )}
@@ -489,7 +490,7 @@ export default function ProductDetail({ product, rating, shipping }: Props) {
           type="button"
           onClick={handleAddToCart}
           disabled={ctaDisabled}
-          className="ml-auto inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 font-semibold text-white transition disabled:bg-slate-300"
+          className="ml-auto inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-400 to-brand-600 px-5 py-3.5 font-semibold text-slate-950 transition active:scale-[.98] disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400"
         >
           <ShoppingBag className="h-4 w-4" strokeWidth={2.25} />
           {ctaLabel}

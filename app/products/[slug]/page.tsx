@@ -18,7 +18,6 @@ import { loadRatings, NO_RATING } from "../../../lib/ratings";
 import { getShippingConfig } from "../../../lib/settings";
 import type { CustomFieldsConfig } from "../../../lib/customization";
 import { SITE_NAME, SITE_LEGAL_NAME, absoluteUrl } from "../../../lib/site";
-import { CartButton } from "../../../components/shop/CartSheet";
 import ProductCarousel from "../../../components/shop/ProductCarousel";
 import ProductDetail, {
   type ProductDetailData,
@@ -263,23 +262,23 @@ export default async function ProductPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-12">
-        {/* Breadcrumb + cart access (SiteHeader has no cart button of its own) */}
-        <div className="mb-8 flex items-center justify-between gap-4">
+      <div className="mx-auto max-w-7xl px-5 pb-24 pt-8 sm:px-8 lg:pb-32 lg:pt-10">
+        {/* Breadcrumb (the shared header carries the cart button). */}
+        <div className="mb-8">
           <nav
             aria-label="Breadcrumb"
-            className="flex min-w-0 items-center gap-1.5 text-sm text-slate-500"
+            className="flex min-w-0 items-center gap-1.5 font-mono text-xs uppercase tracking-[0.12em] text-slate-500"
           >
             <Link href="/" className="transition hover:text-slate-900">
               Home
             </Link>
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+            <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
             <Link href="/search" className="transition hover:text-slate-900">
               Shop
             </Link>
             {product.category && (
               <>
-                <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+                <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
                 <Link
                   href={`/categories/${product.category.slug}`}
                   className="truncate transition hover:text-slate-900"
@@ -288,17 +287,16 @@ export default async function ProductPage({
                 </Link>
               </>
             )}
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-slate-300" />
+            <ChevronRight className="h-3 w-3 shrink-0 text-slate-300" />
             <span className="truncate font-medium text-slate-900">
               {product.name}
             </span>
           </nav>
-          <CartButton />
         </div>
 
         <ProductDetail product={detail} rating={rating} shipping={shipping} />
 
-        <section id="reviews" className="mt-14 scroll-mt-24 border-t border-slate-100 pt-10">
+        <section id="reviews" className="mt-24 scroll-mt-24 lg:mt-32">
           <ReviewSection
             productId={product.id}
             productName={product.name}
@@ -365,27 +363,30 @@ async function RelatedShelf({
   }));
 
   return (
-    <section className="mt-14 border-t border-slate-100 pt-10">
+    <section className="mt-24 lg:mt-32">
       <SectionHeader
         eyebrow="You might also like"
         title={`More from ${categoryName ?? "the catalog"}`}
         href={categorySlug ? `/categories/${categorySlug}` : "/search"}
         ctaLabel="View all"
       />
-      <ProductCarousel products={products} />
+      <ProductCarousel
+        products={products}
+        cardWidthClass="w-[240px] sm:w-[260px] lg:w-[280px]"
+      />
     </section>
   );
 }
 
 function RelatedSkeleton() {
   return (
-    <section className="mt-14 border-t border-slate-100 pt-10">
-      <div className="mb-8 h-9 w-72 animate-pulse rounded-xl bg-slate-100" />
-      <div className="flex gap-4 sm:gap-5 lg:gap-6">
+    <section className="mt-24 lg:mt-32">
+      <div className="mb-10 h-12 w-80 animate-pulse rounded-2xl bg-slate-200/70" />
+      <div className="flex gap-5 overflow-hidden">
         {[0, 1, 2, 3, 4].map((i) => (
           <div
             key={i}
-            className="h-64 w-[180px] flex-none animate-pulse rounded-2xl bg-slate-100 sm:w-[200px] lg:w-[220px]"
+            className="aspect-[2/3] w-[240px] flex-none animate-pulse rounded-[1.75rem] bg-slate-200/70 sm:w-[260px] lg:w-[280px]"
           />
         ))}
       </div>
