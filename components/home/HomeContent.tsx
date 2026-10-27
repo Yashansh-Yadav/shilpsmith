@@ -8,7 +8,6 @@ import { whatsappLink } from "../../lib/site";
 import type { StorefrontData, StorefrontCard } from "../../lib/storefront";
 import CartSheet from "../shop/CartSheet";
 import Reveal from "../shop/Reveal";
-import StarRating from "../shop/StarRating";
 import FAQ from "../shop/FAQ";
 import SiteFooter from "../site/SiteFooter";
 import SiteHeader from "../site/SiteHeader";
@@ -19,6 +18,7 @@ import ProcessSteps from "./ProcessSteps";
 import CategoryRows from "./CategoryRows";
 import MeetTheMaker from "./MeetTheMaker";
 import CustomOrderBand from "./CustomOrderBand";
+import ReviewsRail from "./ReviewsRail";
 
 // Data arrives as a prop from the server component in app/page.tsx, already
 // resolved — every section is in the first HTML response, which keeps the
@@ -46,7 +46,7 @@ export default function HomeContent({ data }: { data: StorefrontData }) {
     <main className="bg-slate-50 text-slate-900">
       <SiteHeader variant="overlay" />
 
-      <HomeHero categories={data.categories} customQuoteHref={waCustom} />
+      <HomeHero customQuoteHref={waCustom} />
 
       {products.length > 0 ? (
         <CollectionShowcase products={products} />
@@ -65,37 +65,7 @@ export default function HomeContent({ data }: { data: StorefrontData }) {
       <MeetTheMaker />
       <CustomOrderBand whatsappHref={waCreate} />
 
-      {/* ─────────────────────────── Reviews ─────────────────────────── */}
-      {data.testimonials.length > 0 && (
-        <section id="reviews" className="pb-24 lg:pb-32">
-          <div className="mx-auto max-w-7xl px-5 sm:px-8">
-            <Reveal>
-              <div className="grid items-start gap-10 rounded-[2rem] bg-white p-8 sm:p-12 lg:grid-cols-[1fr_2fr]">
-                <h2 className="font-display text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">
-                  What our community is saying
-                </h2>
-                <div className="-mx-2 flex snap-x snap-mandatory gap-10 overflow-x-auto px-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                  {data.testimonials.map((r) => (
-                    <figure key={r.id} className="w-full flex-none snap-start sm:w-[min(100%,28rem)]">
-                      <StarRating value={r.rating} readOnly size="sm" />
-                      <blockquote className="mt-4 font-display text-2xl font-medium leading-snug tracking-tight sm:text-3xl">
-                        “{r.title || r.comment}”
-                      </blockquote>
-                      {r.title && r.comment && <p className="mt-3 text-slate-600">{r.comment}</p>}
-                      <figcaption className="mt-4 text-slate-600">
-                        {r.customerName ?? "Customer"} · on{" "}
-                        <Link href={`/products/${r.product.slug}`} className="underline-offset-4 hover:underline">
-                          {r.product.name}
-                        </Link>
-                      </figcaption>
-                    </figure>
-                  ))}
-                </div>
-              </div>
-            </Reveal>
-          </div>
-        </section>
-      )}
+      <ReviewsRail reviews={data.testimonials} />
 
       <FAQ />
 

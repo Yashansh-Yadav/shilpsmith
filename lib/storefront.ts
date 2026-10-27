@@ -137,7 +137,8 @@ export async function getStorefrontData(): Promise<StorefrontData> {
         },
         select: TESTIMONIAL_SELECT,
         orderBy: { createdAt: "desc" },
-        take: 6,
+        // The homepage rail shows four at a time and scrolls for the rest.
+        take: 12,
       }),
     ]);
 
