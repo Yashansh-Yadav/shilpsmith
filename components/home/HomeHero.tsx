@@ -1,10 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useState } from "react";
 
-import type { StorefrontData } from "../../lib/storefront";
 import Reveal from "../shop/Reveal";
 import PrintHeadline from "./PrintHeadline";
 import { FILAMENTS, TOTAL_LAYERS, type PrintStatus } from "./HeroFloatingPrint";
@@ -17,22 +15,15 @@ const HeroFloatingPrint = dynamic(() => import("./HeroFloatingPrint"), {
 
 // Homepage hero: dark-to-light stage (CSS .hero-stage), a huge headline on the
 // left, one floating 3D print on the right above a glowing print-bed ring, a
-// frosted live-status card bottom-right and the shop's real categories along
-// the bottom.
-export default function HomeHero({
-  categories,
-  customQuoteHref,
-}: {
-  categories: StorefrontData["categories"];
-  customQuoteHref: string | null;
-}) {
+// frosted live-status card bottom-right. (No category row: "The collection"
+// right below already offers the category filters.)
+export default function HomeHero({ customQuoteHref }: { customQuoteHref: string | null }) {
   const [status, setStatus] = useState<PrintStatus>({
     layer: 0,
     total: TOTAL_LAYERS,
     printing: true,
     filament: FILAMENTS[0].name,
   });
-  const shelves = categories.filter((c) => c.productCount > 0).slice(0, 4);
   const pct = (status.layer / status.total) * 100;
 
   return (
@@ -102,30 +93,7 @@ export default function HomeHero({
       {/* In normal flow (mt-auto), never absolutely pinned: on short screens a
           pinned row collided with the buttons above it. */}
       <div className="relative z-10 order-3 mx-auto w-full max-w-7xl px-5 pb-10 sm:px-8 lg:mt-auto lg:pt-10">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          {/* Real categories where the reference shows "trusted by" logos. */}
-          {shelves.length > 0 && (
-            <nav
-              aria-label="Shop by category"
-              className="animate-fade-in-up"
-              style={{ animationDelay: "1500ms" }}
-            >
-                <p className="font-mono text-xs uppercase tracking-[0.18em] text-slate-500">Printed to order for</p>
-                <ul className="mt-4 flex flex-wrap gap-x-10 gap-y-2">
-                  {shelves.map((c) => (
-                    <li key={c.id}>
-                      <Link
-                        href={`/categories/${c.slug}`}
-                        className="font-display text-lg font-semibold tracking-tight text-slate-500 transition hover:text-slate-900"
-                      >
-                        {c.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-            </nav>
-          )}
-
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-end">
           {/* Frosted live-status card */}
           {/* (Plain load-in, not Reveal: Reveal ignores the bottom 10% of the
               viewport, which is exactly where this row sits.) */}
