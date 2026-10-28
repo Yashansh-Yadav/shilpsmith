@@ -92,7 +92,15 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  icons: { icon: BRAND_LOGO, apple: BRAND_LOGO },
+  // Small purpose-made icons. (Previously BRAND_LOGO — a 1.5 MB 1024px PNG —
+  // which every browser downloaded as the tab icon on every visit.)
+  // app/favicon.ico and app/apple-touch-icon.png are also picked up by Next's
+  // file conventions.
+  icons: {
+    // (Not /favicon.svg: it's a 2 MB SVG wrapping a 1024px bitmap.)
+    icon: [{ url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" }],
+    apple: "/apple-touch-icon.png",
+  },
   category: "shopping",
 };
 
@@ -191,7 +199,8 @@ async function StructuredData() {
 }
 
 // Google Analytics 4. Production-only so local dev traffic doesn't pollute the
-// property. `afterInteractive` keeps gtag.js off the critical rendering path.
+// property. `lazyOnload` waits until the page has fully loaded and the
+// browser is idle, so the 177 KB gtag.js never competes with the page itself.
 const GA_MEASUREMENT_ID = "G-SZKJF7L95J";
 
 function GoogleAnalytics() {
@@ -200,9 +209,9 @@ function GoogleAnalytics() {
     <>
       <Script
         src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-        strategy="afterInteractive"
+        strategy="lazyOnload"
       />
-      <Script id="google-analytics" strategy="afterInteractive">
+      <Script id="google-analytics" strategy="lazyOnload">
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
