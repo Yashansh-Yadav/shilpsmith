@@ -64,3 +64,4 @@ temp/
 
 # design-tool output (taste-skill screenshots/reports)
 /.taste-skill/
+/.next-perf/

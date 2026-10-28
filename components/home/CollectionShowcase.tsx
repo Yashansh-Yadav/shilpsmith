@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 
 import { cardDisplay } from "../../lib/discounts";
 import type { StorefrontCard } from "../../lib/storefront";
-import ProductImage from "../shop/ProductImage";
+import ProductImage, { BlurBackdrop } from "../shop/ProductImage";
 import Reveal from "../shop/Reveal";
 import HomeProductCard, { formatRupee, isOutOfStock } from "./HomeProductCard";
 
@@ -151,14 +151,7 @@ function Spotlight({ product }: { product: StorefrontCard }) {
     <article className="group relative grid overflow-hidden rounded-[2rem] bg-slate-950 text-white md:grid-cols-[minmax(0,440px)_1fr]">
       <Link href={href} className="relative block overflow-hidden" tabIndex={-1} aria-hidden="true">
         {/* The poster is 2:3 with text baked in — show it whole over a blurred copy of itself. */}
-        {img && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={img}
-            alt=""
-            className="absolute inset-0 h-full w-full scale-125 object-cover opacity-60 blur-2xl"
-          />
-        )}
+        {img && <BlurBackdrop src={img} className="opacity-60" />}
         <div className="relative p-6">
           <ProductImage
             src={img}
@@ -166,6 +159,7 @@ function Spotlight({ product }: { product: StorefrontCard }) {
             productId={product.id}
             aspectClass="aspect-[2/3]"
             fit="contain"
+            sizes="(max-width: 768px) 100vw, 440px"
             className="bg-transparent transition duration-700 group-hover:scale-[1.03]"
           />
         </div>

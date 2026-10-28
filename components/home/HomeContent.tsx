@@ -1,12 +1,13 @@
-"use client";
+// Server component on purpose: only the interactive sections below (hero,
+// collection filters, process steps, reviews rail, FAQ, header, cart) ship
+// JavaScript. The static ones — Smart Idols band, category rows, Meet the
+// maker, custom-order band, footer — render to HTML only.
 
 import Link from "next/link";
-import { useMemo } from "react";
-import { Toaster } from "react-hot-toast";
 
 import { whatsappLink } from "../../lib/site";
 import type { StorefrontData, StorefrontCard } from "../../lib/storefront";
-import CartSheet from "../shop/CartSheet";
+import StorefrontChrome from "../shop/StorefrontChrome";
 import Reveal from "../shop/Reveal";
 import FAQ from "../shop/FAQ";
 import SiteFooter from "../site/SiteFooter";
@@ -30,21 +31,22 @@ export default function HomeContent({ data }: { data: StorefrontData }) {
 
   // Featured / newest / trending overlap heavily on a small catalogue, so the
   // homepage shows each product once: featured first, then the rest.
-  const products = useMemo(() => {
-    const seen = new Set<number>();
-    const out: StorefrontCard[] = [];
-    for (const p of [...data.featured, ...data.newest, ...data.trending]) {
-      if (!seen.has(p.id)) {
-        seen.add(p.id);
-        out.push(p);
-      }
+  const seen = new Set<number>();
+  const products: StorefrontCard[] = [];
+  for (const p of [...data.featured, ...data.newest, ...data.trending]) {
+    if (!seen.has(p.id)) {
+      seen.add(p.id);
+      products.push(p);
     }
-    return out;
-  }, [data]);
+  }
 
   return (
     <main className="bg-slate-50 text-slate-900">
       <SiteHeader variant="overlay" />
+      {/* Below-the-fold sections are wrapped in .cv-auto (content-visibility:
+          auto): the browser skips their style/layout/paint until they're
+          scrolled near, which removes most of the first-paint work on phones.
+          No visual change. */}
 
       <HomeHero customQuoteHref={waCustom} />
 
@@ -59,18 +61,18 @@ export default function HomeContent({ data }: { data: StorefrontData }) {
         </section>
       )}
 
-      <SmartIdolsBand products={products} />
-      <ProcessSteps />
-      <CategoryRows categories={data.categories} />
-      <MeetTheMaker />
-      <CustomOrderBand whatsappHref={waCreate} />
+      <div className="cv-auto"><SmartIdolsBand products={products} /></div>
+      <div className="cv-auto"><ProcessSteps /></div>
+      <div className="cv-auto"><CategoryRows categories={data.categories} /></div>
+      <div className="cv-auto"><MeetTheMaker /></div>
+      <div className="cv-auto"><CustomOrderBand whatsappHref={waCreate} /></div>
 
-      <ReviewsRail reviews={data.testimonials} />
+      <div className="cv-auto"><ReviewsRail reviews={data.testimonials} /></div>
 
-      <FAQ />
+      <div className="cv-auto"><FAQ /></div>
 
       {/* ─────────────────────────── Final CTA ─────────────────────────── */}
-      <section className="relative isolate overflow-hidden bg-slate-950 py-28 text-center text-white">
+      <section className="cv-auto relative isolate overflow-hidden bg-slate-950 py-28 text-center text-white">
         <div aria-hidden="true" className="heated-bed absolute inset-0 -z-10" />
         <div className="mx-auto max-w-4xl px-5">
           <Reveal>
@@ -103,10 +105,10 @@ export default function HomeContent({ data }: { data: StorefrontData }) {
         </div>
       </section>
 
-      <SiteFooter />
+      <div className="cv-auto"><SiteFooter /></div>
 
-      <CartSheet />
-      <Toaster />
+      {/* Cart drawer + toast host (client-only). */}
+      <StorefrontChrome />
     </main>
   );
 }

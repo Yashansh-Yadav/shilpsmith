@@ -327,3 +327,11 @@ body {
   .marquee, .ripple { animation: none !important; }
   .sketch-path { stroke-dashoffset: 0; animation: none !important; }
 }
+
+/* Skip rendering work for off-screen sections until they're scrolled near.
+ * `auto` in contain-intrinsic-size remembers each section's real height once
+ * it has rendered, so the scrollbar settles after the first pass. */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 900px;
+}
