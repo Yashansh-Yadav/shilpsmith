@@ -449,4 +449,14 @@ Motivation: with `sameAs` empty, Google and LLM answer engines had nothing tying
 - **`sameAs` on the Organization JSON-LD** in [app/layout.tsx](app/layout.tsx) — the SEO-critical copy, server-rendered. `StructuredData` is now an **async nested server component** so the root layout itself stays synchronous. Omitted entirely when no profiles are configured (an empty `sameAs` array is worse than none).
 - **Footer icon row** — [SocialRow](components/site/SocialRow.tsx), a **client** component that fetches the public endpoint. It has to be client-side because `SiteFooter` is also mounted by the homepage, which is `"use client"` and therefore can't render an async server child. lucide only ships brand marks for Instagram/Facebook/YouTube/LinkedIn; X uses a hand-drawn cross and everything else falls back to its initial in the same circular chip rather than a fake logo.
 
+**Tracking params are stripped:** `normalizeSocialUrl()` drops `igsh` / `si` / `mibextid` / `utm_*` etc. on read, so a share-button URL pasted into admin still emits a clean profile URL in `sameAs`.
+
 **`export const revalidate = 300` in the root layout** is required by this: without it, statically prerendered pages would bake in whatever was in the DB at build time forever. Verified in `prerender-manifest.json` — `/`, `/about`, `/search`, `/terms`, `/track` all carry `initialRevalidateSeconds: 300`. Consequence: an admin edit is live immediately on dynamic pages (tag revalidation) and within 5 minutes on prerendered ones.
+
+## Phase 10 — local SEO (Bareilly)
+
+Full audit + off-site plan in [SEO-AUDIT.md](SEO-AUDIT.md).
+
+- The business entity in the root-layout JSON-LD is `["Organization", "LocalBusiness"]` (one `@id`, not two nodes) with `areaServed` Bareilly → India. `geo` / `hasMap` emit only when `BUSINESS_GEO` / `BUSINESS_MAP_URL` in `lib/site.ts` are set — fill them from the Google Business Profile, never guess.
+- [/3d-printing-bareilly](app/3d-printing-bareilly/page.tsx) is the local landing page (`LOCAL_PAGE_PATH`). Its `Service` JSON-LD points at `/#organization` as provider. Same genuine-data rule as `lib/faq.ts`: no local promises (pickup, same-day delivery, walk-ins) unless the business actually offers them.
+- `SITE_DESCRIPTION` and the default title name Bareilly on purpose — they're the fallback for every page and the llms.txt summary.

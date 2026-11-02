@@ -22,7 +22,7 @@ import {
 
 export const metadata: Metadata = {
   title: "About Us",
-  description: `Learn about ${SITE_LEGAL_NAME} — a custom 3D-printing studio crafting premium personalized gifts, decor, and made-to-order products in ${BUSINESS_COUNTRY}.`,
+  description: `Learn about ${SITE_LEGAL_NAME} — a custom 3D-printing studio crafting premium personalized gifts, decor, and made-to-order products in Bareilly, ${BUSINESS_COUNTRY}.`,
   alternates: { canonical: "/about" },
 };
 

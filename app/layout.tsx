@@ -16,6 +16,8 @@ import {
   FOUNDER_NAME,
   BUSINESS_ADDRESS,
   BUSINESS_PHONE_E164,
+  BUSINESS_GEO,
+  BUSINESS_MAP_URL,
 } from "../lib/site";
 import { getSocialLinks } from "../lib/settings";
 
@@ -42,15 +44,22 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+// City in the default title: it's what every page without its own title shows,
+// and "3D printing Bareilly" is the query the local strategy is built around.
+const DEFAULT_TITLE = `${SITE_LEGAL_NAME} — Custom 3D Printing in Bareilly & Across India`;
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_LEGAL_NAME} — Premium 3D Printed Gifts & Custom Creations`,
+    default: DEFAULT_TITLE,
     template: `%s · ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   keywords: [
+    "3D printing Bareilly",
+    "3D printing service in Bareilly",
+    "custom gifts Bareilly",
     "3D printing India",
     "custom 3D printed gifts",
     "personalized gifts",
@@ -72,7 +81,7 @@ export const metadata: Metadata = {
     locale: "en_IN",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_LEGAL_NAME} — Premium 3D Printed Gifts & Custom Creations`,
+    title: DEFAULT_TITLE,
     description: SITE_DESCRIPTION,
     images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: SITE_NAME }],
   },
@@ -128,7 +137,10 @@ async function StructuredData() {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "Organization",
+        // Both types on one entity (one @id) rather than two look-alike nodes:
+        // Organization carries the brand signals (logo, sameAs), LocalBusiness
+        // the local ones (address, geo, areaServed) that tie it to Bareilly.
+        "@type": ["Organization", "LocalBusiness"],
         "@id": `${SITE_URL}/#organization`,
         name: SITE_LEGAL_NAME,
         url: SITE_URL,
@@ -150,7 +162,17 @@ async function StructuredData() {
             : {}),
           addressCountry: "IN",
         },
+        ...(BUSINESS_GEO
+          ? { geo: { "@type": "GeoCoordinates", ...BUSINESS_GEO } }
+          : {}),
+        ...(BUSINESS_MAP_URL ? { hasMap: BUSINESS_MAP_URL } : {}),
+        image: `${SITE_URL}${OG_IMAGE}`,
         telephone: BUSINESS_PHONE_E164,
+        // Home city first, then the rest of the country it ships to.
+        areaServed: [
+          { "@type": "City", name: BUSINESS_ADDRESS.city },
+          { "@type": "Country", name: BUSINESS_ADDRESS.country },
+        ],
         contactPoint: [
           {
             "@type": "ContactPoint",
