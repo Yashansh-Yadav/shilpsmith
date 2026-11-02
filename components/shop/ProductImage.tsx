@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface Props {
   src?: string | null;
   alt: string;
@@ -15,6 +17,19 @@ interface Props {
   // Optional: pass the product name as a small footer label inside the
   // placeholder (used by the product page's large gallery placeholder).
   caption?: string;
+  // Rendered width hint for the responsive image (next/image `sizes`).
+  // Defaults suit a 1/2/4-column product grid; pass a tighter value for
+  // thumbnails or a wider one for the gallery.
+  sizes?: string;
+  // Fetch eagerly / at high priority (above-the-fold only).
+  priority?: boolean;
+}
+
+// Hosts next/image may optimize (must match next.config.mjs remotePatterns).
+// Anything else — admin previews (blob:/data:), unknown hosts — is served
+// as-is so it can never error.
+function canOptimize(src: string) {
+  return src.startsWith("/") || /^https:\/\/[^/]+\.public\.blob\.vercel-storage\.com\//.test(src);
 }
 
 // Rotating teaser messages. Stable per-product via id-modulo so a given card
@@ -63,6 +78,8 @@ export default function ProductImage({
   fit = "cover",
   className = "",
   caption,
+  sizes = "(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw",
+  priority = false,
 }: Props) {
   // Real image path.
   if (src) {
@@ -70,13 +87,16 @@ export default function ProductImage({
       <div
         className={`relative overflow-hidden bg-slate-100 ${aspectClass} ${className}`}
       >
-        <img
+        {/* next/image: resized per device + AVIF/WebP (the originals are
+            multi-MB PNGs). Same box, same fit — only the bytes change. */}
+        <Image
           src={src}
           alt={alt}
-          loading="lazy"
-          className={`absolute inset-0 h-full w-full ${
-            fit === "contain" ? "object-contain" : "object-cover"
-          }`}
+          fill
+          sizes={variant === "mini" ? "96px" : sizes}
+          priority={priority}
+          unoptimized={!canOptimize(src)}
+          className={fit === "contain" ? "object-contain" : "object-cover"}
         />
       </div>
     );
@@ -126,5 +146,23 @@ export default function ProductImage({
         )}
       </div>
     </div>
+  );
+}
+
+// Blurred full-bleed copy of a product image, used behind 2:3 posters so the
+// frame never looks empty. It's blurred by 40px, so a ~64px source is visually
+// identical to the multi-MB original — load that instead, lazily.
+export function BlurBackdrop({ src, className = "" }: { src: string; className?: string }) {
+  return (
+    <Image
+      src={src}
+      alt=""
+      aria-hidden="true"
+      fill
+      sizes="64px"
+      quality={40}
+      unoptimized={!canOptimize(src)}
+      className={`scale-125 object-cover blur-2xl ${className}`}
+    />
   );
 }

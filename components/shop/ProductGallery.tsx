@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
-import ProductImage from "./ProductImage";
+import ProductImage, { BlurBackdrop } from "./ProductImage";
 
 interface Props {
   images: { url: string }[];
@@ -67,12 +67,7 @@ export default function ProductGallery({
         >
           {/* Posters are 2:3 with text baked in: show the whole image over a
               blurred copy of itself so the frame never looks empty. */}
-          <img
-            src={mainUrl}
-            alt=""
-            aria-hidden="true"
-            className="absolute inset-0 h-full w-full scale-125 object-cover opacity-50 blur-2xl"
-          />
+          <BlurBackdrop src={mainUrl} className="opacity-50" />
           <div className="relative p-4 sm:p-6">
             <ProductImage
               src={mainUrl}
@@ -80,6 +75,8 @@ export default function ProductGallery({
               productId={productId}
               aspectClass="aspect-[2/3] max-h-[78vh] mx-auto"
               fit="contain"
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              priority
               className="!bg-transparent transition duration-700 group-hover:scale-[1.02]"
             />
           </div>
@@ -116,11 +113,11 @@ export default function ProductGallery({
                   : "ring-transparent hover:ring-slate-300"
               }`}
             >
-              <img
+              <ProductImage
                 src={img.url}
                 alt={`${productName} thumbnail ${i + 1}`}
-                loading="lazy"
-                className="h-full w-full object-cover"
+                aspectClass="h-full w-full"
+                sizes="64px"
               />
             </button>
           ))}

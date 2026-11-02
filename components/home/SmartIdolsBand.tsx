@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { cardDisplay } from "../../lib/discounts";
@@ -74,12 +75,14 @@ export default function SmartIdolsBand({ products }: { products: StorefrontCard[
                     k === 0 ? "right-0 top-0 rotate-3" : "left-0 top-10 -rotate-6"
                   }`}
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  {/* Posters are 2:3; width/height only reserve that ratio. */}
+                  <Image
                     src={p.images![0].url}
                     alt={p.name}
-                    loading="lazy"
-                    className="w-full rounded-3xl ring-1 ring-white/10"
+                    width={1024}
+                    height={1536}
+                    sizes="(max-width: 640px) 58vw, 300px"
+                    className="h-auto w-full rounded-3xl ring-1 ring-white/10"
                   />
                 </Link>
               ))}

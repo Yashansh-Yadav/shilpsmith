@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, MessageCircle } from "lucide-react";
 
@@ -115,12 +116,12 @@ export default function AboutPage() {
         <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 sm:px-8 lg:grid-cols-[5fr_7fr] lg:gap-20">
           <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-slate-950">
             {FOUNDER_PHOTO ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={FOUNDER_PHOTO}
                 alt={`${FOUNDER_NAME}, ${FOUNDER_ROLE.toLowerCase()} of ${SITE_LEGAL_NAME}`}
-                loading="lazy"
-                className="h-full w-full object-cover object-top"
+                fill
+                sizes="(max-width: 1024px) 100vw, 480px"
+                className="object-cover object-top"
               />
             ) : (
               <span

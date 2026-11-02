@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import {
   FOUNDER_NAME,
   FOUNDER_ROLE,
@@ -55,12 +57,12 @@ export default function MeetTheMaker() {
           <div className="relative">
             <div className="relative aspect-[4/5] overflow-hidden rounded-[2rem] bg-slate-950">
               {FOUNDER_PHOTO ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={FOUNDER_PHOTO}
                   alt={`${FOUNDER_NAME}, ${FOUNDER_ROLE.toLowerCase()} of ${SITE_LEGAL_NAME}`}
-                  loading="lazy"
-                  className="h-full w-full object-cover object-top"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 480px"
+                  className="object-cover object-top"
                 />
               ) : (
                 <>
@@ -101,14 +103,14 @@ export default function MeetTheMaker() {
           </Reveal>
 
           <Reveal delay={160}>
-            <dl className="mt-10 grid gap-3 sm:grid-cols-2">
+            <div className="mt-10 grid gap-3 sm:grid-cols-2">
               {contacts.map((c) => {
                 const inner = (
                   <>
-                    <dt className="text-sm text-slate-500">{c.label}</dt>
-                    <dd className={`mt-1 text-lg font-semibold text-slate-900 ${c.mono ? "font-mono" : ""}`}>
+                    <p className="text-sm text-slate-500">{c.label}</p>
+                    <p className={`mt-1 text-lg font-semibold text-slate-900 ${c.mono ? "font-mono" : ""}`}>
                       {c.value}
-                    </dd>
+                    </p>
                   </>
                 );
                 return c.href ? (
@@ -126,7 +128,7 @@ export default function MeetTheMaker() {
                   </div>
                 );
               })}
-            </dl>
+            </div>
           </Reveal>
 
           {wa && (

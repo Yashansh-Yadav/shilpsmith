@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { SITE_NAME, SITE_LEGAL_NAME, SITE_DESCRIPTION, BRAND_LOGO } from "../lib/site";
+import { SITE_NAME, SITE_LEGAL_NAME, SITE_DESCRIPTION } from "../lib/site";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
@@ -12,7 +12,8 @@ export default function manifest(): MetadataRoute.Manifest {
     background_color: "#f8fafc",
     theme_color: "#059669",
     icons: [
-      { src: BRAND_LOGO, sizes: "any", type: "image/png", purpose: "any" },
+      { src: "/web-app-manifest-192x192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/web-app-manifest-512x512.png", sizes: "512x512", type: "image/png", purpose: "any" },
     ],
   };
 }

@@ -1,16 +1,19 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Reveal from "../shop/Reveal";
 import PrintHeadline from "./PrintHeadline";
-import { FILAMENTS, TOTAL_LAYERS, type PrintStatus } from "./HeroFloatingPrint";
+import { FILAMENTS, TOTAL_LAYERS, type PrintStatus } from "./heroPrintConfig";
 
 // three.js only runs in the browser; the loading box keeps the stage's size.
+const STAGE_CLASS =
+  "order-2 h-[56svh] w-full lg:absolute lg:bottom-[20rem] lg:left-[calc(min(50%+400px,100%-240px)-340px)] lg:top-[6.5rem] lg:h-auto lg:w-[680px]";
+
 const HeroFloatingPrint = dynamic(() => import("./HeroFloatingPrint"), {
   ssr: false,
-  loading: () => <div className="h-full w-full" />,
+  loading: () => null,
 });
 
 // Homepage hero: dark-to-light stage (CSS .hero-stage), a huge headline on the
@@ -18,6 +21,41 @@ const HeroFloatingPrint = dynamic(() => import("./HeroFloatingPrint"), {
 // frosted live-status card bottom-right. (No category row: "The collection"
 // right below already offers the category filters.)
 export default function HomeHero({ customQuoteHref }: { customQuoteHref: string | null }) {
+  // three.js (~350 KB, seconds of CPU on phones) starts only once the page
+  // has loaded and the browser is idle, so the headline, buttons and the rest
+  // of the page are ready first. The scene then fades in where it always was.
+  const [show3d, setShow3d] = useState(false);
+  useEffect(() => {
+    let idleId: number | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let raf = 0;
+    let cancelled = false;
+    const go = () => !cancelled && setShow3d(true);
+    // Load event alone isn't enough: on a fast/cached load it can fire before
+    // the first frame is painted. Two rAFs guarantee a painted frame, then
+    // wait for idle so the scene never delays the headline.
+    const afterPaint = () => {
+      raf = requestAnimationFrame(() => {
+        raf = requestAnimationFrame(() => {
+          if ("requestIdleCallback" in window) {
+            idleId = window.requestIdleCallback(go, { timeout: 3000 });
+          } else {
+            timer = setTimeout(go, 800);
+          }
+        });
+      });
+    };
+    if (document.readyState === "complete") afterPaint();
+    else window.addEventListener("load", afterPaint, { once: true });
+    return () => {
+      cancelled = true;
+      window.removeEventListener("load", afterPaint);
+      cancelAnimationFrame(raf);
+      if (idleId !== undefined) window.cancelIdleCallback(idleId);
+      if (timer) clearTimeout(timer);
+    };
+  }, []);
+
   const [status, setStatus] = useState<PrintStatus>({
     layer: 0,
     total: TOTAL_LAYERS,
@@ -85,10 +123,12 @@ export default function HomeHero({ customQuoteHref }: { customQuoteHref: string 
           (not the viewport), centred over the status card's column — clear
           of the headline — and ending above the card so the ring is never
           hidden behind it. Phone: its own block between copy and card. */}
-      <HeroFloatingPrint
-        onStatus={setStatus}
-        className="order-2 h-[56svh] w-full lg:absolute lg:bottom-[20rem] lg:left-[calc(min(50%+400px,100%-240px)-340px)] lg:top-[6.5rem] lg:h-auto lg:w-[680px]"
-      />
+      {/* The stage box is permanent, so its size never changes while the
+          3D code downloads (next/dynamic's loading placeholder would collapse
+          it and shift the card below). The scene fills it once ready. */}
+      <div className={`relative ${STAGE_CLASS}`}>
+        {show3d && <HeroFloatingPrint onStatus={setStatus} className="h-full w-full" />}
+      </div>
 
       {/* In normal flow (mt-auto), never absolutely pinned: on short screens a
           pinned row collided with the buttons above it. */}
