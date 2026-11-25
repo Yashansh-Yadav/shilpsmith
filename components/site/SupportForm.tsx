@@ -114,12 +114,12 @@ export default function SupportForm() {
 
   if (done) {
     return (
-      <div className="rounded-3xl border border-brand-200 bg-brand-50/60 p-8 text-center">
+      <div className="rounded-[1.75rem] bg-brand-50 p-8 text-center">
         <CheckCircle2 className="mx-auto h-10 w-10 text-brand-600" />
-        <h3 className="mt-3 text-lg font-bold text-slate-900">
+        <h3 className="mt-4 font-display text-2xl font-semibold tracking-tight text-slate-900">
           Thanks — we&apos;ve got it!
         </h3>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="mt-2 text-slate-600">
           Our team will get back to you at{" "}
           <span className="font-medium">{form.email}</span> as soon as possible.
         </p>
@@ -129,7 +129,7 @@ export default function SupportForm() {
             setForm((f) => ({ ...EMPTY, name: f.name, email: f.email, phone: f.phone }));
             setDone(false);
           }}
-          className="mt-5 text-sm font-semibold text-brand-700 hover:underline"
+          className="mt-6 rounded-full bg-white px-6 py-3 text-sm font-semibold text-slate-900 ring-1 ring-slate-200 transition hover:ring-slate-400"
         >
           Send another request
         </button>
@@ -138,13 +138,11 @@ export default function SupportForm() {
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="rounded-3xl border border-slate-100 bg-white p-6 shadow-sm sm:p-8"
-    >
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold text-slate-600">
+    // No card of its own — the page places it inside its panel.
+    <form onSubmit={handleSubmit}>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-semibold text-slate-800">
             Name <span className="text-red-500">*</span>
           </span>
           <input
@@ -152,11 +150,11 @@ export default function SupportForm() {
             required
             value={form.name}
             onChange={(e) => set("name", e.target.value)}
-            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500"
+            className="rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500"
           />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold text-slate-600">
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-semibold text-slate-800">
             Email <span className="text-red-500">*</span>
           </span>
           <input
@@ -165,28 +163,28 @@ export default function SupportForm() {
             value={form.email}
             onChange={(e) => set("email", e.target.value)}
             placeholder="you@example.com"
-            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500"
+            className="rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500"
           />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold text-slate-600">
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-semibold text-slate-800">
             Phone <span className="font-normal text-slate-400">(optional)</span>
           </span>
           <input
             type="tel"
             value={form.phone}
             onChange={(e) => set("phone", e.target.value)}
-            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500"
+            className="rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500"
           />
         </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs font-semibold text-slate-600">
+        <label className="flex flex-col gap-2">
+          <span className="text-sm font-semibold text-slate-800">
             This is about <span className="text-red-500">*</span>
           </span>
           <select
             value={form.category}
             onChange={(e) => set("category", e.target.value)}
-            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500"
+            className="rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500"
           >
             {CATEGORIES.map((c) => (
               <option key={c.value} value={c.value}>
@@ -195,8 +193,8 @@ export default function SupportForm() {
             ))}
           </select>
         </label>
-        <label className="flex flex-col gap-1 sm:col-span-2">
-          <span className="text-xs font-semibold text-slate-600">
+        <label className="flex flex-col gap-2 sm:col-span-2">
+          <span className="text-sm font-semibold text-slate-800">
             Order number{" "}
             <span className="font-normal text-slate-400">(if applicable)</span>
           </span>
@@ -205,11 +203,11 @@ export default function SupportForm() {
             value={form.orderNumber}
             onChange={(e) => set("orderNumber", e.target.value)}
             placeholder="ORD-XXXXXXXX-XXXXX"
-            className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-mono outline-none focus:border-brand-500"
+            className="rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500 font-mono"
           />
         </label>
-        <label className="flex flex-col gap-1 sm:col-span-2">
-          <span className="text-xs font-semibold text-slate-600">
+        <label className="flex flex-col gap-2 sm:col-span-2">
+          <span className="text-sm font-semibold text-slate-800">
             How can we help? <span className="text-red-500">*</span>
           </span>
           <textarea
@@ -218,7 +216,7 @@ export default function SupportForm() {
             value={form.message}
             onChange={(e) => set("message", e.target.value)}
             placeholder="Tell us what's going on…"
-            className="resize-none rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500"
+            className="resize-none rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 outline-none transition placeholder:text-slate-400 focus:ring-2 focus:ring-brand-500"
           />
         </label>
       </div>
@@ -226,7 +224,7 @@ export default function SupportForm() {
       <button
         type="submit"
         disabled={submitting}
-        className="mt-5 inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-3.5 font-semibold text-white shadow-cta transition hover:-translate-y-0.5 hover:bg-slate-800 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none"
+        className="mt-8 inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-400 to-brand-600 px-7 py-4 font-semibold text-slate-950 transition hover:brightness-110 active:scale-[.97] disabled:opacity-50 disabled:active:scale-100"
       >
         <Send className="h-4 w-4" strokeWidth={2.25} />
         {submitting ? "Sending…" : "Send request"}

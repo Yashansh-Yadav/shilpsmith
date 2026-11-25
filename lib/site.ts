@@ -12,8 +12,11 @@ export const SITE_URL = (
 
 export const SITE_NAME = "ShilpSmith";
 export const SITE_LEGAL_NAME = "ShilpSmith 3D Studio";
+// Names the city on purpose: this string is the default meta description, the
+// Organization description in JSON-LD and the llms.txt summary, so it's the
+// main place search and answer engines learn where the studio is.
 export const SITE_DESCRIPTION =
-  "Premium 3D-printed gifts, decor, and custom commissions — personalized and crafted on demand in India.";
+  "Custom 3D printing studio in Bareilly, Uttar Pradesh — premium 3D-printed gifts, decor and made-to-order commissions, shipped across India.";
 export const SITE_TAGLINE = "Bring your ideas to life with premium 3D prints.";
 
 // Contact / business details. Email destinations for transactional mail are
@@ -30,6 +33,20 @@ export const BUSINESS_COUNTRY = "India";
 // it, and so do customers deciding whether to hand over money.
 export const FOUNDER_NAME = "Yashansh Kumar Singh";
 export const FOUNDER_ROLE = "Founder";
+
+// "Meet the maker" on the homepage. Both are optional: with no photo the
+// section shows a monogram, and with no story it falls back to a short,
+// factual studio description. Put the photo in /public and set the path
+// (e.g. "/founder.jpg", portrait 4:5 works best). The story should be the
+// founder's own words — why ShilpSmith started, when, the first print.
+export const FOUNDER_PHOTO: string | null = "/myPhoto.webp";
+// Drawn only from facts stated on /about — no invented dates or milestones.
+// Replace with the founder's own words whenever they're ready.
+export const FOUNDER_STORY: string[] | null = [
+  "I started ShilpSmith with a simple belief: the things you keep and gift should feel personal. 3D printing lets me make exactly that — pieces designed around a name, a moment or a need, printed one at a time instead of stamped out by the thousand.",
+  "Every order is designed, printed, finished and quality-checked by hand in my studio in Bareilly before it ships. I sweat the details — material, finish, durability — so what arrives is something you're proud to own or give.",
+  "When you message on WhatsApp, you're talking to the person who makes your piece, not a call centre. Got an idea, a sketch or just a question? Talk to me directly.",
+];
 
 // Publicly displayed business contact number. Kept separate from
 // NEXT_PUBLIC_WHATSAPP_NUMBER because the WhatsApp CTA number and the number a
@@ -55,6 +72,19 @@ export const BUSINESS_ADDRESS = {
   postalCode: "243003",
   country: BUSINESS_COUNTRY,
 };
+
+// Local-SEO extras for the LocalBusiness JSON-LD. Both are emitted only when
+// set; leave them null until they're real. Never guess coordinates: a pin in
+// the wrong place is worse than none.
+//   - BUSINESS_GEO: the exact pin from the Google Business Profile listing
+//     (right-click the pin in Google Maps to copy the coordinates).
+//   - BUSINESS_MAP_URL: the profile's share link (maps.app.goo.gl/…). It
+//     connects this site to the Maps listing that the local pack ranks.
+export const BUSINESS_GEO: { latitude: number; longitude: number } | null = null;
+export const BUSINESS_MAP_URL: string | null = null;
+
+/** The local landing page; one constant so nav, sitemap and llms.txt agree. */
+export const LOCAL_PAGE_PATH = "/3d-printing-bareilly";
 
 /** Human-readable single line, skipping any part that isn't set. */
 export const BUSINESS_ADDRESS_LINE = [
@@ -137,6 +167,7 @@ export const FOOTER_GROUPS: {
     title: "Company",
     links: [
       { href: "/about", label: "About us" },
+      { href: LOCAL_PAGE_PATH, label: "3D printing in Bareilly" },
       { href: "/contact", label: "Support / Contact" },
       { href: "/track", label: "Track order" },
     ],

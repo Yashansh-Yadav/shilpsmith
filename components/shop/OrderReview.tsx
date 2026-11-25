@@ -24,9 +24,9 @@ export default function OrderReview({
   paymentMethod,
 }: Props) {
   return (
-    <div className="space-y-6">
-      <section className="rounded-2xl border border-slate-100 p-4">
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+    <div className="space-y-4">
+      <section className="rounded-[1.5rem] bg-slate-50 p-5">
+        <h3 className="mb-3 font-mono text-xs uppercase tracking-[0.18em] text-slate-500">
           Items
         </h3>
         <ul className="space-y-3">
@@ -36,14 +36,14 @@ export default function OrderReview({
               className="flex items-start justify-between gap-3"
             >
               <div>
-                <p className="font-medium">
+                <p className="font-display font-semibold tracking-tight text-slate-900">
                   {item.name}
                   {item.variantName && (
-                    <span className="ml-1 text-sm text-slate-500">
+                    <span className="ml-1 font-sans text-sm font-normal text-slate-500">
                       · {item.variantName}
                     </span>
                   )}{" "}
-                  <span className="text-sm text-slate-500">
+                  <span className="font-mono text-sm font-normal text-slate-500">
                     × {item.quantity}
                   </span>
                 </p>
@@ -59,7 +59,7 @@ export default function OrderReview({
                     </dl>
                   )}
               </div>
-              <p className="font-medium">
+              <p className="font-mono font-semibold text-slate-900">
                 {formatRupee(item.unitPrice * item.quantity)}
               </p>
             </li>
@@ -67,11 +67,11 @@ export default function OrderReview({
         </ul>
       </section>
 
-      <section className="rounded-2xl border border-slate-100 p-4">
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+      <section className="rounded-[1.5rem] bg-slate-50 p-5">
+        <h3 className="mb-3 font-mono text-xs uppercase tracking-[0.18em] text-slate-500">
           Ship to
         </h3>
-        <address className="not-italic text-sm leading-6 text-slate-700">
+        <address className="not-italic text-[15px] leading-7 text-slate-700">
           {shippingAddress.fullName}
           <br />
           {shippingAddress.street}
@@ -86,19 +86,19 @@ export default function OrderReview({
         </address>
       </section>
 
-      <section className="rounded-2xl border border-slate-100 p-4">
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+      <section className="rounded-[1.5rem] bg-slate-50 p-5">
+        <h3 className="mb-3 font-mono text-xs uppercase tracking-[0.18em] text-slate-500">
           Payment
         </h3>
-        <p className="text-sm">
+        <p className="text-[15px] font-medium text-slate-800">
           {paymentMethod === "RAZORPAY" && "Online payment (Razorpay)"}
           {paymentMethod === "WHATSAPP" && "Confirm via WhatsApp"}
           {paymentMethod === "COD" && "Cash on Delivery"}
         </p>
       </section>
 
-      <section className="rounded-2xl bg-slate-50 p-4">
-        <dl className="space-y-1 text-sm">
+      <section className="rounded-[1.5rem] bg-white p-5 ring-1 ring-slate-200">
+        <dl className="space-y-2 text-[15px]">
           <Row label="Subtotal" value={formatRupee(pricing.subtotal)} />
           <Row
             label="Shipping"
@@ -113,9 +113,9 @@ export default function OrderReview({
               value={`− ${formatRupee(pricing.discount)}`}
             />
           )}
-          <div className="mt-2 flex justify-between border-t border-slate-200 pt-2 text-base font-bold">
-            <dt>Total</dt>
-            <dd>{formatRupee(pricing.total)}</dd>
+          <div className="mt-3 flex items-baseline justify-between border-t border-slate-100 pt-3">
+            <dt className="font-display text-lg font-semibold">Total</dt>
+            <dd className="font-mono text-2xl font-bold">{formatRupee(pricing.total)}</dd>
           </div>
         </dl>
       </section>
@@ -127,7 +127,7 @@ function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between">
       <dt className="text-slate-500">{label}</dt>
-      <dd className="font-medium">{value}</dd>
+      <dd className="font-mono font-medium">{value}</dd>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import "./globals.css";
 
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import Script from "next/script";
 
 import {
@@ -16,6 +16,8 @@ import {
   FOUNDER_NAME,
   BUSINESS_ADDRESS,
   BUSINESS_PHONE_E164,
+  BUSINESS_GEO,
+  BUSINESS_MAP_URL,
 } from "../lib/site";
 import { getSocialLinks } from "../lib/settings";
 
@@ -23,6 +25,15 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
+});
+
+// Display face for headlines — geometric, engineered, maker-ish. Inter stays
+// the body face; mono stays for prices and specs.
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+  variable: "--font-display",
 });
 
 // Tech/maker pairing — mono used for prices, specs, build numbers. JetBrains
@@ -33,15 +44,22 @@ const jetbrainsMono = JetBrains_Mono({
   variable: "--font-mono",
 });
 
+// City in the default title: it's what every page without its own title shows,
+// and "3D printing Bareilly" is the query the local strategy is built around.
+const DEFAULT_TITLE = `${SITE_LEGAL_NAME} — Custom 3D Printing in Bareilly & Across India`;
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_LEGAL_NAME} — Premium 3D Printed Gifts & Custom Creations`,
+    default: DEFAULT_TITLE,
     template: `%s · ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,
   keywords: [
+    "3D printing Bareilly",
+    "3D printing service in Bareilly",
+    "custom gifts Bareilly",
     "3D printing India",
     "custom 3D printed gifts",
     "personalized gifts",
@@ -63,7 +81,7 @@ export const metadata: Metadata = {
     locale: "en_IN",
     url: SITE_URL,
     siteName: SITE_NAME,
-    title: `${SITE_LEGAL_NAME} — Premium 3D Printed Gifts & Custom Creations`,
+    title: DEFAULT_TITLE,
     description: SITE_DESCRIPTION,
     images: [{ url: OG_IMAGE, width: 1200, height: 630, alt: SITE_NAME }],
   },
@@ -83,7 +101,15 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  icons: { icon: BRAND_LOGO, apple: BRAND_LOGO },
+  // Small purpose-made icons. (Previously BRAND_LOGO — a 1.5 MB 1024px PNG —
+  // which every browser downloaded as the tab icon on every visit.)
+  // app/favicon.ico and app/apple-touch-icon.png are also picked up by Next's
+  // file conventions.
+  icons: {
+    // (Not /favicon.svg: it's a 2 MB SVG wrapping a 1024px bitmap.)
+    icon: [{ url: "/favicon-96x96.png", type: "image/png", sizes: "96x96" }],
+    apple: "/apple-touch-icon.png",
+  },
   category: "shopping",
 };
 
@@ -111,7 +137,10 @@ async function StructuredData() {
     "@context": "https://schema.org",
     "@graph": [
       {
-        "@type": "Organization",
+        // Both types on one entity (one @id) rather than two look-alike nodes:
+        // Organization carries the brand signals (logo, sameAs), LocalBusiness
+        // the local ones (address, geo, areaServed) that tie it to Bareilly.
+        "@type": ["Organization", "LocalBusiness"],
         "@id": `${SITE_URL}/#organization`,
         name: SITE_LEGAL_NAME,
         url: SITE_URL,
@@ -133,7 +162,17 @@ async function StructuredData() {
             : {}),
           addressCountry: "IN",
         },
+        ...(BUSINESS_GEO
+          ? { geo: { "@type": "GeoCoordinates", ...BUSINESS_GEO } }
+          : {}),
+        ...(BUSINESS_MAP_URL ? { hasMap: BUSINESS_MAP_URL } : {}),
+        image: `${SITE_URL}${OG_IMAGE}`,
         telephone: BUSINESS_PHONE_E164,
+        // Home city first, then the rest of the country it ships to.
+        areaServed: [
+          { "@type": "City", name: BUSINESS_ADDRESS.city },
+          { "@type": "Country", name: BUSINESS_ADDRESS.country },
+        ],
         contactPoint: [
           {
             "@type": "ContactPoint",
@@ -182,7 +221,8 @@ async function StructuredData() {
 }
 
 // Google Analytics 4. Production-only so local dev traffic doesn't pollute the
-// property. `afterInteractive` keeps gtag.js off the critical rendering path.
+// property. `lazyOnload` waits until the page has fully loaded and the
+// browser is idle, so the 177 KB gtag.js never competes with the page itself.
 const GA_MEASUREMENT_ID = "G-SZKJF7L95J";
 
 function GoogleAnalytics() {
@@ -191,9 +231,9 @@ function GoogleAnalytics() {
     <>
       <Script
         src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
-        strategy="afterInteractive"
+        strategy="lazyOnload"
       />
-      <Script id="google-analytics" strategy="afterInteractive">
+      <Script id="google-analytics" strategy="lazyOnload">
         {`
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
@@ -211,7 +251,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
       <body className="font-sans antialiased">
         <StructuredData />
         {children}

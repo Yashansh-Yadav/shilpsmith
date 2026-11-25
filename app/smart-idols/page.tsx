@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 
 import { prisma } from "../../lib/prisma";
-import SectionHeader from "../../components/shop/SectionHeader";
+import PageShell from "../../components/site/PageShell";
 import Reveal from "../../components/shop/Reveal";
 import ProductImage from "../../components/shop/ProductImage";
 
@@ -66,98 +66,116 @@ export default async function SmartIdolsPage() {
     },
   });
 
+  const heading = "font-display text-4xl font-semibold tracking-[-0.035em] text-slate-900 sm:text-5xl";
+  const eyebrow = "font-mono text-xs font-medium uppercase tracking-[0.18em] text-brand-700";
+
   return (
-    <main className="bg-white">
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-b from-brand-800 to-brand-600 text-white">
-        <div className="mx-auto max-w-5xl px-4 py-20 text-center sm:px-6">
-          <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em] backdrop-blur">
-            ✨ Smart NFC Idols
-          </p>
-          <h1 className="text-4xl font-black leading-tight sm:text-6xl">
-            Tap. Connect. <span className="text-brand-200">Begin darshan.</span>
-          </h1>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-white/90">
-            Every ShilpSmith Smart idol carries a built-in NFC tag. One tap opens
-            a living darshan — aarti, bhajans, scriptures and today&apos;s
-            panchang, in Hindi or English.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            <Link
-              href="/search"
-              className="rounded-full bg-white px-6 py-3 text-sm font-semibold text-brand-700 shadow-cta transition hover:bg-brand-50"
-            >
-              Shop Smart idols
-            </Link>
-            {deities[0] && (
+    <PageShell>
+      {/* Hero — the dark "build chamber" band, with a tap ripple. */}
+      <section className="relative isolate overflow-hidden bg-slate-950 text-white">
+        <div aria-hidden="true" className="plate-grid absolute inset-0 -z-10" />
+        <div aria-hidden="true" className="heated-bed absolute inset-0 -z-10" />
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-5 py-20 sm:px-8 lg:grid-cols-[3fr_2fr] lg:py-28">
+          <div>
+            <p className="font-mono text-xs font-medium uppercase tracking-[0.18em] text-brand-300">
+              Smart NFC Idols
+            </p>
+            <h1 className="mt-5 font-display text-5xl font-semibold leading-[0.95] tracking-[-0.04em] sm:text-6xl lg:text-7xl">
+              Tap. Connect.
+              <br />
+              <span className="text-brand-200">Begin darshan.</span>
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-relaxed text-slate-300">
+              Every ShilpSmith Smart idol carries a built-in NFC tag. One tap
+              opens a living darshan — aarti, bhajans, scriptures and
+              today&apos;s panchang, in Hindi or English.
+            </p>
+            <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-4">
               <Link
-                href={`/darshan/${deities[0].key}`}
-                className="rounded-full border border-white/30 bg-white/10 px-6 py-3 text-sm font-semibold backdrop-blur transition hover:bg-white/20"
+                href="/search"
+                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-400 to-brand-600 px-7 py-4 font-semibold text-slate-950 transition hover:brightness-110 active:scale-[.97]"
               >
-                Try a live demo →
+                Shop Smart idols →
               </Link>
-            )}
+              {deities[0] && (
+                <Link
+                  href={`/darshan/${deities[0].key}`}
+                  className="inline-flex items-center gap-2 rounded-full bg-white/10 px-7 py-4 font-semibold text-white ring-1 ring-white/15 transition hover:bg-white/15 active:scale-[.97]"
+                >
+                  Try a live demo →
+                </Link>
+              )}
+            </div>
+          </div>
+
+          <div aria-hidden="true" className="relative mx-auto grid h-64 w-64 place-items-center sm:h-80 sm:w-80">
+            <span className="ripple absolute h-40 w-40 rounded-full ring-2 ring-brand-400" />
+            <span className="ripple ripple-2 absolute h-40 w-40 rounded-full ring-2 ring-brand-400" />
+            <span className="ripple ripple-3 absolute h-40 w-40 rounded-full ring-2 ring-brand-400" />
+            <span className="relative grid h-28 w-28 place-items-center rounded-full bg-brand-500 font-mono text-xl font-bold text-slate-950">
+              NFC
+            </span>
           </div>
         </div>
       </section>
 
       {/* How it works */}
-      <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
-        <SectionHeader eyebrow="How it works" title="From tap to darshan in seconds" />
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
+        <p className={eyebrow}>How it works</p>
+        <h2 className={`mt-4 ${heading}`}>From tap to darshan in seconds</h2>
+        <ol className="mt-12 grid grid-cols-1 gap-5 md:grid-cols-3">
           {STEPS.map((s, i) => (
-            <Reveal key={s.title} delay={i * 80}>
-              <div className="h-full rounded-4xl bg-slate-50 p-6">
-                <div className="mb-3 text-4xl">{s.emoji}</div>
-                <h3 className="mb-2 text-lg font-bold">{s.title}</h3>
-                <p className="text-sm leading-relaxed text-slate-500">{s.body}</p>
-              </div>
-            </Reveal>
+            <li key={s.title}>
+              <Reveal delay={i * 80} className="h-full rounded-[2rem] bg-white p-8 ring-1 ring-slate-200/70">
+                <p className="font-mono text-sm text-brand-700">{String(i + 1).padStart(2, "0")}</p>
+                <h3 className="mt-3 font-display text-2xl font-semibold tracking-tight text-slate-900">
+                  {s.title}
+                </h3>
+                <p className="mt-3 text-lg leading-relaxed text-slate-600">{s.body}</p>
+              </Reveal>
+            </li>
           ))}
-        </div>
+        </ol>
       </section>
 
       {/* Features */}
-      <section className="bg-slate-50">
-        <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
-          <SectionHeader
-            eyebrow="Everything inside"
-            title="A complete darshan companion"
-          />
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {FEATURES.map(([emoji, title, body], i) => (
+      <section className="bg-white py-20 lg:py-28">
+        <div className="mx-auto max-w-7xl px-5 sm:px-8">
+          <p className={eyebrow}>Everything inside</p>
+          <h2 className={`mt-4 ${heading}`}>A complete darshan companion</h2>
+          <dl className="mt-12 grid grid-cols-1 gap-x-12 gap-y-10 border-t border-slate-200 pt-10 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map(([, title, body], i) => (
               <Reveal key={title} delay={i * 60}>
-                <div className="flex h-full gap-3 rounded-3xl bg-white p-5 shadow-sm">
-                  <div className="text-2xl">{emoji}</div>
-                  <div>
-                    <h3 className="font-semibold">{title}</h3>
-                    <p className="text-sm text-slate-500">{body}</p>
-                  </div>
-                </div>
+                <dt className="font-display text-xl font-semibold tracking-tight text-slate-900">{title}</dt>
+                <dd className="mt-2 text-lg leading-relaxed text-slate-600">{body}</dd>
               </Reveal>
             ))}
-          </div>
+          </dl>
         </div>
       </section>
 
       {/* Live demos */}
       {deities.length > 0 && (
-        <section className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
-          <SectionHeader
-            eyebrow="Try it now"
-            title="Experience a live darshan"
-            subtitle="No idol needed — open any deity's darshan page right here."
-          />
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+        <section className="mx-auto max-w-7xl px-5 py-20 sm:px-8 lg:py-28">
+          <p className={eyebrow}>Try it now</p>
+          <h2 className={`mt-4 ${heading}`}>Experience a live darshan</h2>
+          <p className="mt-4 max-w-xl text-lg text-slate-600">
+            No idol needed — open any deity&apos;s darshan page right here.
+          </p>
+          <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {deities.map((d) => (
               <Link
                 key={d.key}
                 href={`/darshan/${d.key}`}
-                className="rounded-3xl border border-slate-100 bg-white p-6 text-center shadow-sm transition hover:shadow-lift"
+                className="group relative isolate overflow-hidden rounded-[2rem] bg-slate-950 p-8 text-white transition hover:-translate-y-1"
               >
-                <div className="text-lg font-bold">{d.nameHi}</div>
-                <div className="text-sm text-slate-500">{d.nameEn}</div>
-                <div className="mt-2 text-xs text-brand-600">{d.mantra}</div>
+                <div aria-hidden="true" className="heated-bed absolute inset-0 -z-10 opacity-60" />
+                <p className="font-display text-3xl font-semibold tracking-tight">{d.nameHi}</p>
+                <p className="mt-1 text-slate-400">{d.nameEn}</p>
+                <p className="mt-6 font-mono text-sm text-brand-300">{d.mantra}</p>
+                <p className="mt-6 text-sm font-semibold text-white/80 group-hover:text-white">
+                  Open darshan →
+                </p>
               </Link>
             ))}
           </div>
@@ -166,33 +184,40 @@ export default async function SmartIdolsPage() {
 
       {/* Idol products */}
       {products.length > 0 && (
-        <section className="bg-slate-50">
-          <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
-            <SectionHeader
-              eyebrow="Shop"
-              title="Smart NFC idols"
-              href="/search"
-              ctaLabel="See all"
-            />
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <section className="bg-white py-20 lg:py-28">
+          <div className="mx-auto max-w-7xl px-5 sm:px-8">
+            <div className="flex flex-wrap items-end justify-between gap-6">
+              <div>
+                <p className={eyebrow}>Shop</p>
+                <h2 className={`mt-4 ${heading}`}>Smart NFC idols</h2>
+              </div>
+              <Link
+                href="/search"
+                className="rounded-full bg-white px-6 py-3.5 font-semibold text-slate-900 ring-1 ring-slate-200 transition hover:ring-slate-400"
+              >
+                See all →
+              </Link>
+            </div>
+            <div className="mt-12 grid grid-cols-1 gap-x-5 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
               {products.map((p) => (
                 <Link
                   key={p.id}
                   href={p.deity ? `/darshan/${p.deity.key}` : "/search"}
-                  className="group overflow-hidden rounded-3xl bg-white shadow-sm transition hover:shadow-lift"
+                  className="group block"
                 >
-                  <ProductImage
-                    src={p.images[0]?.url}
-                    alt={p.name}
-                    productId={p.id}
-                    aspectClass="aspect-square"
-                  />
-                  <div className="p-3">
-                    <div className="line-clamp-1 text-sm font-medium">
-                      {p.name}
-                    </div>
-                    <div className="text-xs text-brand-600">View darshan →</div>
+                  <div className="overflow-hidden rounded-[1.75rem] bg-slate-200">
+                    <ProductImage
+                      src={p.images[0]?.url}
+                      alt={p.name}
+                      productId={p.id}
+                      aspectClass="aspect-[2/3]"
+                      className="transition duration-700 group-hover:scale-[1.04]"
+                    />
                   </div>
+                  <p className="mt-4 px-1 font-display text-lg font-semibold leading-tight tracking-tight text-slate-900">
+                    {p.name}
+                  </p>
+                  <p className="mt-1 px-1 text-sm font-semibold text-brand-700">View darshan →</p>
                 </Link>
               ))}
             </div>
@@ -201,20 +226,23 @@ export default async function SmartIdolsPage() {
       )}
 
       {/* CTA */}
-      <section className="mx-auto max-w-5xl px-4 py-20 text-center sm:px-6">
-        <h2 className="text-3xl font-black sm:text-4xl">
-          Bring the divine closer
-        </h2>
-        <p className="mx-auto mt-3 max-w-xl text-slate-500">
-          A meaningful, modern gift for every devotee — crafted on demand.
-        </p>
-        <Link
-          href="/search"
-          className="mt-6 inline-block rounded-full bg-brand-600 px-8 py-3 text-sm font-semibold text-white shadow-cta transition hover:bg-brand-700"
-        >
-          Explore Smart idols
-        </Link>
+      <section className="relative isolate overflow-hidden bg-slate-950 py-24 text-center text-white">
+        <div aria-hidden="true" className="heated-bed absolute inset-0 -z-10" />
+        <div className="mx-auto max-w-3xl px-5">
+          <h2 className="font-display text-5xl font-semibold leading-[0.95] tracking-[-0.04em] sm:text-6xl">
+            Bring the divine closer
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl text-lg text-slate-300">
+            A meaningful, modern gift for every devotee — crafted on demand.
+          </p>
+          <Link
+            href="/search"
+            className="mt-9 inline-flex rounded-full bg-white px-8 py-4 font-semibold text-slate-950 transition hover:bg-brand-100 active:scale-[.97]"
+          >
+            Explore Smart idols
+          </Link>
+        </div>
       </section>
-    </main>
+    </PageShell>
   );
 }

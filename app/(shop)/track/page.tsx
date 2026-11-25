@@ -129,184 +129,186 @@ function TrackInner() {
     ? STATUS_STEPS.findIndex((s) => s.id === order.status)
     : -1;
 
+  const inputCls =
+    "w-full rounded-2xl bg-white px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500";
+  const sectionLabel = "mb-3 font-mono text-xs uppercase tracking-[0.18em] text-slate-500";
+
+  // Chrome (header, footer, cart drawer, toasts) comes from app/(shop)/layout.tsx.
   return (
-    <main className="min-h-screen bg-slate-50 py-10">
-      <div className="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
-        <header className="mb-6">
-          <h1 className="text-2xl font-bold">Track your order</h1>
-          <p className="mt-1 text-sm text-slate-500">
+    <>
+      {/* Dark title band — same "build chamber" field as the homepage hero. */}
+      <section className="relative isolate overflow-hidden bg-slate-950 text-white">
+        <div aria-hidden="true" className="plate-grid absolute inset-0 -z-10" />
+        <div aria-hidden="true" className="heated-bed absolute inset-0 -z-10" />
+        <div className="mx-auto max-w-3xl px-5 pb-28 pt-16 sm:px-8 lg:pt-24">
+          <p className="font-mono text-xs uppercase tracking-[0.18em] text-brand-300">Order status</p>
+          <h1 className="mt-4 font-display text-5xl font-semibold leading-[0.95] tracking-[-0.04em] sm:text-6xl">
+            Track your order
+          </h1>
+          <p className="mt-5 max-w-xl text-lg text-slate-300">
             Enter your order number and the email you used at checkout.
           </p>
-        </header>
+        </div>
+      </section>
 
-        <form
-          onSubmit={onSubmit}
-          className="mb-8 rounded-3xl bg-white p-6 shadow-sm"
-        >
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-700">
-                Order number
-              </span>
+      <div className="relative z-10 mx-auto -mt-16 max-w-3xl px-5 pb-20 sm:px-8">
+        <form onSubmit={onSubmit} className="rounded-[2rem] bg-white p-6 shadow-xl shadow-slate-900/5 ring-1 ring-slate-200/70 sm:p-8">
+          <div className="grid gap-5 sm:grid-cols-2">
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-slate-700">Order number</span>
               <input
                 value={orderNumber}
                 onChange={(e) => setOrderNumber(e.target.value)}
                 placeholder="ORD-20260712-12345"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className={`${inputCls} font-mono`}
               />
             </label>
-            <label className="block text-sm">
-              <span className="mb-1 block font-medium text-slate-700">
-                Email
-              </span>
+            <label className="block">
+              <span className="mb-2 block text-sm font-semibold text-slate-700">Email</span>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
-                className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                className={inputCls}
               />
             </label>
           </div>
           <button
             type="submit"
             disabled={loading}
-            className="mt-4 w-full rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60 sm:w-auto"
+            className="mt-6 w-full rounded-full bg-gradient-to-r from-brand-400 to-brand-600 px-7 py-4 font-semibold text-slate-950 transition hover:brightness-110 active:scale-[.98] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
-            {loading ? "Looking up…" : "Track order"}
+            {loading ? "Looking up…" : "Track order →"}
           </button>
-          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+          {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
         </form>
 
         {order && (
-          <div className="rounded-3xl bg-white p-8 shadow-sm">
-            <header className="mb-6">
-              <h2 className="text-lg font-bold">Hi {order.customerName}</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                Order <span className="font-mono">{order.orderNumber}</span> ·
-                placed {new Date(order.createdAt).toLocaleDateString("en-IN")}
+          <div className="mt-6 space-y-5">
+            <section className="rounded-[2rem] bg-white p-6 ring-1 ring-slate-200/70 sm:p-8">
+              <p className="font-mono text-xs uppercase tracking-[0.18em] text-slate-500">
+                Order <span className="text-slate-900">{order.orderNumber}</span> · placed{" "}
+                {new Date(order.createdAt).toLocaleDateString("en-IN")}
               </p>
-            </header>
+              <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-slate-900">
+                Hi {order.customerName}
+              </h2>
 
-            {!isCancelled ? (
-              <ol className="mb-8 grid grid-cols-5 gap-2 text-xs">
-                {STATUS_STEPS.map((s, idx) => {
-                  const reached = idx <= currentStepIndex;
-                  return (
-                    <li
-                      key={s.id}
-                      className={`rounded-lg p-2 text-center ${
-                        reached
-                          ? "bg-emerald-100 text-emerald-700 font-medium"
-                          : "bg-slate-100 text-slate-400"
-                      }`}
-                    >
-                      {s.label}
-                    </li>
-                  );
-                })}
-              </ol>
-            ) : (
-              <div className="mb-8 rounded-xl bg-amber-50 p-4 text-sm text-amber-800">
-                This order is {order.status.toLowerCase()}.
-              </div>
-            )}
+              {!isCancelled ? (
+                <ol className="mt-8 flex items-start" aria-label="Order status">
+                  {STATUS_STEPS.map((s, idx) => {
+                    const reached = idx <= currentStepIndex;
+                    const current = idx === currentStepIndex;
+                    return (
+                      <li key={s.id} className="relative flex flex-1 flex-col items-center text-center">
+                        {idx > 0 && (
+                          <span
+                            aria-hidden="true"
+                            className={`absolute right-1/2 top-4 h-0.5 w-full ${reached ? "bg-brand-400" : "bg-slate-200"}`}
+                          />
+                        )}
+                        <span
+                          className={`relative grid h-8 w-8 place-items-center rounded-full font-mono text-xs font-bold ${
+                            current
+                              ? "bg-slate-900 text-white"
+                              : reached
+                                ? "bg-brand-500 text-slate-950"
+                                : "bg-white text-slate-400 ring-1 ring-slate-200"
+                          }`}
+                          aria-current={current ? "step" : undefined}
+                        >
+                          {reached && !current ? "✓" : idx + 1}
+                        </span>
+                        <span
+                          className={`mt-2 text-[11px] font-semibold sm:text-xs ${reached ? "text-slate-900" : "text-slate-400"}`}
+                        >
+                          {s.label}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : (
+                <div className="mt-6 rounded-2xl bg-amber-50 p-4 text-[15px] font-medium text-amber-800 ring-1 ring-amber-200">
+                  This order is {order.status.toLowerCase()}.
+                </div>
+              )}
+            </section>
 
             {order.live && order.live.current.status && (
-              <section className="mb-6 rounded-2xl border border-brand-100 bg-white p-4 shadow-sm">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-slate-700">
-                    Live shipment status
-                  </h3>
-                  <span className="inline-flex items-center gap-1.5 text-xs text-slate-400">
+              <section className="rounded-[2rem] bg-white p-6 ring-1 ring-slate-200/70 sm:p-8">
+                <div className="flex items-center justify-between gap-4">
+                  <h3 className="font-display text-xl font-semibold tracking-tight">Live shipment status</h3>
+                  <span className="inline-flex items-center gap-1.5 font-mono text-xs text-slate-500">
                     <span
                       className={`h-2 w-2 rounded-full ${
-                        order.live.delivered
-                          ? "bg-emerald-500"
-                          : "bg-amber-400 animate-pulse"
+                        order.live.delivered ? "bg-brand-500" : "animate-pulse bg-amber-400"
                       }`}
                     />
                     {order.live.delivered ? "Delivered" : "In transit"}
                   </span>
                 </div>
 
-                <div className="mt-3 rounded-xl bg-slate-50 p-3">
-                  <p className="font-semibold text-slate-900">
-                    {order.live.current.status}
-                  </p>
+                <div className="mt-4 rounded-2xl bg-slate-50 p-4">
+                  <p className="font-semibold text-slate-900">{order.live.current.status}</p>
                   <p className="mt-0.5 text-sm text-slate-500">
                     {[order.live.current.location, formatWhen(order.live.current.dateTime)]
                       .filter(Boolean)
                       .join(" · ")}
                   </p>
                   {(order.live.origin || order.live.destination) && (
-                    <p className="mt-1 text-xs text-slate-400">
+                    <p className="mt-1 font-mono text-xs text-slate-400">
                       {order.live.origin} → {order.live.destination}
                     </p>
                   )}
                 </div>
 
                 {order.live.scans.length > 0 && (
-                  <ol className="mt-4 space-y-3 border-l border-slate-200 pl-4">
+                  <ol className="mt-5 space-y-4 border-l-2 border-slate-100 pl-5">
                     {order.live.scans.map((scan, i) => (
                       <li key={i} className="relative">
                         <span
-                          className={`absolute -left-[21px] top-1 h-2.5 w-2.5 rounded-full border-2 border-white ${
-                            i === 0 ? "bg-brand-600" : "bg-slate-300"
+                          className={`absolute -left-[27px] top-1 h-3 w-3 rounded-full ring-4 ring-white ${
+                            i === 0 ? "bg-brand-500" : "bg-slate-300"
                           }`}
                         />
-                        <p className="text-sm font-medium text-slate-800">
-                          {scan.status}
+                        <p className="text-[15px] font-medium text-slate-800">{scan.status}</p>
+                        <p className="text-sm text-slate-500">
+                          {[scan.location, formatWhen(scan.dateTime)].filter(Boolean).join(" · ")}
                         </p>
-                        <p className="text-xs text-slate-500">
-                          {[scan.location, formatWhen(scan.dateTime)]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </p>
-                        {scan.instructions && (
-                          <p className="text-xs text-slate-400">
-                            {scan.instructions}
-                          </p>
-                        )}
+                        {scan.instructions && <p className="text-xs text-slate-400">{scan.instructions}</p>}
                       </li>
                     ))}
                   </ol>
                 )}
 
                 {order.liveSyncedAt && (
-                  <p className="mt-3 text-[11px] text-slate-400">
-                    Updated {formatWhen(order.liveSyncedAt)}
-                  </p>
+                  <p className="mt-4 font-mono text-[11px] text-slate-400">Updated {formatWhen(order.liveSyncedAt)}</p>
                 )}
               </section>
             )}
 
             {order.trackingUrl && (
-              <section className="mb-6 rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
-                <h3 className="text-sm font-semibold text-emerald-800">
-                  Shipment tracking
-                </h3>
-                <dl className="mt-2 space-y-1 text-sm text-emerald-900">
+              <section className="rounded-[2rem] bg-slate-950 p-6 text-white sm:p-8">
+                <h3 className="font-display text-xl font-semibold tracking-tight">Shipment tracking</h3>
+                <dl className="mt-4 space-y-2 text-[15px]">
                   {order.trackingCarrierLabel && (
                     <div className="flex justify-between">
-                      <dt className="text-emerald-700">Carrier</dt>
-                      <dd className="font-medium">
-                        {order.trackingCarrierLabel}
-                      </dd>
+                      <dt className="text-slate-400">Carrier</dt>
+                      <dd className="font-medium">{order.trackingCarrierLabel}</dd>
                     </div>
                   )}
                   {order.trackingNumber && (
                     <div className="flex justify-between">
-                      <dt className="text-emerald-700">Tracking no.</dt>
+                      <dt className="text-slate-400">Tracking no.</dt>
                       <dd className="font-mono">{order.trackingNumber}</dd>
                     </div>
                   )}
                   {order.shippedAt && (
                     <div className="flex justify-between">
-                      <dt className="text-emerald-700">Shipped on</dt>
-                      <dd className="font-medium">
-                        {new Date(order.shippedAt).toLocaleDateString("en-IN")}
-                      </dd>
+                      <dt className="text-slate-400">Shipped on</dt>
+                      <dd className="font-medium">{new Date(order.shippedAt).toLocaleDateString("en-IN")}</dd>
                     </div>
                   )}
                 </dl>
@@ -314,63 +316,54 @@ function TrackInner() {
                   href={order.trackingUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="mt-3 inline-block rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700"
+                  className="mt-5 inline-flex rounded-full bg-gradient-to-r from-brand-400 to-brand-600 px-6 py-3.5 font-semibold text-slate-950 transition hover:brightness-110"
                 >
                   Track shipment →
                 </a>
               </section>
             )}
 
-            <section className="mb-6">
-              <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-                Items
-              </h3>
+            <section className="rounded-[2rem] bg-white p-6 ring-1 ring-slate-200/70 sm:p-8">
+              <h3 className={sectionLabel}>Items</h3>
               <ul className="divide-y divide-slate-100">
                 {order.items.map((item) => (
-                  <li
-                    key={item.id}
-                    className="flex items-start justify-between py-3"
-                  >
-                    <div>
-                      <p className="font-medium">{item.productName}</p>
-                      <p className="text-sm text-slate-500">
-                        Qty: {item.quantity} · {formatRupee(item.unitPrice)} each
+                  <li key={item.id} className="flex items-start justify-between gap-4 py-4">
+                    <div className="min-w-0">
+                      <p className="font-display font-semibold tracking-tight text-slate-900">{item.productName}</p>
+                      <p className="mt-0.5 font-mono text-sm text-slate-500">
+                        × {item.quantity} · {formatRupee(item.unitPrice)} each
                       </p>
                     </div>
-                    <p className="font-medium">{formatRupee(item.subtotal)}</p>
+                    <p className="font-mono font-semibold text-slate-900">{formatRupee(item.subtotal)}</p>
                   </li>
                 ))}
               </ul>
-            </section>
-
-            <section className="mb-6 rounded-2xl bg-slate-50 p-4 text-sm">
-              <div className="flex justify-between border-t border-slate-200 pt-2 text-base font-bold">
-                <span>Total</span>
-                <span>{formatRupee(order.total)}</span>
+              <div className="mt-2 flex items-baseline justify-between border-t border-slate-100 pt-4">
+                <span className="font-display text-lg font-semibold">Total</span>
+                <span className="font-mono text-2xl font-bold">{formatRupee(order.total)}</span>
               </div>
+              <p className="mt-4 text-sm text-slate-500">
+                Payment: <span className="font-semibold text-slate-700">{order.paymentMethod}</span> ·{" "}
+                <span className="font-mono">{order.paymentStatus}</span>
+              </p>
             </section>
-
-            <p className="text-sm text-slate-500">
-              Payment: <strong>{order.paymentMethod}</strong> ·{" "}
-              {order.paymentStatus}
-            </p>
           </div>
         )}
 
-        <p className="mt-6 text-center text-sm text-slate-500">
+        <p className="mt-10 text-center text-[15px] text-slate-500">
           Need help?{" "}
-          <Link href="/contact" className="font-medium text-brand-600">
+          <Link href="/contact" className="font-semibold text-brand-700 underline-offset-4 hover:underline">
             Contact support
           </Link>
         </p>
       </div>
-    </main>
+    </>
   );
 }
 
 export default function TrackPage() {
   return (
-    <Suspense fallback={<div className="p-10 text-slate-500">Loading…</div>}>
+    <Suspense fallback={<div className="mx-auto max-w-3xl px-5 py-20 text-slate-500 sm:px-8">Loading…</div>}>
       <TrackInner />
     </Suspense>
   );

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import toast, { Toaster } from "react-hot-toast";
+import toast from "react-hot-toast";
 
 import { useCartStore, computePricing } from "../../../lib/store/cart";
 import { useShippingConfig } from "../../../lib/useShippingConfig";
@@ -13,6 +13,7 @@ import AddressForm, {
 } from "../../../components/shop/AddressForm";
 import OrderReview from "../../../components/shop/OrderReview";
 import PaymentCheckout from "../../../components/shop/PaymentCheckout";
+import ProductImage from "../../../components/shop/ProductImage";
 
 type Step = "address" | "payment" | "review";
 type PaymentMethod = "RAZORPAY" | "COD";
@@ -144,21 +145,20 @@ export default function CheckoutPage() {
 
   if (items.length === 0 && !createdOrder) {
     return (
-      <main className="min-h-screen bg-slate-50 py-10">
-        <Toaster />
-        <div className="mx-auto max-w-3xl px-6 text-center">
-          <h1 className="mb-3 text-2xl font-bold">Your cart is empty</h1>
-          <p className="mb-6 text-slate-500">
-            Add items to your cart before checking out.
-          </p>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-cta transition hover:-translate-y-0.5 hover:bg-slate-800"
-          >
-            Browse products
-          </Link>
-        </div>
-      </main>
+      <div className="mx-auto max-w-3xl px-5 py-20 text-center sm:px-8 lg:py-28">
+        <h1 className="font-display text-5xl font-semibold tracking-[-0.035em] text-slate-900">
+          Your bag is empty
+        </h1>
+        <p className="mx-auto mt-4 max-w-md text-lg text-slate-600">
+          Add items to your bag before checking out.
+        </p>
+        <Link
+          href="/search"
+          className="mt-8 inline-flex rounded-full bg-gradient-to-r from-brand-400 to-brand-600 px-7 py-4 font-semibold text-slate-950 transition hover:brightness-110 active:scale-[.97]"
+        >
+          Shop the catalog
+        </Link>
+      </div>
     );
   }
 
@@ -286,61 +286,88 @@ export default function CheckoutPage() {
     router.push(orderUrl(order));
   }
 
-  return (
-    <main className="min-h-screen bg-slate-50 py-10">
-      <Toaster />
-      <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <Link href="/cart" className="text-sm text-slate-600 hover:text-slate-900">
-            ← Back to cart
-          </Link>
-          <h1 className="mt-2 text-3xl font-bold">Checkout</h1>
-        </div>
+  const stepIndex = STEPS.findIndex((x) => x.id === step);
+  const primaryBtn =
+    "inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-brand-400 to-brand-600 px-7 py-4 font-semibold text-slate-950 transition hover:brightness-110 active:scale-[.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100";
+  const backBtn = "font-semibold text-slate-500 transition hover:text-slate-900";
 
-        {/* Progress */}
-        <ol className="mb-8 flex gap-2 text-xs font-medium">
-          {STEPS.map((s, idx) => {
-            const active = step === s.id;
-            const completed = STEPS.findIndex((x) => x.id === step) > idx;
-            return (
-              <li
-                key={s.id}
-                className={`flex-1 rounded-full px-3 py-2 text-center transition ${
+  // Chrome (header, footer, cart drawer, toasts) comes from app/(shop)/layout.tsx.
+  return (
+    <div className="mx-auto max-w-7xl px-5 py-14 sm:px-8 lg:py-20">
+      <div className="mb-10">
+        <Link href="/cart" className={backBtn}>
+          ← Back to bag
+        </Link>
+        <h1 className="mt-3 font-display text-5xl font-semibold tracking-[-0.035em] text-slate-900 sm:text-6xl">
+          Checkout
+        </h1>
+      </div>
+
+      {/* Progress */}
+      <ol className="mb-10 flex items-center gap-3" aria-label="Checkout progress">
+        {STEPS.map((s, idx) => {
+          const active = idx === stepIndex;
+          const completed = idx < stepIndex;
+          return (
+            <li
+              key={s.id}
+              className={`flex items-center gap-3 ${idx < STEPS.length - 1 ? "flex-1" : ""}`}
+              aria-current={active ? "step" : undefined}
+            >
+              <span
+                className={`grid h-9 w-9 flex-none place-items-center rounded-full font-mono text-sm font-bold transition ${
                   active
-                    ? "bg-slate-900 text-white shadow-sm"
+                    ? "bg-slate-900 text-white"
                     : completed
-                      ? "bg-brand-50 text-brand-700 ring-1 ring-brand-600/20"
-                      : "bg-slate-200 text-slate-600"
+                      ? "bg-brand-500 text-slate-950"
+                      : "bg-white text-slate-400 ring-1 ring-slate-200"
                 }`}
               >
-                {idx + 1}. {s.label}
-              </li>
-            );
-          })}
-        </ol>
+                {completed ? "✓" : idx + 1}
+              </span>
+              <span
+                className={`text-sm font-semibold ${
+                  active ? "text-slate-900" : completed ? "text-brand-700" : "text-slate-400"
+                }`}
+              >
+                {s.label}
+              </span>
+              {idx < STEPS.length - 1 && (
+                <span aria-hidden="true" className={`h-px flex-1 ${completed ? "bg-brand-400" : "bg-slate-200"}`} />
+              )}
+            </li>
+          );
+        })}
+      </ol>
 
-        <div className="rounded-3xl bg-white p-6 shadow-sm md:p-8">
+      <div className={`grid grid-cols-1 gap-8 ${step === "review" ? "" : "lg:grid-cols-[minmax(0,1fr)_380px]"}`}>
+        <div
+          className={`rounded-[2rem] bg-white p-6 ring-1 ring-slate-200/70 sm:p-8 lg:p-10 ${
+            step === "review" ? "mx-auto w-full max-w-3xl" : ""
+          }`}
+        >
           {step === "address" && (
             <>
-              <h2 className="mb-4 text-xl font-bold">Shipping address</h2>
+              <h2 className="mb-6 font-display text-3xl font-semibold tracking-tight">Shipping address</h2>
               <AddressForm
                 value={shippingAddress}
                 onChange={setShippingAddress}
                 errors={fieldErrors}
               />
 
-              <label className="mt-4 flex items-center gap-2 text-sm">
+              <label className="mt-6 flex cursor-pointer items-center gap-3 text-[15px] text-slate-700">
                 <input
                   type="checkbox"
                   checked={billingSameAsShipping}
                   onChange={(e) => setBillingSameAsShipping(e.target.checked)}
+                  className="h-5 w-5 rounded accent-brand-600"
                 />
                 Billing address is the same as shipping
               </label>
 
               {!billingSameAsShipping && (
-                <div className="mt-6">
-                  <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
+                <div className="mt-8">
+                  <h3 className="mb-4 font-mono text-xs uppercase tracking-[0.18em] text-slate-500">
                     Billing address
                   </h3>
                   <AddressForm
@@ -351,13 +378,9 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              <div className="mt-8 flex justify-end">
-                <button
-                  type="button"
-                  onClick={nextFromAddress}
-                  className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-cta transition hover:-translate-y-0.5 hover:bg-slate-800"
-                >
-                  Continue to payment
+              <div className="mt-10 flex justify-end">
+                <button type="button" onClick={nextFromAddress} className={primaryBtn}>
+                  Continue to payment →
                 </button>
               </div>
             </>
@@ -365,7 +388,7 @@ export default function CheckoutPage() {
 
           {step === "payment" && (
             <>
-              <h2 className="mb-4 text-xl font-bold">Payment method</h2>
+              <h2 className="mb-6 font-display text-3xl font-semibold tracking-tight">Payment method</h2>
               <div className="space-y-3">
                 <PaymentOption
                   value="RAZORPAY"
@@ -395,20 +418,12 @@ export default function CheckoutPage() {
                 />
               </div>
 
-              <div className="mt-8 flex justify-between">
-                <button
-                  type="button"
-                  onClick={() => setStep("address")}
-                  className="text-sm text-slate-600 hover:text-slate-900"
-                >
+              <div className="mt-10 flex items-center justify-between">
+                <button type="button" onClick={() => setStep("address")} className={backBtn}>
                   ← Back
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setStep("review")}
-                  className="rounded-xl bg-slate-900 px-6 py-3 text-sm font-semibold text-white shadow-cta transition hover:-translate-y-0.5 hover:bg-slate-800"
-                >
-                  Review order
+                <button type="button" onClick={() => setStep("review")} className={primaryBtn}>
+                  Review order →
                 </button>
               </div>
             </>
@@ -416,7 +431,7 @@ export default function CheckoutPage() {
 
           {step === "review" && (
             <>
-              <h2 className="mb-4 text-xl font-bold">Review &amp; place order</h2>
+              <h2 className="mb-6 font-display text-3xl font-semibold tracking-tight">Review &amp; place order</h2>
               <OrderReview
                 items={items}
                 pricing={pricingWithDiscount}
@@ -426,23 +441,27 @@ export default function CheckoutPage() {
               />
 
               <div className="mt-6">
-                <label className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+                <label
+                  htmlFor="discount-code"
+                  className="font-mono text-xs uppercase tracking-[0.18em] text-slate-500"
+                >
                   Discount code
                 </label>
                 <input
+                  id="discount-code"
                   type="text"
                   value={discountCode}
                   onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
                   placeholder="Enter code"
-                  className="mt-2 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-mono"
+                  className="mt-2 w-full rounded-2xl bg-white px-4 py-3.5 font-mono text-[15px] ring-1 ring-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
                 {/* Live feedback so the customer isn't guessing. */}
                 {discountError ? (
-                  <p className="mt-1 text-xs font-medium text-red-600">
+                  <p className="mt-2 text-sm font-medium text-red-600">
                     {discountError}
                   </p>
                 ) : discountInfo ? (
-                  <p className="mt-1 text-xs font-medium text-emerald-700">
+                  <p className="mt-2 text-sm font-medium text-brand-700">
                     {discountInfo.automatic
                       ? `${discountInfo.name} applied — you save ${formatRupee(discountInfo.amount)}`
                       : `Code applied — you save ${formatRupee(discountInfo.amount)}`}
@@ -450,17 +469,17 @@ export default function CheckoutPage() {
                       ` (better than your code, so we used ${discountInfo.name})`}
                   </p>
                 ) : (
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-2 text-sm text-slate-500">
                     Have a code? Enter it above — the total updates instantly.
                   </p>
                 )}
               </div>
 
               {createdOrder && paymentMethod === "RAZORPAY" ? (
-                <div className="mt-6 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-800">
-                  <p className="mb-3 font-semibold">
-                    Order {createdOrder.orderNumber} created — complete payment
-                    below.
+                <div className="mt-8 rounded-[1.5rem] bg-brand-50 p-5 text-[15px] text-brand-900 ring-1 ring-brand-200">
+                  <p className="mb-4 font-semibold">
+                    Order <span className="font-mono">{createdOrder.orderNumber}</span> created — complete
+                    payment below.
                   </p>
                   <PaymentCheckout
                     orderId={createdOrder.id}
@@ -477,29 +496,80 @@ export default function CheckoutPage() {
                   />
                 </div>
               ) : (
-                <div className="mt-8 flex justify-between">
-                  <button
-                    type="button"
-                    onClick={() => setStep("payment")}
-                    className="text-sm text-slate-600 hover:text-slate-900"
-                  >
+                <div className="mt-10 flex flex-wrap items-center justify-between gap-4">
+                  <button type="button" onClick={() => setStep("payment")} className={backBtn}>
                     ← Back
                   </button>
                   <button
                     type="button"
                     onClick={onConfirmReview}
                     disabled={submitting}
-                    className="rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-cta transition hover:-translate-y-0.5 hover:bg-brand-700 disabled:translate-y-0 disabled:opacity-50 disabled:shadow-none"
+                    className={primaryBtn}
                   >
-                    {submitting ? "Placing order…" : "Place order"}
+                    {submitting ? "Placing order…" : `Place order · ${formatRupee(pricingWithDiscount.total)}`}
                   </button>
                 </div>
               )}
             </>
           )}
         </div>
+
+        {/* Order summary — on the review step the full review replaces it. */}
+        {step !== "review" && (
+          <aside className="h-fit rounded-[2rem] bg-white p-7 ring-1 ring-slate-200/70 lg:sticky lg:top-24">
+            <h2 className="font-display text-2xl font-semibold tracking-tight">Order summary</h2>
+            <ul className="mt-6 space-y-4">
+              {items.map((item) => (
+                <li key={`${item.productId}::${item.variantId ?? "_"}`} className="flex items-center gap-3">
+                  <div className="relative h-16 w-12 flex-none overflow-hidden rounded-xl">
+                    <ProductImage
+                      src={item.imageUrl}
+                      alt={item.name}
+                      productId={item.productId}
+                      aspectClass="h-full w-full"
+                      variant="mini"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-slate-900">{item.name}</p>
+                    <p className="text-sm text-slate-500">
+                      {item.variantName ? `${item.variantName} · ` : ""}
+                      <span className="font-mono">× {item.quantity}</span>
+                    </p>
+                  </div>
+                  <p className="font-mono text-sm font-semibold">{formatRupee(item.unitPrice * item.quantity)}</p>
+                </li>
+              ))}
+            </ul>
+            <dl className="mt-6 space-y-2.5 border-t border-slate-100 pt-5 text-[15px]">
+              <div className="flex justify-between">
+                <dt className="text-slate-500">Subtotal</dt>
+                <dd className="font-mono font-medium">{formatRupee(pricingWithDiscount.subtotal)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-slate-500">Shipping</dt>
+                <dd className="font-mono font-medium">
+                  {pricingWithDiscount.shipping === 0 ? "Free" : formatRupee(pricingWithDiscount.shipping)}
+                </dd>
+              </div>
+              {pricingWithDiscount.discount > 0 && (
+                <div className="flex justify-between text-brand-700">
+                  <dt>Discount{discountInfo?.name ? ` · ${discountInfo.name}` : ""}</dt>
+                  <dd className="font-mono font-medium">− {formatRupee(pricingWithDiscount.discount)}</dd>
+                </div>
+              )}
+              <div className="flex items-baseline justify-between border-t border-slate-100 pt-4">
+                <dt className="font-display text-lg font-semibold">Total</dt>
+                <dd className="font-mono text-2xl font-bold">{formatRupee(pricingWithDiscount.total)}</dd>
+              </div>
+            </dl>
+            <p className="mt-5 text-xs leading-relaxed text-slate-500">
+              Printed to order and checked by hand before it ships.
+            </p>
+          </aside>
+        )}
       </div>
-    </main>
+    </div>
   );
 }
 
@@ -531,12 +601,12 @@ function PaymentOption({
           onDisabledClick?.();
         }
       }}
-      className={`flex items-start gap-3 rounded-2xl border p-4 ${
+      className={`flex items-start gap-4 rounded-[1.5rem] p-5 transition ${
         disabled
-          ? "cursor-not-allowed border-slate-200 bg-slate-50/60 opacity-70"
+          ? "cursor-not-allowed bg-slate-50 opacity-70 ring-1 ring-slate-200"
           : selected
-            ? "cursor-pointer border-black bg-slate-50"
-            : "cursor-pointer border-slate-200"
+            ? "cursor-pointer bg-brand-50/60 ring-2 ring-brand-500"
+            : "cursor-pointer bg-white ring-1 ring-slate-200 hover:ring-slate-400"
       }`}
     >
       <input
@@ -546,18 +616,18 @@ function PaymentOption({
         checked={selected}
         disabled={disabled}
         onChange={() => !disabled && onChange(value)}
-        className="mt-1"
+        className="mt-1 h-4 w-4 accent-brand-600"
       />
       <span>
-        <span className="flex items-center gap-2 font-semibold">
+        <span className="flex flex-wrap items-center gap-2 font-display text-lg font-semibold tracking-tight">
           {title}
           {badge && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-700">
+            <span className="rounded-full bg-amber-100 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-[0.14em] text-amber-700">
               {badge}
             </span>
           )}
         </span>
-        <span className="block text-sm text-slate-500">{description}</span>
+        <span className="mt-1 block text-[15px] text-slate-500">{description}</span>
       </span>
     </label>
   );

@@ -30,7 +30,7 @@ export default function VariantSelector({
 
   return (
     <div>
-      <label className="mb-2 block text-sm font-semibold">Variant</label>
+      <label className="mb-3 block font-mono text-xs uppercase tracking-[0.18em] text-slate-500">Variant</label>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
         {variants.map((v) => {
           const modifier = Number(v.priceModifier ?? 0);
@@ -43,17 +43,17 @@ export default function VariantSelector({
               type="button"
               disabled={outOfStock}
               onClick={() => onChange(selected ? null : v.id)}
-              className={`rounded-2xl border p-3 text-left transition ${
+              className={`rounded-2xl p-4 text-left transition active:scale-[.98] ${
                 selected
-                  ? "border-black bg-slate-50"
-                  : "border-slate-200 hover:border-slate-400"
-              } ${outOfStock ? "opacity-50 cursor-not-allowed" : ""}`}
+                  ? "bg-slate-900 text-white ring-2 ring-slate-900"
+                  : "bg-white ring-1 ring-slate-200 hover:ring-slate-400"
+              } ${outOfStock ? "cursor-not-allowed opacity-50" : ""}`}
             >
-              <div className="text-sm font-semibold">{v.name}</div>
-              <div className="text-xs text-slate-500">
+              <div className="font-display font-semibold tracking-tight">{v.name}</div>
+              <div className={`mt-1 font-mono text-xs ${selected ? "text-slate-300" : "text-slate-500"}`}>
                 {formatRupee(total)}
                 {modifier !== 0 && (
-                  <span className="ml-1 text-slate-400">
+                  <span className="ml-1 opacity-70">
                     ({modifier > 0 ? "+" : ""}
                     {formatRupee(modifier)})
                   </span>

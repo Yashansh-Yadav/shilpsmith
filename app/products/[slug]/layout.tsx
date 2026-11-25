@@ -5,7 +5,6 @@
 // real header/footer instead of the whole screen going blank.
 
 import PageShell from "../../../components/site/PageShell";
-import StorefrontChrome from "../../../components/shop/StorefrontChrome";
 
 export default function ProductLayout({
   children,
@@ -13,9 +12,6 @@ export default function ProductLayout({
   children: React.ReactNode;
 }) {
   return (
-    <PageShell>
-      {children}
-      <StorefrontChrome />
-    </PageShell>
+    <PageShell>{children}</PageShell>
   );
 }

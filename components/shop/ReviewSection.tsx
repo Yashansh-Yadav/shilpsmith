@@ -144,18 +144,18 @@ export default function ReviewSection({
 
   return (
     <section>
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+      <div className="mb-10 flex flex-wrap items-end justify-between gap-6">
         <div>
           {compact ? (
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-500">
+            <h3 className="font-mono text-xs uppercase tracking-[0.18em] text-slate-500">
               Reviews
             </h3>
           ) : (
             <>
-              <h2 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">
+              <h2 className="font-display text-4xl font-semibold leading-none tracking-[-0.035em] text-slate-900 sm:text-5xl">
                 Ratings &amp; reviews
               </h2>
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-4 text-lg text-slate-600">
                 {hasReviews
                   ? `What ${summary.count} customer${
                       summary.count > 1 ? "s" : ""
@@ -168,7 +168,7 @@ export default function ReviewSection({
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          className="inline-flex shrink-0 items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 hover:shadow-lift"
+          className="inline-flex shrink-0 items-center gap-2 rounded-full bg-slate-900 px-6 py-3.5 font-semibold text-white transition hover:bg-slate-800 active:scale-[.97]"
         >
           <PenLine className="h-4 w-4" />
           Write a review
@@ -176,29 +176,29 @@ export default function ReviewSection({
       </div>
 
       {/* Score + per-star breakdown */}
-      <div className="overflow-hidden rounded-4xl border border-slate-100 bg-gradient-to-br from-slate-50 via-white to-brand-50/40 shadow-sm">
-        <div className="flex flex-col gap-8 p-6 sm:flex-row sm:items-center sm:gap-10 sm:p-8">
+      <div className="overflow-hidden rounded-[2rem] bg-white">
+        <div className="flex flex-col gap-8 p-7 sm:flex-row sm:items-center sm:gap-12 sm:p-10">
           <div className="flex shrink-0 flex-col items-center text-center sm:w-44">
-            <p className="font-spec text-6xl font-black leading-none text-slate-900">
+            <p className="font-display text-7xl font-semibold leading-none tracking-[-0.04em] text-slate-900">
               {hasReviews ? summary.average.toFixed(1) : "—"}
             </p>
             <div className="mt-3">
               <StarRating value={summary.average} readOnly size="md" />
             </div>
-            <p className="mt-2 text-xs font-medium text-slate-500">
+            <p className="mt-2 font-mono text-xs text-slate-500">
               {hasReviews
                 ? `${summary.count} review${summary.count > 1 ? "s" : ""}`
                 : "No reviews yet"}
             </p>
             {hasReviews && recommendPct > 0 && (
-              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-[11px] font-bold text-brand-700">
+              <p className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-brand-100 px-3 py-1 text-xs font-semibold text-brand-800">
                 <ShieldCheck className="h-3.5 w-3.5" />
                 {recommendPct}% rated 4★+
               </p>
             )}
           </div>
 
-          <div className="hidden w-px self-stretch bg-slate-200/70 sm:block" />
+          <div className="hidden w-px self-stretch bg-slate-200 sm:block" />
 
           <div className="flex-1 space-y-2.5">
             {[5, 4, 3, 2, 1].map((star) => {
@@ -208,13 +208,13 @@ export default function ReviewSection({
               const pct = hasReviews ? (n / summary.count) * 100 : 0;
               return (
                 <div key={star} className="flex items-center gap-3 text-xs">
-                  <span className="flex w-10 shrink-0 items-center gap-1 font-semibold text-slate-600">
+                  <span className="flex w-10 shrink-0 items-center gap-1 font-mono font-semibold text-slate-600">
                     {star}
                     <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
                   </span>
-                  <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-200/70">
+                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-slate-100">
                     <div
-                      className="h-full rounded-full bg-gradient-to-r from-amber-300 to-amber-400 transition-[width] duration-700 ease-out"
+                      className="h-full rounded-full bg-amber-400 transition-[width] duration-700 ease-out"
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -235,26 +235,26 @@ export default function ReviewSection({
             {[0, 1].map((i) => (
               <div
                 key={i}
-                className="h-36 animate-pulse rounded-3xl border border-slate-100 bg-slate-50"
+                className="h-36 animate-pulse rounded-[1.75rem] bg-slate-200/70"
               />
             ))}
           </div>
         ) : reviews.length === 0 ? (
-          <div className="rounded-4xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-50">
+          <div className="rounded-[2rem] bg-white px-6 py-14 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
               <MessageSquarePlus className="h-7 w-7 text-slate-400" />
             </div>
-            <p className="mt-4 text-base font-bold text-slate-900">
+            <p className="mt-4 font-display text-2xl font-semibold tracking-tight text-slate-900">
               No reviews yet
             </p>
-            <p className="mx-auto mt-1 max-w-sm text-sm text-slate-500">
+            <p className="mx-auto mt-2 max-w-sm text-slate-600">
               Bought this one? Share how it turned out — you&apos;ll be the first
               review other shoppers see.
             </p>
             <button
               type="button"
               onClick={() => setModalOpen(true)}
-              className="mt-5 inline-flex items-center gap-2 rounded-full bg-brand-600 px-6 py-2.5 text-sm font-bold text-white shadow-cta transition hover:bg-brand-700"
+              className="mt-6 inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-400 to-brand-600 px-6 py-3.5 font-semibold text-slate-950 transition hover:brightness-110 active:scale-[.97]"
             >
               <PenLine className="h-4 w-4" />
               Be the first to review
@@ -266,9 +266,9 @@ export default function ReviewSection({
               {visible.map((r) => (
                 <li
                   key={r.id}
-                  className="group relative flex flex-col rounded-3xl border border-slate-100 bg-white p-5 transition hover:border-slate-200 hover:shadow-lift"
+                  className="group relative flex flex-col rounded-[1.75rem] bg-white p-6 transition hover:-translate-y-0.5"
                 >
-                  <Quote className="absolute right-5 top-5 h-6 w-6 text-slate-100" />
+                  <Quote className="absolute right-6 top-6 h-6 w-6 text-brand-100" />
 
                   <div className="flex items-center gap-3">
                     <span
@@ -280,7 +280,7 @@ export default function ReviewSection({
                       {initialsOf(r.customerName)}
                     </span>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-slate-900">
+                      <p className="truncate font-display font-semibold text-slate-900">
                         {r.customerName ?? "Customer"}
                       </p>
                       {r.verified && (
@@ -294,18 +294,18 @@ export default function ReviewSection({
 
                   <div className="mt-3 flex items-center gap-2">
                     <StarRating value={r.rating} readOnly size="sm" />
-                    <span className="text-[11px] text-slate-400">
+                    <span className="font-mono text-[11px] text-slate-400">
                       {formatDate(r.createdAt)}
                     </span>
                   </div>
 
                   {r.title && (
-                    <p className="mt-2.5 font-bold leading-snug text-slate-900">
+                    <p className="mt-3 font-display text-lg font-semibold leading-snug tracking-tight text-slate-900">
                       {r.title}
                     </p>
                   )}
                   {r.comment && (
-                    <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
+                    <p className="mt-2 text-[15px] leading-relaxed text-slate-600">
                       {r.comment}
                     </p>
                   )}
@@ -318,7 +318,7 @@ export default function ReviewSection({
                 <button
                   type="button"
                   onClick={() => setShowAll((v) => !v)}
-                  className="rounded-full border border-slate-200 px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-900"
+                  className="rounded-full bg-white px-6 py-3.5 font-semibold text-slate-900 ring-1 ring-slate-200 transition hover:ring-slate-400"
                 >
                   {showAll
                     ? "Show fewer reviews"

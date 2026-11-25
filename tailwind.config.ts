@@ -19,6 +19,7 @@ const config: Config = {
           "Inter",
           "sans-serif",
         ],
+        display: ["var(--font-display)", "var(--font-sans)", "ui-sans-serif", "sans-serif"],
         mono: [
           "var(--font-mono)",
           "ui-monospace",

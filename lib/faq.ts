@@ -31,7 +31,11 @@ export interface FaqItem {
 export const FAQ_ITEMS: FaqItem[] = [
   {
     q: "What is ShilpSmith?",
-    a: "ShilpSmith is a 3D printing studio in India that creates personalized gifts, aesthetic home decor, functional accessories, educational models, and one-of-a-kind custom pieces. Every product is designed digitally and 3D-printed on demand, so you get made-to-order items rather than mass-produced stock.",
+    a: "ShilpSmith is a 3D printing studio in Bareilly, Uttar Pradesh, India that creates personalized gifts, aesthetic home decor, functional accessories, educational models, and one-of-a-kind custom pieces. Every product is designed digitally and 3D-printed on demand, so you get made-to-order items rather than mass-produced stock.",
+  },
+  {
+    q: "Where is ShilpSmith located? Is there a 3D printing service in Bareilly?",
+    a: "ShilpSmith is a 3D printing studio based in Bareilly, Uttar Pradesh. Every piece is designed, printed, finished and quality-checked in the Bareilly studio, and customers in Bareilly can talk directly to the maker on WhatsApp or by phone about custom work. ShilpSmith also ships across India.",
   },
   {
     q: "Do you make custom 3D printed products, and how does it work?",

@@ -6,7 +6,6 @@
 // page: chrome in the layout so it stays mounted while the page's data loads.
 
 import PageShell from "../../../components/site/PageShell";
-import StorefrontChrome from "../../../components/shop/StorefrontChrome";
 
 export default function CategoryLayout({
   children,
@@ -14,9 +13,6 @@ export default function CategoryLayout({
   children: React.ReactNode;
 }) {
   return (
-    <PageShell>
-      {children}
-      <StorefrontChrome />
-    </PageShell>
+    <PageShell>{children}</PageShell>
   );
 }

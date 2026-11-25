@@ -53,7 +53,7 @@ export default function DynamicCustomizationForm({
       {fields.map((field) => {
         const v = value[field.label] ?? "";
         const labelEl = (
-          <span className="mb-1.5 block text-sm font-semibold">
+          <span className="mb-2 block text-sm font-semibold text-slate-900">
             {field.label}
             {field.required && <span className="ml-1 text-red-500">*</span>}
           </span>
@@ -69,7 +69,7 @@ export default function DynamicCustomizationForm({
                 value={v}
                 onChange={(e) => set(field.label, e.target.value)}
                 placeholder={field.placeholder}
-                className="w-full resize-none rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-500"
+                className="resize-none w-full rounded-2xl bg-slate-50 px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-brand-500"
               />
             </div>
           );
@@ -104,10 +104,10 @@ export default function DynamicCustomizationForm({
                       onClick={() =>
                         set(field.label, selected && !field.required ? "" : opt.name)
                       }
-                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm transition ${
+                      className={`flex items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium transition active:scale-[.97] ${
                         selected
-                          ? "border-slate-900 bg-slate-900 text-white"
-                          : "border-slate-200 bg-white text-slate-700 hover:border-slate-400"
+                          ? "bg-slate-900 text-white ring-2 ring-slate-900"
+                          : "bg-white text-slate-700 ring-1 ring-slate-200 hover:ring-slate-400"
                       }`}
                     >
                       <span
@@ -136,7 +136,7 @@ export default function DynamicCustomizationForm({
                   <img
                     src={v}
                     alt={field.label}
-                    className="h-24 w-24 rounded-xl border border-slate-200 object-cover"
+                    className="h-24 w-24 rounded-2xl object-cover ring-1 ring-slate-200"
                   />
                   <button
                     type="button"
@@ -153,7 +153,7 @@ export default function DynamicCustomizationForm({
                   accept="image/*"
                   disabled={uploadingKey === field.key}
                   onChange={(e) => handleImage(field, e.target.files?.[0])}
-                  className="w-full rounded-2xl border border-slate-200 px-4 py-2.5 text-sm disabled:opacity-50"
+                  className="w-full rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700 ring-1 ring-slate-200 file:mr-3 file:rounded-full file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white disabled:opacity-50"
                 />
               )}
               <p className="mt-1 text-xs text-slate-500">
@@ -173,7 +173,7 @@ export default function DynamicCustomizationForm({
               value={v}
               onChange={(e) => set(field.label, e.target.value)}
               placeholder={field.placeholder}
-              className="w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-slate-500"
+              className="w-full rounded-2xl bg-slate-50 px-4 py-3.5 text-[15px] text-slate-900 ring-1 ring-slate-200 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-2 focus:ring-brand-500"
             />
           </div>
         );

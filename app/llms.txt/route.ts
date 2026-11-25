@@ -22,6 +22,8 @@ import {
   FOUNDER_ROLE,
   BUSINESS_PHONE,
   BUSINESS_ADDRESS_LINE,
+  BUSINESS_ADDRESS,
+  LOCAL_PAGE_PATH,
 } from "../../lib/site";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +49,7 @@ export async function GET() {
     "",
     `> ${SITE_DESCRIPTION}`,
     "",
-    `${SITE_NAME} is a 3D printing studio based in ${BUSINESS_COUNTRY}. Products are`,
+    `${SITE_NAME} is a 3D printing studio based in ${BUSINESS_ADDRESS.city}, ${BUSINESS_ADDRESS.state}, ${BUSINESS_COUNTRY}. Products are`,
     "designed digitally and printed on demand, so items are made to order rather",
     "than held as mass-produced stock. Custom commissions are a core part of the",
     "business: customers can send a photo, sketch or description and receive a",
@@ -59,6 +61,7 @@ export async function GET() {
     `- [Shop all products](${SITE_URL}/search): full catalog with category, price and customization filters`,
     `- [Smart NFC Idols](${SITE_URL}/smart-idols): idols with an embedded NFC tag that opens a live darshan page`,
     `- [About](${SITE_URL}/about): studio background, materials and process`,
+    `- [3D printing in ${BUSINESS_ADDRESS.city}](${SITE_URL}${LOCAL_PAGE_PATH}): the local studio, custom orders and FAQs for ${BUSINESS_ADDRESS.city} customers`,
     `- [Contact & support](${SITE_URL}/contact): raise a concern or request a custom quote`,
     `- [Track order](${SITE_URL}/track): order status by order number`,
     `- [Shipping & returns](${SITE_URL}/shipping-returns): dispatch and delivery windows, cancellations, refunds`,
