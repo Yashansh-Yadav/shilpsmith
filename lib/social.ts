@@ -48,6 +48,8 @@ export interface SocialLink {
  * worse than no URL: it tells the crawler the brand claims a profile that
  * doesn't resolve).
  */
+const TRACKING_PARAMS = new Set(["igsh", "igshid", "si", "mibextid", "fbclid", "share_id"]);
+
 export function normalizeSocialUrl(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const trimmed = raw.trim();
@@ -65,6 +67,16 @@ export function normalizeSocialUrl(raw: unknown): string | null {
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
   // A hostname with no dot ("@shilpsmith", "shilpsmith") isn't a real profile URL.
   if (!parsed.hostname.includes(".")) return null;
+
+  // Share buttons append tracking params (Instagram's ?igsh=, YouTube's ?si=,
+  // Facebook's ?mibextid=). Kept, they make sameAs name a per-share URL rather
+  // than the profile, so strip them. Other params are left alone in case a
+  // platform needs them.
+  for (const key of [...parsed.searchParams.keys()]) {
+    if (TRACKING_PARAMS.has(key) || key.startsWith("utm_")) {
+      parsed.searchParams.delete(key);
+    }
+  }
 
   return parsed.toString();
 }

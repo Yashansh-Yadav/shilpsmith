@@ -12,8 +12,11 @@ export const SITE_URL = (
 
 export const SITE_NAME = "ShilpSmith";
 export const SITE_LEGAL_NAME = "ShilpSmith 3D Studio";
+// Names the city on purpose: this string is the default meta description, the
+// Organization description in JSON-LD and the llms.txt summary, so it's the
+// main place search and answer engines learn where the studio is.
 export const SITE_DESCRIPTION =
-  "Premium 3D-printed gifts, decor, and custom commissions — personalized and crafted on demand in India.";
+  "Custom 3D printing studio in Bareilly, Uttar Pradesh — premium 3D-printed gifts, decor and made-to-order commissions, shipped across India.";
 export const SITE_TAGLINE = "Bring your ideas to life with premium 3D prints.";
 
 // Contact / business details. Email destinations for transactional mail are
@@ -69,6 +72,19 @@ export const BUSINESS_ADDRESS = {
   postalCode: "243003",
   country: BUSINESS_COUNTRY,
 };
+
+// Local-SEO extras for the LocalBusiness JSON-LD. Both are emitted only when
+// set; leave them null until they're real. Never guess coordinates: a pin in
+// the wrong place is worse than none.
+//   - BUSINESS_GEO: the exact pin from the Google Business Profile listing
+//     (right-click the pin in Google Maps to copy the coordinates).
+//   - BUSINESS_MAP_URL: the profile's share link (maps.app.goo.gl/…). It
+//     connects this site to the Maps listing that the local pack ranks.
+export const BUSINESS_GEO: { latitude: number; longitude: number } | null = null;
+export const BUSINESS_MAP_URL: string | null = null;
+
+/** The local landing page; one constant so nav, sitemap and llms.txt agree. */
+export const LOCAL_PAGE_PATH = "/3d-printing-bareilly";
 
 /** Human-readable single line, skipping any part that isn't set. */
 export const BUSINESS_ADDRESS_LINE = [
@@ -151,6 +167,7 @@ export const FOOTER_GROUPS: {
     title: "Company",
     links: [
       { href: "/about", label: "About us" },
+      { href: LOCAL_PAGE_PATH, label: "3D printing in Bareilly" },
       { href: "/contact", label: "Support / Contact" },
       { href: "/track", label: "Track order" },
     ],

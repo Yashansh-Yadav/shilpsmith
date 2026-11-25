@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 import { prisma } from "../lib/prisma";
-import { SITE_URL, POLICY_LAST_UPDATED } from "../lib/site";
+import { SITE_URL, POLICY_LAST_UPDATED, LOCAL_PAGE_PATH } from "../lib/site";
 
 export const dynamic = "force-dynamic";
 
@@ -75,6 +75,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     // No reliable "last changed" signal for these — omitting the field is
     // honest, and better than a timestamp Google will learn to distrust.
+    // The local landing page: the main target for "3D printing Bareilly".
+    {
+      url: `${SITE_URL}${LOCAL_PAGE_PATH}`,
+      ...(catalogDate ? { lastModified: catalogDate } : {}),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
     { url: `${SITE_URL}/about`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${SITE_URL}/contact`, changeFrequency: "monthly", priority: 0.6 },
     // Linked from the primary nav and the footer, and a plausible landing page
