@@ -61,7 +61,7 @@ export default function HomeContent({ data }: { data: StorefrontData }) {
         </section>
       )}
 
-      <div className="cv-auto"><SmartIdolsBand products={products} /></div>
+      <div className="cv-auto"><SmartIdolsBand products={data.smartIdols} /></div>
       <div className="cv-auto"><ProcessSteps /></div>
       <div className="cv-auto"><CategoryRows categories={data.categories} /></div>
       <div className="cv-auto"><MeetTheMaker /></div>

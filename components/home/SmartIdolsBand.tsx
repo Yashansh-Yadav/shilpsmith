@@ -15,7 +15,8 @@ const FEATURES = [
 
 // Smart NFC idols get their own dark band — they're the studio's most
 // distinctive product. Idol images come from the catalogue (any product with
-// "NFC" in its name); without any, the band still links to /smart-idols.
+// "NFC" in its name, via StorefrontData.smartIdols — its own query, not the
+// capped homepage shelves); without any, the band still links to /smart-idols.
 export default function SmartIdolsBand({ products }: { products: StorefrontCard[] }) {
   const idols = products.filter((p) => /nfc/i.test(p.name) && p.images?.[0]?.url).slice(0, 2);
   const prices = idols.map((p) => cardDisplay(p));

@@ -69,6 +69,13 @@ export interface StorefrontData {
   featured: StorefrontCard[];
   newest: StorefrontCard[];
   trending: StorefrontCard[];
+  /**
+   * Smart NFC idols for the homepage band. Queried on their own because the
+   * shelves above are capped at 12 newest-first — once the catalogue grew past
+   * 12 featured products, the (older) idols fell off every shelf and the band
+   * silently lost its images and price.
+   */
+  smartIdols: StorefrontCard[];
   /** productCount = live (non-deleted) products, so empty shelves can say so. */
   categories: {
     id: number;
@@ -93,7 +100,7 @@ export async function getStorefrontData(): Promise<StorefrontData> {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-  const [featured, newest, trendingItems, categories, testimonials] =
+  const [featured, newest, trendingItems, categories, testimonials, smartIdols] =
     await Promise.all([
       prisma.product.findMany({
         where: { deletedAt: null, featured: true },
@@ -140,6 +147,18 @@ export async function getStorefrontData(): Promise<StorefrontData> {
         // The homepage rail shows four at a time and scrolls for the rest.
         take: 12,
       }),
+      // Same "NFC in the name" rule SmartIdolsBand uses; the band shows two
+      // posters, so featured ones win, then the newest.
+      prisma.product.findMany({
+        where: {
+          deletedAt: null,
+          name: { contains: "nfc", mode: "insensitive" },
+          images: { some: {} },
+        },
+        select: CARD_SELECT,
+        orderBy: [{ featured: "desc" }, { createdAt: "desc" }],
+        take: 2,
+      }),
     ]);
 
   // Resolve trending productIds → full products, preserving the group order.
@@ -159,7 +178,10 @@ export async function getStorefrontData(): Promise<StorefrontData> {
   // query rather than one per shelf.
   const [autoDiscounts, ratings] = await Promise.all([
     loadActiveAutomaticDiscounts(prisma),
-    loadRatings(prisma, [...featured, ...newest, ...trending].map((p) => p.id)),
+    loadRatings(
+      prisma,
+      [...featured, ...newest, ...trending, ...smartIdols].map((p) => p.id),
+    ),
   ]);
 
   // Date → ISO string so the payload is identical whether it arrives through
@@ -175,6 +197,7 @@ export async function getStorefrontData(): Promise<StorefrontData> {
     featured: featured.map(decorate),
     newest: newest.map(decorate),
     trending: trending.map(decorate),
+    smartIdols: smartIdols.map(decorate),
     categories: categories.map(({ _count, ...c }) => ({
       ...c,
       productCount: _count.products,
